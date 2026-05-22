@@ -1,0 +1,7 @@
+endpoints:
+  - name: "Jamul Pest Control"
+    group: "Customers"
+    url: https://jamul.aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"

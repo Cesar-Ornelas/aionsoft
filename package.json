@@ -1,0 +1,19 @@
+{
+  "name": "aionsoft",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "bun@1.3.12",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:website": "bun run --cwd apps/website dev",
+    "build:website": "bun run --cwd apps/website build",
+    "preview:website": "bun run --cwd apps/website preview",
+    "dev:portal": "bun run --cwd apps/portal dev",
+    "build:portal": "bun run --cwd apps/portal build",
+    "preview:portal": "bun run --cwd apps/portal preview"
+  },
+  "type": "module"
+}

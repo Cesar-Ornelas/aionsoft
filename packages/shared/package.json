@@ -1,0 +1,12 @@
+{
+  "name": "@aionsoft/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./legal-markdown": "./src/legal-markdown.js"
+  },
+  "dependencies": {
+    "marked": "^13.0.0"
+  }
+}

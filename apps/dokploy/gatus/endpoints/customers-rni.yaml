@@ -1,0 +1,7 @@
+endpoints:
+  - name: "R&I Autoglass"
+    group: "Customers"
+    url: https://rniautoglass.com/
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"

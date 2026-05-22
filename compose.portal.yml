@@ -1,0 +1,19 @@
+services:
+  portal:
+    container_name: aionsoft-portal
+    build:
+      context: .
+      dockerfile: docker/portal.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_APP_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

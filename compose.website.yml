@@ -1,0 +1,27 @@
+services:
+  website:
+    container_name: aionsoft-website
+    build:
+      context: .
+      dockerfile: docker/website.Dockerfile
+      args:
+        PUBLIC_SWETRIX_PROJECT_ID: ${PUBLIC_SWETRIX_PROJECT_ID}
+        PUBLIC_SWETRIX_API_URL: ${PUBLIC_SWETRIX_API_URL}
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      CONTACT_FROM_EMAIL: ${CONTACT_FROM_EMAIL}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL}
+      PUBLIC_SWETRIX_PROJECT_ID: ${PUBLIC_SWETRIX_PROJECT_ID}
+      PUBLIC_SWETRIX_API_URL: ${PUBLIC_SWETRIX_API_URL}
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

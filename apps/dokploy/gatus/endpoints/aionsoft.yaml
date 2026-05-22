@@ -1,0 +1,7 @@
+endpoints:
+  - name: aionsoft.io
+    group: "Internal"
+    url: https://aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"

@@ -1,0 +1,93 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@font-face {
+    font-family: 'Oxygen';
+    src: url('/fonts/oxygen-normal.woff2') format('woff2');
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Lexend Deca';
+    src: url('/fonts/lexend-deca.woff2') format('woff2');
+    font-style: normal;
+    font-display: swap;
+}
+
+@theme {
+    --font-sans: "Oxygen", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --default-font-family: "Oxygen", sans-serif;
+    --font-lexend: "Lexend Deca", sans-serif;
+
+    /* Brand colors */
+    --color-brand-main: #1084C2;
+    --color-brand-primary: #123EB8;
+    --color-brand-header: #123EB8;
+    --color-brand-header-bg: #ACC8E5;
+    --color-brand-highlight: #5c8cf0;
+    --color-brand-pale: #e8f0fe;
+    --color-brand-accent: #153799;
+    --color-brand-dark: #222222;
+    --color-brand-bg-dark: #1D1D1D;
+    --color-brand-blue: #1E52FF;
+    --color-brand-pink: #FF0FBC;
+
+    /* Semantic tokens */
+    --color-border: #e4e4e7;
+    --color-bg: #ffffff;
+    --color-fg: #09090b;
+    --color-muted: #71717a;
+    --color-card: #fafafa;
+}
+
+@layer base {
+    html {
+        @apply font-sans text-zinc-900;
+    }
+    :root {
+        color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+        html {
+            @apply text-zinc-100;
+        }
+    }
+}
+
+.bg-pattern {
+    width: 100%;
+    height: 100%;
+    background-image: url('/bg.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: repeat;
+}
+
+.grid-bg {
+    background-image:
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+}
+
+.hero-title {
+    text-shadow: 0 2px 24px rgba(0, 0, 0, .65);
+}
+
+.focus-ring {
+    outline: none;
+}
+.focus-ring:focus-visible {
+    outline: 2px solid var(--color-brand-main);
+    outline-offset: 2px;
+}
+
+/* Hero section gradient stop colors */
+.stop-a {
+    stop-color: var(--color-brand-blue);
+}
+.stop-b {
+    stop-color: var(--color-brand-pink);
+}

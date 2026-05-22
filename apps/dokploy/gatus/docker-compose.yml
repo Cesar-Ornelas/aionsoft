@@ -1,0 +1,18 @@
+services:
+  gatus:
+    container_name: gatus
+    image: twinproduction/gatus:latest
+    restart: unless-stopped
+    environment:
+      GATUS_LOG_LEVEL: DEBUG
+      DATABASE_URL: ${DATABASE_URL}
+      GATUS_SECURITY_OIDC_ISSUER_URL: ${GATUS_SECURITY_OIDC_ISSUER_URL}
+      GATUS_SECURITY_OIDC_REDIRECT_URL: ${GATUS_SECURITY_OIDC_REDIRECT_URL}
+      GATUS_SECURITY_OIDC_CLIENT_ID: ${GATUS_SECURITY_OIDC_CLIENT_ID}
+      GATUS_SECURITY_OIDC_CLIENT_SECRET: ${GATUS_SECURITY_OIDC_CLIENT_SECRET}
+      GATUS_SECURITY_OIDC_SCOPES: ${GATUS_SECURITY_OIDC_SCOPES}
+      GATUS_CONFIG_PATH: /config
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./endpoints:/config

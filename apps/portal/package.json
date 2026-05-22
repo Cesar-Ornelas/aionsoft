@@ -1,0 +1,24 @@
+{
+  "name": "@aionsoft/portal",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aionsoft/config": "workspace:*",
+    "@aionsoft/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.5.4",
+    "@sveltejs/kit": "^2.16.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tailwindcss/vite": "^4.1.12",
+    "svelte": "^5.0.0",
+    "tailwindcss": "^4.1.12",
+    "vite": "^6.0.0"
+  },
+  "type": "module"
+}
