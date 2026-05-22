@@ -5,3 +5,24 @@ endpoints:
     interval: 1m
     conditions:
       - "[STATUS] == 200"
+
+  - name: docs.aionsoft.io
+    group: "Internal"
+    url: https://aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: analytics.aionsoft.io
+    group: "Internal"
+    url: https://aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: monitor.aionsoft.io
+    group: "Internal"
+    url: https://monitor.aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
