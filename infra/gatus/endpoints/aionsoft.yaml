@@ -1,5 +1,5 @@
 endpoints:
-  - name: Aionsoft Website
+  - name: aionsoft.io
     group: "Internal"
     url: https://aionsoft.io
     interval: 1m
