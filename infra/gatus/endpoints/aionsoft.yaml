@@ -26,3 +26,17 @@ endpoints:
     interval: 1m
     conditions:
       - "[STATUS] == 200"
+
+  - name: "Aionsoft Authentication API"
+    group: "Internal"
+    url: https://auth1.aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "Aionsoft Authentication Admin"
+    group: "Internal"
+    url: https://auth2.aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
