@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
 # Build output
 build/
 .svelte-kit/
+apps/*/build/
+apps/*/.svelte-kit/
 
 # Local design mockups
 mockups/
@@ -11,6 +14,7 @@ mockups/
 # Vite
 dist/
 .vite/
+apps/*/.vite/
 
 # Environment variables
 .env
