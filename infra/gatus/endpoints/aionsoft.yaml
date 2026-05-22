@@ -1,41 +1,41 @@
 endpoints:
-  - name: "Aionsoft Website"
-    group: "Internal"
+  - name: "Website"
+    group: "Aionsoft"
     url: https://aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: "Aionsoft Docs"
-    group: "Internal"
+  - name: "Docs"
+    group: "Aionsoft"
     url: https://docs.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: "Aionsoft Analytics"
-    group: "Internal"
+  - name: "Analytics"
+    group: "Aionsoft"
     url: https://analytics.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: "Aionsoft Monitor"
-    group: "Internal"
+  - name: "Monitor"
+    group: "Aionsoft"
     url: https://monitor.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: "Aionsoft Authentication API"
-    group: "Internal"
+  - name: "Authentication API"
+    group: "Aionsoft"
     url: https://auth1.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: "Aionsoft Authentication Admin"
-    group: "Internal"
+  - name: "Authentication Admin"
+    group: "Aionsoft"
     url: https://auth2.aionsoft.io
     interval: 1m
     conditions:
