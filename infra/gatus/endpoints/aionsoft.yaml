@@ -1,26 +1,26 @@
 endpoints:
-  - name: aionsoft.io
+  - name: "Aionsoft Website"
     group: "Internal"
     url: https://aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: docs.aionsoft.io
+  - name: "Aionsoft Docs"
     group: "Internal"
     url: https://aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: analytics.aionsoft.io
+  - name: "Aionsoft Analytics"
     group: "Internal"
     url: https://analytics.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
 
-  - name: monitor.aionsoft.io
+  - name: "Aionsoft Monitor"
     group: "Internal"
     url: https://monitor.aionsoft.io
     interval: 1m
