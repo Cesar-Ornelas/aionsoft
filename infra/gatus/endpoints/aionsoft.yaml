@@ -8,7 +8,7 @@ endpoints:
 
   - name: "Aionsoft Docs"
     group: "Internal"
-    url: https://aionsoft.io
+    url: https://docs.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
