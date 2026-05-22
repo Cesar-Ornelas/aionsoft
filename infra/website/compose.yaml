@@ -2,7 +2,7 @@ services:
   website:
     container_name: aionsoft-website
     build:
-      context: .
+      context: ../..
       dockerfile: docker/website.Dockerfile
       args:
         PUBLIC_SWETRIX_PROJECT_ID: ${PUBLIC_SWETRIX_PROJECT_ID}

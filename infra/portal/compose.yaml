@@ -2,7 +2,7 @@ services:
   portal:
     container_name: aionsoft-portal
     build:
-      context: .
+      context: ../..
       dockerfile: docker/portal.Dockerfile
     restart: unless-stopped
     ports:
