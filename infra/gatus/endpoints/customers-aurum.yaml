@@ -1,0 +1,7 @@
+endpoints:
+  - name: "Aurum"
+    group: "Customers"
+    url: https://aurum.aionsoft.io
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
