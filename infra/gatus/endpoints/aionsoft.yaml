@@ -15,7 +15,7 @@ endpoints:
 
   - name: analytics.aionsoft.io
     group: "Internal"
-    url: https://aionsoft.io
+    url: https://analytics.aionsoft.io
     interval: 1m
     conditions:
       - "[STATUS] == 200"
