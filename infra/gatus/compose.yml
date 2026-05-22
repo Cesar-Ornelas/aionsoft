@@ -1,7 +1,9 @@
 services:
   gatus:
     container_name: gatus
-    image: twinproduction/gatus:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       GATUS_LOG_LEVEL: DEBUG
@@ -14,5 +16,3 @@ services:
       GATUS_CONFIG_PATH: /config
     ports:
       - "8080:8080"
-    volumes:
-        - ../../../files/endpoints:/config
