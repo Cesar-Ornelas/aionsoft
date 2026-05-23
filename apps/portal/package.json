@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@aionsoft/config": "workspace:*",
-    "@aionsoft/ui": "workspace:*"
+    "@aionsoft/ui": "workspace:*",
+    "@logto/sveltekit": "^0.3.23"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.4",

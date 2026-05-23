@@ -13,7 +13,12 @@
     "preview:website": "bun run --cwd apps/website preview",
     "dev:portal": "bun run --cwd apps/portal dev",
     "build:portal": "bun run --cwd apps/portal build",
-    "preview:portal": "bun run --cwd apps/portal preview"
+    "preview:portal": "bun run --cwd apps/portal preview",
+    "infra:portal:config": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml config",
+    "infra:portal:up": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml up -d",
+    "infra:portal:down": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml down",
+    "infra:portal:logs": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml logs -f",
+    "infra:portal:ps": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml ps"
   },
   "type": "module"
 }
