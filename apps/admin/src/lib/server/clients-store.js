@@ -161,6 +161,16 @@ function normalizeContactsInput(contacts) {
 	return populatedContacts;
 }
 
+function normalizeSnapshotClient(input) {
+	return {
+		companyName: normalizeString(input.companyName),
+		address: normalizeString(input.address),
+		website: normalizeString(input.website),
+		phone: normalizeString(input.phone),
+		contacts: normalizeContactsInput(input.contacts)
+	};
+}
+
 async function insertContacts(tx, clientId, contacts) {
 	for (const contact of contacts) {
 		await tx`
@@ -238,6 +248,34 @@ export async function listClients() {
 	return clients.map(normalizeClientSummary);
 }
 
+export async function exportClientsSnapshot() {
+	await ensureSchema();
+	const sql = getSql();
+	const clients = await listClients();
+	const detailedClients = await Promise.all(clients.map((client) => getClientWithContacts(sql, client.id)));
+
+	return {
+		version: 1,
+		exportedAt: new Date().toISOString(),
+		clients: detailedClients
+			.filter(Boolean)
+			.map((client) => ({
+				companyName: client.companyName,
+				address: client.address,
+				website: client.website,
+				phone: client.phone,
+				contacts: client.contacts.map((contact) => ({
+					name: contact.name,
+					email: contact.email,
+					phone: contact.phone,
+					extension: contact.extension,
+					title: contact.title,
+					isPrimary: contact.isPrimary
+				}))
+			}))
+	};
+}
+
 export async function getClientById(clientId) {
 	await ensureSchema();
 	const sql = getSql();
@@ -307,5 +345,39 @@ export async function updateClient(clientId, input) {
 		await insertContacts(tx, clientId, contacts);
 
 		return getClientWithContacts(tx, clientId);
+	});
+}
+
+export async function importClientsSnapshot(snapshot) {
+	await ensureSchema();
+	const sql = getSql();
+	const rawClients = snapshot?.clients;
+
+	if (!Array.isArray(rawClients) || rawClients.length === 0) {
+		throw new Error('The import file must include at least one client.');
+	}
+
+	const clients = rawClients.map(normalizeSnapshotClient);
+
+	return sql.begin(async (tx) => {
+		for (const client of clients) {
+			const [clientRecord] = await tx`
+				INSERT INTO admin_clients (id, company_name, address, website, phone)
+				VALUES (
+					${randomUUID()},
+					${client.companyName},
+					${client.address},
+					${client.website},
+					${client.phone}
+				)
+				RETURNING id
+			`;
+
+			await insertContacts(tx, clientRecord.id, client.contacts);
+		}
+
+		return {
+			importedCount: clients.length
+		};
 	});
 }
