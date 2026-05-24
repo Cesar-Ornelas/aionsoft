@@ -26,9 +26,20 @@ The feature lives outside the security section.
 Routes:
 - `/clients`
 - `/clients/new`
+- `/clients/[clientId]`
+- `/clients/[clientId]/overview`
 - `/clients/[clientId]/edit`
 
 This keeps clients as a separate operational domain in the admin app rather than mixing it with authentication and authorization management.
+
+When a client is selected, the app enters a dedicated client workspace.
+
+Inside that workspace:
+- the left navigation is replaced with client-specific navigation
+- the normal admin menu is hidden
+- an explicit exit action returns the user to `/clients`
+
+This focused shell is intended to be reusable for future entity-driven areas.
 
 ---
 
@@ -89,6 +100,11 @@ The create and edit pages should:
 - reuse the current admin form shell style
 - support adding and removing contact blocks inline
 - keep primary-contact selection simple
+
+The selected-client workspace should:
+- provide a dedicated left-side client menu
+- default to an overview page for the selected client
+- keep editing inside the workspace rather than redirecting back to the client list
 
 ---
 

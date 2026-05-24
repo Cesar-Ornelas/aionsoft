@@ -1,5 +1,5 @@
 <script>
-	let { form, client = null, mode = 'create' } = $props();
+	let { form, client = null, mode = 'create', backHref = '/clients', backLabel = 'Back to clients' } = $props();
 
 	const emptyContact = {
 		name: '',
@@ -82,8 +82,8 @@
 			</p>
 		</div>
 
-		<a href="/clients" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
-			Back to clients
+		<a href={backHref} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+			{backLabel}
 		</a>
 	</div>
 
@@ -193,7 +193,7 @@
 		</div>
 
 		<div class="flex flex-wrap items-center justify-end gap-3 pt-2">
-			<a href="/clients" class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+			<a href={backHref} class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
 				Cancel
 			</a>
 			<button class="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">

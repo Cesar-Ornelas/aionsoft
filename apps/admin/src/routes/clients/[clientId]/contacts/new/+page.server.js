@@ -1,12 +1,19 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import {
-	getClientById,
-	getClientsStoreErrorMessage,
-	updateClientProfile
-} from '$lib/server/clients-store';
+import { createClientContact, getClientById, getClientsStoreErrorMessage } from '$lib/server/clients-store';
 
 function readTrimmedString(formData, name) {
 	return String(formData.get(name) ?? '').trim();
+}
+
+function readContactInput(formData) {
+	return {
+		name: readTrimmedString(formData, 'name'),
+		email: readTrimmedString(formData, 'email'),
+		phone: readTrimmedString(formData, 'phone'),
+		extension: readTrimmedString(formData, 'extension'),
+		title: readTrimmedString(formData, 'title'),
+		isPrimary: formData.get('isPrimary') === 'on'
+	};
 }
 
 export async function load({ params }) {
@@ -17,9 +24,7 @@ export async function load({ params }) {
 			throw error(404, 'Client not found.');
 		}
 
-		return {
-			client
-		};
+		return { client };
 	} catch (caughtError) {
 		throw error(caughtError?.status ?? 500, getClientsStoreErrorMessage(caughtError));
 	}
@@ -28,16 +33,11 @@ export async function load({ params }) {
 export const actions = {
 	default: async ({ params, request }) => {
 		const formData = await request.formData();
-		const input = {
-			companyName: readTrimmedString(formData, 'companyName'),
-			address: readTrimmedString(formData, 'address'),
-			website: readTrimmedString(formData, 'website'),
-			phone: readTrimmedString(formData, 'phone')
-		};
+		const input = readContactInput(formData);
 		const errors = {};
 
-		if (!input.companyName) {
-			errors.companyName = 'Company name is required.';
+		if (!input.name) {
+			errors.name = 'Contact name is required.';
 		}
 
 		if (Object.keys(errors).length > 0) {
@@ -48,9 +48,9 @@ export const actions = {
 		}
 
 		try {
-			const client = await updateClientProfile(params.clientId, input);
+			const contact = await createClientContact(params.clientId, input);
 
-			if (!client) {
+			if (!contact) {
 				throw error(404, 'Client not found.');
 			}
 		} catch (caughtError) {
@@ -60,6 +60,6 @@ export const actions = {
 			});
 		}
 
-		throw redirect(303, `/clients/${params.clientId}/overview?updated=1`);
+		throw redirect(303, `/clients/${params.clientId}/overview?contact=created`);
 	}
 };

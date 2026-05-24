@@ -1,5 +1,6 @@
 <script>
 	import '../app.css';
+	import { page } from '$app/state';
 
 	let { data, children } = $props();
 
@@ -54,6 +55,8 @@
 		menuOpen = false;
 	}
 
+	const workspaceShell = $derived(page.data.workspaceShell ?? null);
+	const currentPath = $derived(page.data.currentPath ?? data.currentPath);
 	const hasSession = $derived(Boolean(data.user));
 </script>
 
@@ -83,8 +86,14 @@
 		>
 			<div class="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 pb-4">
 				<div>
-					<p class="text-lg font-semibold tracking-tight text-slate-950">Aionsoft Admin</p>
-					<p class="text-xs uppercase tracking-[0.24em] text-slate-400">Internal Workspace</p>
+					{#if workspaceShell}
+						<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{workspaceShell.kicker}</p>
+						<p class="mt-1 text-lg font-semibold tracking-tight text-slate-950">{workspaceShell.title}</p>
+						<p class="mt-1 text-xs text-slate-500">{workspaceShell.subtitle}</p>
+					{:else}
+						<p class="text-lg font-semibold tracking-tight text-slate-950">Aionsoft Admin</p>
+						<p class="text-xs uppercase tracking-[0.24em] text-slate-400">Internal Workspace</p>
+					{/if}
 				</div>
 				<button
 					type="button"
@@ -97,22 +106,46 @@
 			</div>
 
 			<nav class="mt-5 flex-1 space-y-2">
-				{#each primaryNavItems as item}
-					<a
-						href={item.href}
-						onclick={closeMenu}
-						class={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${isActive(item.href) ? 'border-sky-100 bg-sky-50 text-slate-950 shadow-sm' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900'}`}
-					>
-						<span>
+				{#if workspaceShell}
+					{#each workspaceShell.navItems as item}
+						<a
+							href={item.href}
+							onclick={closeMenu}
+							class={`block rounded-2xl border px-4 py-3 transition ${currentPath === item.href || currentPath.startsWith(`${item.href}/`) ? 'border-sky-100 bg-sky-50 text-slate-950 shadow-sm' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900'}`}
+						>
 							<span class="block text-sm font-semibold">{item.label}</span>
 							<span class="mt-1 block text-xs text-slate-400">{item.description}</span>
-						</span>
-						<span class={`rounded-full px-2.5 py-1 text-xs font-semibold ${isActive(item.href) ? 'bg-white text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
-							{item.badge}
-						</span>
-					</a>
-				{/each}
+						</a>
+					{/each}
+				{:else}
+					{#each primaryNavItems as item}
+						<a
+							href={item.href}
+							onclick={closeMenu}
+							class={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${isActive(item.href) ? 'border-sky-100 bg-sky-50 text-slate-950 shadow-sm' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900'}`}
+						>
+							<span>
+								<span class="block text-sm font-semibold">{item.label}</span>
+								<span class="mt-1 block text-xs text-slate-400">{item.description}</span>
+							</span>
+							<span class={`rounded-full px-2.5 py-1 text-xs font-semibold ${isActive(item.href) ? 'bg-white text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+								{item.badge}
+							</span>
+						</a>
+					{/each}
+				{/if}
 			</nav>
+
+			{#if workspaceShell}
+				<a
+					href={workspaceShell.exitHref}
+					onclick={closeMenu}
+					class="mb-4 inline-flex items-center justify-between rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+				>
+					<span>{workspaceShell.exitLabel}</span>
+					<span aria-hidden="true">←</span>
+				</a>
+			{/if}
 
 			<div class="rounded-[1.6rem] border border-slate-200/80 bg-[linear-gradient(135deg,#ffffff,#f8fafc_72%,#ecfeff)] p-3.5">
 				<div class="flex items-center gap-3 rounded-[1.35rem] border border-slate-200/80 bg-white/85 px-3 py-3">

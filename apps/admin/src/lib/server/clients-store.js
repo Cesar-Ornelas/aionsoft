@@ -171,6 +171,23 @@ function normalizeSnapshotClient(input) {
 	};
 }
 
+function normalizeContactInput(input) {
+	const contact = {
+		name: normalizeString(input.name),
+		email: normalizeEmail(input.email),
+		phone: normalizeString(input.phone),
+		extension: normalizeString(input.extension),
+		title: normalizeString(input.title),
+		isPrimary: Boolean(input.isPrimary)
+	};
+
+	if (!contact.name) {
+		throw new Error('Contact name is required.');
+	}
+
+	return contact;
+}
+
 async function insertContacts(tx, clientId, contacts) {
 	for (const contact of contacts) {
 		await tx`
@@ -212,6 +229,49 @@ async function getClientWithContacts(executor, clientId) {
 		...normalizeClient(client),
 		contacts: contacts.map(normalizeClientContact)
 	};
+}
+
+async function ensureClientExists(executor, clientId) {
+	const [client] = await executor`
+		SELECT *
+		FROM admin_clients
+		WHERE id = ${clientId}
+		LIMIT 1
+	`;
+
+	return client ? normalizeClient(client) : null;
+}
+
+async function getClientContactRecord(executor, clientId, contactId) {
+	const [contact] = await executor`
+		SELECT *
+		FROM admin_client_contacts
+		WHERE client_id = ${clientId}
+			AND id = ${contactId}
+		LIMIT 1
+	`;
+
+	return contact ?? null;
+}
+
+async function clearPrimaryContacts(executor, clientId, excludeContactId = null) {
+	if (excludeContactId) {
+		await executor`
+			UPDATE admin_client_contacts
+			SET is_primary = false,
+				updated_at = now()
+			WHERE client_id = ${clientId}
+				AND id <> ${excludeContactId}
+		`;
+		return;
+	}
+
+	await executor`
+		UPDATE admin_client_contacts
+		SET is_primary = false,
+			updated_at = now()
+		WHERE client_id = ${clientId}
+	`;
 }
 
 export function getClientsStoreErrorMessage(error, fallback = 'The requested client change could not be completed.') {
@@ -282,6 +342,14 @@ export async function getClientById(clientId) {
 	return getClientWithContacts(sql, clientId);
 }
 
+export async function getClientContactById(clientId, contactId) {
+	await ensureSchema();
+	const sql = getSql();
+	const contact = await getClientContactRecord(sql, clientId, contactId);
+
+	return contact ? normalizeClientContact(contact) : null;
+}
+
 export async function createClient(input) {
 	await ensureSchema();
 	const sql = getSql();
@@ -345,6 +413,123 @@ export async function updateClient(clientId, input) {
 		await insertContacts(tx, clientId, contacts);
 
 		return getClientWithContacts(tx, clientId);
+	});
+}
+
+export async function updateClientProfile(clientId, input) {
+	await ensureSchema();
+	const sql = getSql();
+	const companyName = normalizeString(input.companyName);
+
+	if (!companyName) {
+		throw new Error('Company name is required.');
+	}
+
+	const [client] = await sql`
+		UPDATE admin_clients
+		SET company_name = ${companyName},
+			address = ${normalizeString(input.address)},
+			website = ${normalizeString(input.website)},
+			phone = ${normalizeString(input.phone)},
+			updated_at = now()
+		WHERE id = ${clientId}
+		RETURNING *
+	`;
+
+	return client ? normalizeClient(client) : null;
+}
+
+export async function createClientContact(clientId, input) {
+	await ensureSchema();
+	const sql = getSql();
+	const contact = normalizeContactInput(input);
+
+	return sql.begin(async (tx) => {
+		const client = await ensureClientExists(tx, clientId);
+
+		if (!client) {
+			return null;
+		}
+
+		const [counts] = await tx`
+			SELECT
+				COUNT(*)::int AS contact_count,
+				COUNT(*) FILTER (WHERE is_primary = true)::int AS primary_count
+			FROM admin_client_contacts
+			WHERE client_id = ${clientId}
+		`;
+
+		const shouldBePrimary = counts.contact_count === 0 ? true : contact.isPrimary;
+
+		if (shouldBePrimary) {
+			await clearPrimaryContacts(tx, clientId);
+		} else if (counts.primary_count === 0) {
+			throw new Error('A primary contact is required.');
+		}
+
+		const [createdContact] = await tx`
+			INSERT INTO admin_client_contacts (id, client_id, name, email, phone, extension, title, is_primary)
+			VALUES (
+				${randomUUID()},
+				${clientId},
+				${contact.name},
+				${contact.email},
+				${contact.phone},
+				${contact.extension},
+				${contact.title},
+				${shouldBePrimary}
+			)
+			RETURNING *
+		`;
+
+		return normalizeClientContact(createdContact);
+	});
+}
+
+export async function updateClientContact(clientId, contactId, input) {
+	await ensureSchema();
+	const sql = getSql();
+	const contact = normalizeContactInput(input);
+
+	return sql.begin(async (tx) => {
+		const existingContact = await getClientContactRecord(tx, clientId, contactId);
+
+		if (!existingContact) {
+			return null;
+		}
+
+		if (contact.isPrimary) {
+			await clearPrimaryContacts(tx, clientId, contactId);
+		} else if (existingContact.is_primary) {
+			const [otherPrimary] = await tx`
+				SELECT id
+				FROM admin_client_contacts
+				WHERE client_id = ${clientId}
+					AND id <> ${contactId}
+					AND is_primary = true
+				LIMIT 1
+			`;
+
+			if (!otherPrimary) {
+				throw new Error('A primary contact is required.');
+			}
+		}
+
+		const [updatedContact] = await tx`
+			UPDATE admin_client_contacts
+			SET name = ${contact.name},
+				email = ${contact.email},
+				phone = ${contact.phone},
+				extension = ${contact.extension},
+				title = ${contact.title},
+				is_primary = ${contact.isPrimary},
+				updated_at = now()
+			WHERE client_id = ${clientId}
+				AND id = ${contactId}
+			RETURNING *
+		`;
+
+		return updatedContact ? normalizeClientContact(updatedContact) : null;
 	});
 }
 

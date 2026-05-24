@@ -137,7 +137,9 @@
 						{#each data.clients as client}
 							<tr class="bg-white">
 								<td class="px-5 py-4 align-top">
-									<p class="font-semibold text-slate-950">{client.companyName}</p>
+									<a href={`/clients/${client.id}`} class="font-semibold text-slate-950 transition hover:text-slate-700 hover:underline">
+										{client.companyName}
+									</a>
 									<p class="mt-1 text-xs text-slate-400">{client.id}</p>
 								</td>
 								<td class="px-5 py-4 align-top text-slate-600">
@@ -160,8 +162,8 @@
 								<td class="px-5 py-4 align-top text-slate-600">{client.phone || 'No phone'}</td>
 								<td class="px-5 py-4 align-top text-slate-500">{formatDate(client.updatedAt ?? client.createdAt)}</td>
 								<td class="px-5 py-4 text-right align-top">
-									<a href={`/clients/${client.id}/edit`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
-										Edit
+									<a href={`/clients/${client.id}`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+										Open
 									</a>
 								</td>
 							</tr>
