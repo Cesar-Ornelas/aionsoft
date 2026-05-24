@@ -16,7 +16,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN bun run build:portal
+RUN bun run build:admin
 
 FROM oven/bun:1.3.12-slim AS runner
 WORKDIR /app
@@ -35,9 +35,9 @@ COPY packages/ui packages/ui
 
 RUN bun install --production --frozen-lockfile
 
-COPY --from=builder /app/apps/portal/build /app/apps/portal/build
+COPY --from=builder /app/apps/admin/build /app/apps/admin/build
 
-WORKDIR /app/apps/portal
+WORKDIR /app/apps/admin
 
 EXPOSE 3000
 

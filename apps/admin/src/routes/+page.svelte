@@ -1,0 +1,3 @@
+<div class="rounded-[1.8rem] border border-slate-200 bg-slate-50/80 p-8 text-sm text-slate-600">
+	Redirecting to the security workspace...
+</div>

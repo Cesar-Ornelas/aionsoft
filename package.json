@@ -14,11 +14,19 @@
     "dev:portal": "bun run --cwd apps/portal dev",
     "build:portal": "bun run --cwd apps/portal build",
     "preview:portal": "bun run --cwd apps/portal preview",
+    "dev:admin": "bun run --cwd apps/admin dev",
+    "build:admin": "bun run --cwd apps/admin build",
+    "preview:admin": "bun run --cwd apps/admin preview",
     "infra:portal:config": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml config",
     "infra:portal:up": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml up -d",
     "infra:portal:down": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml down",
     "infra:portal:logs": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml logs -f",
-    "infra:portal:ps": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml ps"
+    "infra:portal:ps": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml ps",
+    "infra:admin:config": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml config",
+    "infra:admin:up": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml up -d",
+    "infra:admin:down": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml down",
+    "infra:admin:logs": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml logs -f",
+    "infra:admin:ps": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml ps"
   },
   "type": "module"
 }

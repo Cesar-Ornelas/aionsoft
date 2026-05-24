@@ -1,0 +1,27 @@
+services:
+  admin:
+    container_name: aionsoft-admin
+    build:
+      context: ../..
+      dockerfile: docker/admin.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_APP_PORT:-3003}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      LOGTO_ENDPOINT: ${LOGTO_ENDPOINT}
+      LOGTO_APP_ID: ${LOGTO_APP_ID}
+      LOGTO_APP_SECRET: ${LOGTO_APP_SECRET}
+      LOGTO_M2M_APP_ID: ${LOGTO_M2M_APP_ID}
+      LOGTO_M2M_APP_SECRET: ${LOGTO_M2M_APP_SECRET}
+      LOGTO_COOKIE_ENCRYPTION_KEY: ${LOGTO_COOKIE_ENCRYPTION_KEY}
+      LOGTO_MANAGEMENT_RESOURCE: ${LOGTO_MANAGEMENT_RESOURCE}
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
