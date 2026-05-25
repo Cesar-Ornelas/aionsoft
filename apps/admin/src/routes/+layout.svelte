@@ -5,6 +5,7 @@
 	let { data, children } = $props();
 
 	let menuOpen = $state(false);
+	let alertsOpen = $state(false);
 
 	const primaryNavItems = [
 		{
@@ -12,6 +13,12 @@
 			label: 'Tools',
 			description: 'Monitoring and future apps',
 			badge: 'Infra'
+		},
+		{
+			href: '/tasks',
+			label: 'Tasks',
+			description: 'Work items, reminders',
+			badge: 'Ops'
 		},
 		{
 			href: '/clients',
@@ -61,9 +68,40 @@
 		menuOpen = false;
 	}
 
+	function toggleAlerts() {
+		alertsOpen = !alertsOpen;
+	}
+
+	function closeAlerts() {
+		alertsOpen = false;
+	}
+
+	function getAlertsButtonClass(summary) {
+		if (summary.highestSeverity === 'critical') {
+			return 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300 hover:text-rose-800';
+		}
+
+		if (summary.highestSeverity === 'warning') {
+			return 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:text-amber-800';
+		}
+
+		if (summary.activeCount > 0) {
+			return 'border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:text-sky-800';
+		}
+
+		return 'border-slate-200 text-slate-700 hover:border-slate-300 hover:text-slate-950';
+	}
+
 	const workspaceShell = $derived(page.data.workspaceShell ?? null);
 	const currentPath = $derived(page.data.currentPath ?? data.currentPath);
 	const hasSession = $derived(Boolean(data.user));
+	const alertsSummary = $derived(
+		data.alertsSummary ?? {
+			alerts: [],
+			activeCount: 0,
+			highestSeverity: null
+		}
+	);
 </script>
 
 <svelte:head>
@@ -165,6 +203,27 @@
 					</div>
 
 					{#if hasSession}
+						<div class="relative">
+							<button
+								type="button"
+								class={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${getAlertsButtonClass(alertsSummary)}`}
+								onclick={toggleAlerts}
+								aria-label="Alerts"
+								aria-haspopup="menu"
+								aria-expanded={alertsOpen}
+							>
+								<svg viewBox="0 0 20 20" fill="none" class="h-4 w-4" aria-hidden="true">
+									<path d="M10 3.5a3.25 3.25 0 0 0-3.25 3.25v1.18c0 .65-.2 1.29-.58 1.82L5 11.5h10l-1.17-1.75a3.25 3.25 0 0 1-.58-1.82V6.75A3.25 3.25 0 0 0 10 3.5Zm-1.74 10.25a1.75 1.75 0 0 0 3.48 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+
+								{#if alertsSummary.activeCount > 0}
+									<span class="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-semibold text-white">
+										{alertsSummary.activeCount > 9 ? '9+' : alertsSummary.activeCount}
+									</span>
+								{/if}
+							</button>
+						</div>
+
 						<form method="POST" action="/auth/sign-out">
 							<button
 								type="submit"
@@ -188,6 +247,42 @@
 				</div>
 			</div>
 		</aside>
+
+		{#if alertsOpen}
+			<button type="button" class="fixed inset-0 z-10" onclick={closeAlerts} aria-label="Close alerts"></button>
+
+			<div class="fixed bottom-24 right-6 z-40 w-[min(22rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-[1.4rem] border border-slate-200 bg-white p-2 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 max-sm:left-4 max-sm:right-4">
+				<div class="flex items-center justify-between gap-3 px-3 py-2.5">
+					<div>
+						<p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Alerts</p>
+						<p class="mt-1 text-sm font-semibold text-slate-950">
+							{alertsSummary.activeCount === 0 ? 'No active alerts' : `${alertsSummary.activeCount} active ${alertsSummary.activeCount === 1 ? 'alert' : 'alerts'}`}
+						</p>
+					</div>
+				</div>
+
+				<div class="max-h-80 overflow-y-auto">
+					{#if alertsSummary.alerts.length === 0}
+						<div class="px-3 py-6 text-sm text-slate-500">
+							There are no upcoming alerts right now.
+						</div>
+					{:else}
+						{#each alertsSummary.alerts as alert}
+							<a href={alert.href} onclick={closeAlerts} class="block rounded-[1.1rem] px-3 py-3 transition hover:bg-slate-50">
+								<div class="flex items-start justify-between gap-3">
+									<div class="min-w-0">
+										<p class="truncate text-sm font-semibold text-slate-950">{alert.title}</p>
+										<p class="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">{alert.severity}</p>
+										<p class="mt-2 text-sm leading-6 text-slate-600">{alert.message || 'Open the related item for more details.'}</p>
+									</div>
+									<span class="text-sm font-semibold text-slate-500">→</span>
+								</div>
+							</a>
+						{/each}
+					{/if}
+				</div>
+			</div>
+		{/if}
 
 		<section class="relative z-10 min-h-screen px-4 pb-5 pt-20 sm:px-5 lg:px-0 lg:pt-0">
 			<button

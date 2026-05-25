@@ -4,6 +4,11 @@
 			name: 'Monitoring',
 			href: '/monitoring',
 			description: 'Dashboards, saved monitoring URLs, and future operational views.'
+		},
+		{
+			name: 'Integrations',
+			href: '/integrations',
+			description: 'Issue API tokens and manage inbound task integrations for external systems.'
 		}
 	];
 </script>

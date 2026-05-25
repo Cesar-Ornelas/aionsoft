@@ -55,7 +55,7 @@ function getSql() {
 	return sqlClient;
 }
 
-async function ensureSchema() {
+export async function ensureAdminAccessSchema() {
 	if (!schemaPromise) {
 		const sql = getSql();
 		schemaPromise = (async () => {
@@ -145,6 +145,19 @@ function normalizePermission(permission) {
 	};
 }
 
+function normalizeAppUser(user) {
+	return {
+		id: user.id,
+		logtoUserId: user.logto_user_id,
+		email: user.email,
+		name: user.name,
+		organizationId: user.logto_organization_id,
+		organizationName: user.organization_name,
+		createdAt: user.created_at?.toISOString?.() ?? user.created_at,
+		updatedAt: user.updated_at?.toISOString?.() ?? user.updated_at
+	};
+}
+
 function getKeyFallback(value, fallback = 'item') {
 	return String(value || fallback)
 		.trim()
@@ -197,7 +210,7 @@ async function upsertRole(tx, role) {
 }
 
 export async function getAdminSetupState() {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const [counts] = await sql`
 		SELECT
@@ -215,7 +228,7 @@ export async function getAdminSetupState() {
 }
 
 export async function bootstrapAdminAccess({ organization, user }) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 
 	return sql.begin(async (tx) => {
@@ -265,7 +278,7 @@ export async function bootstrapAdminAccess({ organization, user }) {
 }
 
 export async function listLocalRoles() {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const roles = await sql`
 		SELECT *
@@ -276,8 +289,33 @@ export async function listLocalRoles() {
 	return roles.map(normalizeRole);
 }
 
+export async function listLocalUsers() {
+	await ensureAdminAccessSchema();
+	const sql = getSql();
+	const users = await sql`
+		SELECT *
+		FROM admin_app_users
+		ORDER BY name ASC, email ASC
+	`;
+
+	return users.map(normalizeAppUser);
+}
+
+export async function getLocalUserByLogtoUserId(logtoUserId) {
+	await ensureAdminAccessSchema();
+	const sql = getSql();
+	const [user] = await sql`
+		SELECT *
+		FROM admin_app_users
+		WHERE logto_user_id = ${logtoUserId}
+		LIMIT 1
+	`;
+
+	return user ? normalizeAppUser(user) : null;
+}
+
 export async function getLocalRoleById(roleId) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const [role] = await sql`
 		SELECT *
@@ -290,7 +328,7 @@ export async function getLocalRoleById(roleId) {
 }
 
 export async function createLocalRole(input) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const roleKey = input.key || getKeyFallback(input.name, 'role');
 	const roleName = input.name || input.key || 'Role';
@@ -304,7 +342,7 @@ export async function createLocalRole(input) {
 }
 
 export async function updateLocalRole(roleId, input) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const roleKey = input.key || getKeyFallback(input.name, 'role');
 	const roleName = input.name || input.key || 'Role';
@@ -322,7 +360,7 @@ export async function updateLocalRole(roleId, input) {
 }
 
 export async function listLocalPermissions() {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const permissions = await sql`
 		SELECT *
@@ -334,7 +372,7 @@ export async function listLocalPermissions() {
 }
 
 export async function getLocalPermissionById(permissionId) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const [permission] = await sql`
 		SELECT *
@@ -347,7 +385,7 @@ export async function getLocalPermissionById(permissionId) {
 }
 
 export async function createLocalPermission(input) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const permissionKey = input.key || getKeyFallback(input.name, 'permission');
 	const permissionName = input.name || input.key || 'Permission';
@@ -361,7 +399,7 @@ export async function createLocalPermission(input) {
 }
 
 export async function updateLocalPermission(permissionId, input) {
-	await ensureSchema();
+	await ensureAdminAccessSchema();
 	const sql = getSql();
 	const permissionKey = input.key || getKeyFallback(input.name, 'permission');
 	const permissionName = input.name || input.key || 'Permission';
