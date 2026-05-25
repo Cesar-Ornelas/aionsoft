@@ -2,9 +2,9 @@
 	let { data, children } = $props();
 
 	const tabs = [
-		{ href: '/security/users', label: 'Users', createHref: '/security/users/new', createLabel: 'Add user' },
-		{ href: '/security/roles', label: 'Roles', createHref: '/security/roles/new', createLabel: 'Add role' },
-		{ href: '/security/permissions', label: 'Permissions', createHref: '/security/permissions/new', createLabel: 'Add permission' }
+		{ href: '/security/users', label: 'Users', createHref: '/security/users?new=1', createLabel: 'Add user' },
+		{ href: '/security/roles', label: 'Roles', createHref: '/security/roles?new=1', createLabel: 'Add role' },
+		{ href: '/security/permissions', label: 'Permissions', createHref: '/security/permissions?new=1', createLabel: 'Add permission' }
 	];
 
 	function isActive(href) {

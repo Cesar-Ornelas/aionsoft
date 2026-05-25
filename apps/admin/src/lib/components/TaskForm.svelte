@@ -72,7 +72,7 @@
 </script>
 
 <section class={isDrawer() ? 'flex h-full flex-col bg-white' : 'rounded-[1.9rem] border border-slate-200 bg-slate-50/70 p-6 sm:p-8'}>
-	<div class={isDrawer() ? 'flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:px-6' : 'flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between'}>
+	<div class={isDrawer() ? 'border-b border-slate-200 px-5 py-5 sm:px-6' : 'flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between'}>
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Tasks</p>
 			<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{mode === 'edit' ? 'Edit task' : 'Create a task'}</h2>
@@ -85,9 +85,11 @@
 			</p>
 		</div>
 
-		<a href={backHref} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
-			{backLabel}
-		</a>
+		{#if !isDrawer()}
+			<a href={backHref} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+				{backLabel}
+			</a>
+		{/if}
 	</div>
 
 	<form method="POST" action={formAction} class={isDrawer() ? 'flex min-h-0 flex-1 flex-col' : 'mt-6 space-y-6 rounded-[1.7rem] border border-white bg-white/90 p-6'}>
