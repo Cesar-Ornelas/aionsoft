@@ -284,7 +284,7 @@
 			</div>
 		{/if}
 
-		<section class="relative z-10 min-h-screen px-4 pb-5 pt-20 sm:px-5 lg:px-0 lg:pt-0">
+		<section class="relative min-h-screen px-4 pb-5 pt-20 sm:px-5 lg:px-0 lg:pt-0">
 			<button
 				type="button"
 				class="fixed left-4 top-4 z-20 inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/88 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.9)] backdrop-blur-xl lg:hidden"
@@ -294,8 +294,12 @@
 				<span>Workspace Menu</span>
 			</button>
 
-			<div class="mx-auto max-w-[1400px] rounded-[2.2rem] border border-white/75 bg-white/82 p-4 shadow-[0_40px_120px_-70px_rgba(15,23,42,0.65)] backdrop-blur-2xl sm:p-6">
-				{@render children()}
+			<div class="relative mx-auto max-w-[1400px]">
+				<div class="pointer-events-none absolute inset-0 rounded-[2.2rem] border border-white/75 bg-white/82 shadow-[0_40px_120px_-70px_rgba(15,23,42,0.65)] backdrop-blur-2xl"></div>
+
+				<div class="relative rounded-[2.2rem] p-4 sm:p-6">
+					{@render children()}
+				</div>
 			</div>
 		</section>
 	</div>

@@ -1,4 +1,8 @@
 <script>
+	import TaskForm from '$lib/components/TaskForm.svelte';
+	import { page } from '$app/state';
+	import { fade, fly } from 'svelte/transition';
+
 	let { data, form } = $props();
 
 	function formatDate(value) {
@@ -10,6 +14,23 @@
 			dateStyle: 'medium',
 			timeStyle: 'short'
 		}).format(new Date(value));
+	}
+
+	function drawerOpen() {
+		return page.url.searchParams.get('new') === '1' || form?.intent === 'create';
+	}
+
+	function drawerHref(open) {
+		const url = new URL(page.url);
+
+		if (open) {
+			url.searchParams.set('new', '1');
+		} else {
+			url.searchParams.delete('new');
+		}
+
+		const search = url.searchParams.toString();
+		return `${url.pathname}${search ? `?${search}` : ''}`;
 	}
 </script>
 
@@ -23,7 +44,7 @@
 			</p>
 		</div>
 
-		<a href="/tasks/new" class="inline-flex h-10 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800">
+		<a href={drawerHref(true)} class="inline-flex h-10 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800">
 			Add task
 		</a>
 	</header>
@@ -157,4 +178,32 @@
 			</table>
 		</div>
 	</div>
+
+	{#if drawerOpen()}
+		<div class="fixed inset-0 z-50">
+			<a
+				href={drawerHref(false)}
+				class="absolute inset-0 bg-slate-950/35 backdrop-blur-[3px]"
+				aria-label="Close new task drawer"
+				in:fade={{ duration: 180 }}
+				out:fade={{ duration: 140 }}
+			></a>
+
+			<div
+				class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]"
+				in:fly={{ x: 96, duration: 220, opacity: 1 }}
+				out:fly={{ x: 96, duration: 180, opacity: 1 }}
+			>
+				<TaskForm
+					{form}
+					users={data.users}
+					mode="create"
+					surface="drawer"
+					formAction="?/create"
+					backHref={drawerHref(false)}
+					backLabel="Close"
+				/>
+			</div>
+		</div>
+	{/if}
 </section>

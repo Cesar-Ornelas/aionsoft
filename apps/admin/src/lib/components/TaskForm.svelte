@@ -4,6 +4,8 @@
 		task = null,
 		users = [],
 		mode = 'create',
+		surface = 'page',
+		formAction = null,
 		backHref = '/tasks',
 		backLabel = 'Back to tasks'
 	} = $props();
@@ -63,17 +65,23 @@
 
 		return values().tags?.map((tag) => tag.name).join(', ') ?? '';
 	}
+
+	function isDrawer() {
+		return surface === 'drawer';
+	}
 </script>
 
-<section class="rounded-[1.9rem] border border-slate-200 bg-slate-50/70 p-6 sm:p-8">
-	<div class="flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+<section class={isDrawer() ? 'flex h-full flex-col bg-white' : 'rounded-[1.9rem] border border-slate-200 bg-slate-50/70 p-6 sm:p-8'}>
+	<div class={isDrawer() ? 'flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:px-6' : 'flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between'}>
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Tasks</p>
 			<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{mode === 'edit' ? 'Edit task' : 'Create a task'}</h2>
-			<p class="mt-2 text-sm leading-7 text-slate-600">
+			<p class={`mt-2 text-sm text-slate-600 ${isDrawer() ? 'leading-6' : 'leading-7'}`}>
 				{mode === 'edit'
 					? 'Update scheduling, assignees, and tags while keeping task alerts aligned with the latest due date.'
-					: 'Create a task with a due date, optional reminder, recurrence, assignees, and tags for grouping.'}
+					: isDrawer()
+						? 'Add a due date, optional reminder, assignees, and tags without leaving the task list flow.'
+						: 'Create a task with a due date, optional reminder, recurrence, assignees, and tags for grouping.'}
 			</p>
 		</div>
 
@@ -82,14 +90,15 @@
 		</a>
 	</div>
 
-	<form method="POST" class="mt-6 space-y-6 rounded-[1.7rem] border border-white bg-white/90 p-6">
-		{#if form?.message}
-			<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-				{form.message}
-			</div>
-		{/if}
+	<form method="POST" action={formAction} class={isDrawer() ? 'flex min-h-0 flex-1 flex-col' : 'mt-6 space-y-6 rounded-[1.7rem] border border-white bg-white/90 p-6'}>
+		<div class={isDrawer() ? 'min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6' : 'space-y-6'}>
+			{#if form?.message}
+				<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+					{form.message}
+				</div>
+			{/if}
 
-		<div class="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+			<div class={isDrawer() ? 'grid gap-5' : 'grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]'}>
 			<div>
 				<label class="block text-sm font-medium text-slate-700" for="title">Title</label>
 				<input id="title" name="title" value={values().title ?? ''} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="Renew SSL certificates" />
@@ -106,13 +115,13 @@
 				{/if}
 			</div>
 
-			<div class="lg:col-span-2">
+			<div class={isDrawer() ? '' : 'lg:col-span-2'}>
 				<label class="block text-sm font-medium text-slate-700" for="description">Description</label>
-				<textarea id="description" name="description" rows="5" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="Describe the work, context, or expected outcome.">{values().description ?? ''}</textarea>
+				<textarea id="description" name="description" rows={isDrawer() ? '4' : '5'} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="Describe the work, context, or expected outcome.">{values().description ?? ''}</textarea>
 			</div>
 		</div>
 
-		<div class="grid gap-5 lg:grid-cols-3">
+		<div class={isDrawer() ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 lg:grid-cols-3'}>
 			<div>
 				<label class="block text-sm font-medium text-slate-700" for="notificationOffsetMinutes">Reminder</label>
 				<select id="notificationOffsetMinutes" name="notificationOffsetMinutes" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white">
@@ -153,7 +162,7 @@
 				<p class="mt-1 text-sm text-slate-500">Choose zero or more users responsible for this task.</p>
 			</div>
 
-			<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+			<div class={`mt-4 grid gap-3 ${isDrawer() ? 'sm:grid-cols-1' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
 				{#if users.length === 0}
 					<p class="text-sm text-slate-500">No local users are available for assignment.</p>
 				{:else}
@@ -169,8 +178,9 @@
 				{/if}
 			</div>
 		</div>
+		</div>
 
-		<div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+		<div class={isDrawer() ? 'flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6' : 'flex flex-wrap items-center justify-end gap-3 pt-2'}>
 			<a href={backHref} class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
 				Cancel
 			</a>
