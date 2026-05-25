@@ -8,6 +8,12 @@
 
 	const primaryNavItems = [
 		{
+			href: '/tools',
+			label: 'Tools',
+			description: 'Monitoring and future apps',
+			badge: 'Infra'
+		},
+		{
 			href: '/clients',
 			label: 'Clients',
 			description: 'Companies, contacts',

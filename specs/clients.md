@@ -80,7 +80,7 @@ Contacts are owned by a single client.
 2. A client must have at least one contact.
 3. Exactly one contact must be marked as primary.
 4. Each populated contact must have a name.
-5. Contacts are edited inside the client form instead of through separate routes.
+5. Contacts are created and edited through dedicated routes inside the client workspace.
 
 Primary-contact enforcement should happen in both server validation and persistence safeguards.
 
