@@ -28,6 +28,7 @@ ENV PORT=3000
 COPY package.json bun.lock ./
 COPY apps/website/package.json apps/website/package.json
 COPY apps/admin/package.json apps/admin/package.json
+COPY apps/admin/scripts apps/admin/scripts
 COPY apps/portal/package.json apps/portal/package.json
 COPY packages/config packages/config
 COPY packages/shared packages/shared
@@ -36,6 +37,7 @@ COPY packages/ui packages/ui
 RUN bun install --production --frozen-lockfile
 
 COPY --from=builder /app/apps/admin/build /app/apps/admin/build
+COPY --from=builder /app/apps/admin/scripts /app/apps/admin/scripts
 
 WORKDIR /app/apps/admin
 

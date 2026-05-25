@@ -19,6 +19,24 @@ services:
       LOGTO_M2M_APP_SECRET: ${LOGTO_M2M_APP_SECRET}
       LOGTO_COOKIE_ENCRYPTION_KEY: ${LOGTO_COOKIE_ENCRYPTION_KEY}
       LOGTO_MANAGEMENT_RESOURCE: ${LOGTO_MANAGEMENT_RESOURCE}
+      TASK_MAINTENANCE_SECRET: ${TASK_MAINTENANCE_SECRET}
+    networks:
+      - dokploy-network
+
+  ofelia:
+    container_name: aionsoft-admin-ofelia
+    image: mcuadros/ofelia:latest
+    restart: unless-stopped
+    depends_on:
+      - admin
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      ofelia.job-exec.task-maintenance.schedule: ${TASK_MAINTENANCE_SCHEDULE:-0 * * * *}
+      ofelia.job-exec.task-maintenance.no-overlap: "true"
+      ofelia.job-exec.task-maintenance.container: aionsoft-admin
+      ofelia.job-exec.task-maintenance.command: bun run task:maintenance
     networks:
       - dokploy-network
 

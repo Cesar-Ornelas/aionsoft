@@ -18,7 +18,7 @@ function buildReminderTriggerAt(task) {
 }
 
 export async function syncTaskAlerts(task) {
-	if (task.status === 'completed') {
+	if (task.status === 'completed' || task.status === 'canceled') {
 		await resolveAlertsBySource('task', task.id);
 		return;
 	}

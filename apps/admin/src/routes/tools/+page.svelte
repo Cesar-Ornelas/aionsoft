@@ -9,6 +9,11 @@
 			name: 'Integrations',
 			href: '/integrations',
 			description: 'Issue API tokens and manage inbound task integrations for external systems.'
+		},
+		{
+			name: 'Jobs',
+			href: '/tools/jobs',
+			description: 'Review job execution history grouped by job name, including failures and recent results.'
 		}
 	];
 </script>

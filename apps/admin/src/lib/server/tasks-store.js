@@ -2,8 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import postgres from 'postgres';
 
-const TASK_STATUSES = new Set(['open', 'completed']);
+const TASK_STATUSES = new Set(['open', 'in_progress', 'on_hold', 'deferred', 'canceled', 'completed']);
+const PROGRESS_DRIVEN_STATUSES = new Set(['open', 'on_hold', 'deferred']);
 const TASK_RECURRENCE_RULES = new Set(['none', 'daily', 'weekly', 'monthly', 'yearly']);
+const TERMINAL_TASK_STATUSES = new Set(['completed', 'canceled']);
+const STALE_TASK_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
+const SYSTEM_TASK_TAGS = {
+	due: { key: 'due', name: 'Due' },
+	stale: { key: 'stale', name: 'Stale' }
+};
+const SYSTEM_TASK_TAG_KEYS = new Set(Object.values(SYSTEM_TASK_TAGS).map((tag) => tag.key));
 
 let sqlClient;
 let schemaPromise;
@@ -40,12 +48,15 @@ async function ensureSchema() {
 					description text NOT NULL DEFAULT '',
 					status text NOT NULL DEFAULT 'open',
 					due_at timestamptz NOT NULL,
+						progress_percentage integer NOT NULL DEFAULT 0,
+						last_activity_at timestamptz NOT NULL DEFAULT now(),
 					notification_offset_minutes integer,
 					recurrence_rule text NOT NULL DEFAULT 'none',
 					created_by_user_id text NOT NULL REFERENCES admin_app_users(id) ON DELETE RESTRICT,
 					created_at timestamptz NOT NULL DEFAULT now(),
 					updated_at timestamptz NOT NULL DEFAULT now(),
-					CHECK (status IN ('open', 'completed')),
+						CHECK (status IN ('open', 'in_progress', 'on_hold', 'deferred', 'canceled', 'completed')),
+						CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
 					CHECK (recurrence_rule IN ('none', 'daily', 'weekly', 'monthly', 'yearly')),
 					CHECK (notification_offset_minutes IS NULL OR notification_offset_minutes >= 0)
 				)
@@ -57,13 +68,43 @@ async function ensureSchema() {
 					ADD COLUMN IF NOT EXISTS source_type text,
 					ADD COLUMN IF NOT EXISTS source_label text,
 					ADD COLUMN IF NOT EXISTS source_external_id text,
-					ADD COLUMN IF NOT EXISTS created_via text NOT NULL DEFAULT 'ui'
+					ADD COLUMN IF NOT EXISTS created_via text NOT NULL DEFAULT 'ui',
+					ADD COLUMN IF NOT EXISTS due_time text,
+					ADD COLUMN IF NOT EXISTS has_due_time boolean NOT NULL DEFAULT true,
+					ADD COLUMN IF NOT EXISTS progress_percentage integer NOT NULL DEFAULT 0
+				`;
+
+				await sql`ALTER TABLE admin_tasks ADD COLUMN IF NOT EXISTS last_activity_at timestamptz`;
+				await sql`
+					UPDATE admin_tasks
+					SET last_activity_at = COALESCE(last_activity_at, updated_at, created_at, now())
+					WHERE last_activity_at IS NULL
+				`;
+				await sql`ALTER TABLE admin_tasks ALTER COLUMN last_activity_at SET DEFAULT now()`;
+				await sql`ALTER TABLE admin_tasks ALTER COLUMN last_activity_at SET NOT NULL`;
+
+				await sql`ALTER TABLE admin_tasks DROP CONSTRAINT IF EXISTS admin_tasks_status_check`;
+				await sql`
+					ALTER TABLE admin_tasks
+					ADD CONSTRAINT admin_tasks_status_check
+					CHECK (status IN ('open', 'in_progress', 'on_hold', 'deferred', 'canceled', 'completed'))
+				`;
+
+				await sql`ALTER TABLE admin_tasks DROP CONSTRAINT IF EXISTS admin_tasks_progress_percentage_check`;
+				await sql`
+					ALTER TABLE admin_tasks
+					ADD CONSTRAINT admin_tasks_progress_percentage_check
+					CHECK (progress_percentage >= 0 AND progress_percentage <= 100)
 				`;
 
 				await sql`
 					CREATE UNIQUE INDEX IF NOT EXISTS admin_tasks_source_reference_idx
 					ON admin_tasks (source_integration_id, source_external_id)
 					WHERE source_integration_id IS NOT NULL AND source_external_id IS NOT NULL
+				`;
+				await sql`
+					CREATE INDEX IF NOT EXISTS admin_tasks_last_activity_idx
+					ON admin_tasks (last_activity_at)
 				`;
 
 			await sql`
@@ -92,6 +133,22 @@ async function ensureSchema() {
 					created_at timestamptz NOT NULL DEFAULT now(),
 					PRIMARY KEY (task_id, tag_id)
 				)
+			`;
+
+			await sql`
+				CREATE TABLE IF NOT EXISTS admin_task_comments (
+					id text PRIMARY KEY,
+					task_id text NOT NULL REFERENCES admin_tasks(id) ON DELETE CASCADE,
+					author_user_id text NOT NULL REFERENCES admin_app_users(id) ON DELETE RESTRICT,
+					body text NOT NULL,
+					created_at timestamptz NOT NULL DEFAULT now(),
+					updated_at timestamptz NOT NULL DEFAULT now()
+				)
+			`;
+
+			await sql`
+				CREATE INDEX IF NOT EXISTS admin_task_comments_task_created_idx
+				ON admin_task_comments (task_id, created_at DESC)
 			`;
 		})();
 
@@ -153,6 +210,32 @@ function normalizeDueAt(value) {
 	return date.toISOString();
 }
 
+function normalizeDueTime(value) {
+	const normalizedValue = normalizeString(value);
+
+	if (!normalizedValue) {
+		return null;
+	}
+
+	if (!/^\d{2}:\d{2}$/.test(normalizedValue)) {
+		throw new Error('Task due time is invalid.');
+	}
+
+	return normalizedValue;
+}
+
+function normalizeHasDueTime(value, dueTime) {
+	if (value === false || value === 'false') {
+		return false;
+	}
+
+	if (value === true || value === 'true') {
+		return true;
+	}
+
+	return Boolean(dueTime);
+}
+
 function normalizeNotificationOffset(value) {
 	const normalizedValue = normalizeString(value);
 
@@ -167,6 +250,38 @@ function normalizeNotificationOffset(value) {
 	}
 
 	return parsedValue;
+}
+
+function normalizeProgressPercentage(value, status) {
+	const normalizedValue = normalizeString(value);
+
+	if (status === 'completed') {
+		return 100;
+	}
+
+	if (!normalizedValue) {
+		return 0;
+	}
+
+	const parsedValue = Number.parseInt(normalizedValue, 10);
+
+	if (!Number.isInteger(parsedValue) || parsedValue < 0 || parsedValue > 100) {
+		throw new Error('Task progress must be a whole percentage between 0 and 100.');
+	}
+
+	return parsedValue;
+}
+
+function resolveTaskStatus(status, progressPercentage) {
+	if (status === 'completed') {
+		return 'completed';
+	}
+
+	if (progressPercentage > 0 && PROGRESS_DRIVEN_STATUSES.has(status)) {
+		return 'in_progress';
+	}
+
+	return status;
 }
 
 function normalizeTagKey(value) {
@@ -184,22 +299,96 @@ function normalizeTagsInput(value) {
 				.map((tag) => tag.trim())
 				.filter(Boolean);
 
-		const seenKeys = new Set();
-		const tags = [];
+	const seenKeys = new Set();
+	const tags = [];
 
-		for (const rawTag of rawTags) {
-			const name = normalizeString(rawTag);
-			const key = normalizeTagKey(name);
+	for (const rawTag of rawTags) {
+		const name = normalizeString(rawTag);
+		const key = normalizeTagKey(name);
 
-			if (!name || !key || seenKeys.has(key)) {
-				continue;
-			}
-
-			seenKeys.add(key);
-			tags.push({ key, name });
+		if (!name || !key || seenKeys.has(key)) {
+			continue;
 		}
 
-		return tags;
+		seenKeys.add(key);
+		tags.push({ key, name });
+	}
+
+	return tags;
+}
+
+function normalizeTaskTagCollection(tags) {
+	const rawTags = Array.isArray(tags) ? tags : tags ? [tags] : [];
+	const seenKeys = new Set();
+	const normalizedTags = [];
+
+	for (const rawTag of rawTags) {
+		const sourceTag = typeof rawTag === 'string'
+			? { key: rawTag, name: rawTag }
+			: {
+				key: rawTag?.key ?? rawTag?.name,
+				name: rawTag?.name ?? rawTag?.key
+			};
+		const name = normalizeString(sourceTag.name);
+		const key = normalizeTagKey(sourceTag.key ?? sourceTag.name);
+
+		if (!name || !key || seenKeys.has(key)) {
+			continue;
+		}
+
+		seenKeys.add(key);
+		normalizedTags.push({ key, name });
+	}
+
+	return normalizedTags;
+}
+
+function getTaskActivityTimestamp(task) {
+	return normalizeTimestamp(task.lastActivityAt ?? task.last_activity_at ?? task.updatedAt ?? task.updated_at ?? task.createdAt ?? task.created_at);
+}
+
+function shouldHaveDueTag(task, now = Date.now()) {
+	if (TERMINAL_TASK_STATUSES.has(task.status)) {
+		return false;
+	}
+
+	const dueAt = new Date(task.dueAt).getTime();
+	return Number.isFinite(dueAt) && dueAt <= now;
+}
+
+function shouldHaveStaleTag(task, now = Date.now()) {
+	if (TERMINAL_TASK_STATUSES.has(task.status)) {
+		return false;
+	}
+
+	const lastActivityAt = new Date(getTaskActivityTimestamp(task)).getTime();
+	return Number.isFinite(lastActivityAt) && lastActivityAt <= now - STALE_TASK_THRESHOLD_MS;
+}
+
+function applySystemTaskTags(tags, task) {
+	const nextTags = normalizeTaskTagCollection(tags).filter((tag) => !SYSTEM_TASK_TAG_KEYS.has(tag.key));
+
+	if (shouldHaveDueTag(task)) {
+		nextTags.push(SYSTEM_TASK_TAGS.due);
+	}
+
+	if (shouldHaveStaleTag(task)) {
+		nextTags.push(SYSTEM_TASK_TAGS.stale);
+	}
+
+	return normalizeTaskTagCollection(nextTags);
+}
+
+function summarizeSystemTagChanges(previousTags, nextTags) {
+	const previousKeys = new Set(normalizeTaskTagCollection(previousTags).map((tag) => tag.key));
+	const nextKeys = new Set(normalizeTaskTagCollection(nextTags).map((tag) => tag.key));
+
+	return {
+		dueAdded: Number(!previousKeys.has('due') && nextKeys.has('due')),
+		dueRemoved: Number(previousKeys.has('due') && !nextKeys.has('due')),
+		staleAdded: Number(!previousKeys.has('stale') && nextKeys.has('stale')),
+		staleRemoved: Number(previousKeys.has('stale') && !nextKeys.has('stale'))
+	};
 }
 
 function normalizeAssignedUserIds(value) {
@@ -228,6 +417,9 @@ function normalizeTaskRecord(task) {
 		description: task.description,
 		status: task.status,
 		dueAt: normalizeTimestamp(task.due_at),
+		dueTime: task.has_due_time ? task.due_time ?? task.due_at?.toISOString?.().slice(11, 16) ?? null : null,
+		hasDueTime: Boolean(task.has_due_time),
+		progressPercentage: task.progress_percentage,
 		notificationOffsetMinutes: task.notification_offset_minutes,
 		recurrenceRule: task.recurrence_rule,
 		createdByUserId: task.created_by_user_id,
@@ -237,7 +429,8 @@ function normalizeTaskRecord(task) {
 		sourceExternalId: task.source_external_id,
 		createdVia: task.created_via,
 		createdAt: normalizeTimestamp(task.created_at),
-		updatedAt: normalizeTimestamp(task.updated_at)
+		updatedAt: normalizeTimestamp(task.updated_at),
+		lastActivityAt: normalizeTimestamp(task.last_activity_at)
 	};
 }
 
@@ -261,12 +454,42 @@ function normalizeTagRecord(tag) {
 	};
 }
 
+function normalizeTaskCommentRecord(comment) {
+	return {
+		id: comment.id,
+		body: comment.body,
+		author: {
+			id: comment.author_id,
+			name: comment.author_name,
+			email: comment.author_email
+		},
+		createdAt: normalizeTimestamp(comment.created_at),
+		updatedAt: normalizeTimestamp(comment.updated_at)
+	};
+}
+
+function normalizeTaskCommentBody(value) {
+	const normalizedValue = normalizeString(value);
+
+	if (!normalizedValue) {
+		throw new Error('Task comment is required.');
+	}
+
+	return normalizedValue;
+}
+
 function normalizeTaskInput(input) {
+	const normalizedStatus = normalizeTaskStatus(input.status);
+	const progressPercentage = normalizeProgressPercentage(input.progressPercentage, normalizedStatus);
+
 	const task = {
 		title: normalizeString(input.title),
 		description: normalizeString(input.description),
-		status: normalizeTaskStatus(input.status),
+		status: resolveTaskStatus(normalizedStatus, progressPercentage),
 		dueAt: normalizeDueAt(input.dueAt),
+		dueTime: normalizeDueTime(input.dueTime),
+		hasDueTime: normalizeHasDueTime(input.hasDueTime, input.dueTime),
+		progressPercentage,
 		notificationOffsetMinutes: normalizeNotificationOffset(input.notificationOffsetMinutes),
 		recurrenceRule: normalizeTaskRecurrenceRule(input.recurrenceRule),
 		assignedUserIds: normalizeAssignedUserIds(input.assignedUserIds),
@@ -295,17 +518,19 @@ function normalizeTaskInput(input) {
 }
 
 async function ensureUsersExist(executor, userIds) {
-	if (userIds.length === 0) {
+	const uniqueUserIds = [...new Set(userIds)];
+
+	if (uniqueUserIds.length === 0) {
 		return;
 	}
 
 	const users = await executor`
 		SELECT id
 		FROM admin_app_users
-		WHERE id IN ${executor(userIds)}
+		WHERE id IN ${executor(uniqueUserIds)}
 	`;
 
-	if (users.length !== userIds.length) {
+	if (users.length !== uniqueUserIds.length) {
 		throw new Error('One or more assigned users could not be found.');
 	}
 }
@@ -360,7 +585,8 @@ async function syncTaskTags(executor, taskId, tags) {
 	}
 }
 
-async function getTaskWithRelations(executor, taskId) {
+async function getTaskWithRelations(executor, taskId, options) {
+	const includeComments = options?.includeComments ?? false;
 	const [task] = await executor`
 		SELECT *
 		FROM admin_tasks
@@ -372,7 +598,7 @@ async function getTaskWithRelations(executor, taskId) {
 		return null;
 	}
 
-	const [assignedUsers, tags] = await Promise.all([
+	const relationPromises = [
 		executor`
 			SELECT u.*
 			FROM admin_task_assignments ta
@@ -387,12 +613,31 @@ async function getTaskWithRelations(executor, taskId) {
 			WHERE ttl.task_id = ${taskId}
 			ORDER BY t.name ASC
 		`
-	]);
+	];
+
+	if (includeComments) {
+		relationPromises.push(executor`
+			SELECT c.id,
+				c.body,
+				c.created_at,
+				c.updated_at,
+				u.id AS author_id,
+				u.name AS author_name,
+				u.email AS author_email
+			FROM admin_task_comments c
+			JOIN admin_app_users u ON u.id = c.author_user_id
+			WHERE c.task_id = ${taskId}
+			ORDER BY c.created_at DESC
+		`);
+	}
+
+	const [assignedUsers, tags, comments = []] = await Promise.all(relationPromises);
 
 	return {
 		...normalizeTaskRecord(task),
 		assignedUsers: assignedUsers.map(normalizeUserRecord),
-		tags: tags.map(normalizeTagRecord)
+		tags: tags.map(normalizeTagRecord),
+		comments: comments.map(normalizeTaskCommentRecord)
 	};
 }
 
@@ -432,10 +677,10 @@ export async function listTasks() {
 	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id)));
 }
 
-export async function getTaskById(taskId) {
+export async function getTaskById(taskId, options = {}) {
 	await ensureSchema();
 	const sql = getSql();
-	return getTaskWithRelations(sql, taskId);
+	return getTaskWithRelations(sql, taskId, options);
 }
 
 export async function getTaskBySourceReference(sourceIntegrationId, sourceExternalId) {
@@ -466,6 +711,11 @@ export async function createTask(input) {
 
 	return sql.begin(async (tx) => {
 		await ensureUsersExist(tx, [task.createdByUserId, ...task.assignedUserIds]);
+		const activityTimestamp = new Date().toISOString();
+		const tags = applySystemTaskTags(task.tags, {
+			...task,
+			lastActivityAt: activityTimestamp
+		});
 
 		const [createdTask] = await tx`
 			INSERT INTO admin_tasks (
@@ -474,6 +724,10 @@ export async function createTask(input) {
 				description,
 				status,
 				due_at,
+				due_time,
+				has_due_time,
+				progress_percentage,
+				last_activity_at,
 				notification_offset_minutes,
 				recurrence_rule,
 				created_by_user_id,
@@ -489,6 +743,10 @@ export async function createTask(input) {
 				${task.description},
 				${task.status},
 				${task.dueAt},
+				${task.dueTime},
+				${task.hasDueTime},
+				${task.progressPercentage},
+				${activityTimestamp},
 				${task.notificationOffsetMinutes},
 				${task.recurrenceRule},
 				${task.createdByUserId},
@@ -502,7 +760,7 @@ export async function createTask(input) {
 		`;
 
 		await syncTaskAssignments(tx, createdTask.id, task.assignedUserIds);
-		await syncTaskTags(tx, createdTask.id, task.tags);
+		await syncTaskTags(tx, createdTask.id, tags);
 
 		return getTaskWithRelations(tx, createdTask.id);
 	});
@@ -515,6 +773,11 @@ export async function updateTask(taskId, input) {
 
 	return sql.begin(async (tx) => {
 		await ensureUsersExist(tx, [task.createdByUserId, ...task.assignedUserIds]);
+		const activityTimestamp = new Date().toISOString();
+		const tags = applySystemTaskTags(task.tags, {
+			...task,
+			lastActivityAt: activityTimestamp
+		});
 
 		const [updatedTask] = await tx`
 			UPDATE admin_tasks
@@ -522,6 +785,10 @@ export async function updateTask(taskId, input) {
 				description = ${task.description},
 				status = ${task.status},
 				due_at = ${task.dueAt},
+				due_time = ${task.dueTime},
+				has_due_time = ${task.hasDueTime},
+				progress_percentage = ${task.progressPercentage},
+				last_activity_at = ${activityTimestamp},
 				notification_offset_minutes = ${task.notificationOffsetMinutes},
 				recurrence_rule = ${task.recurrenceRule},
 				created_by_user_id = ${task.createdByUserId},
@@ -535,8 +802,109 @@ export async function updateTask(taskId, input) {
 		}
 
 		await syncTaskAssignments(tx, taskId, task.assignedUserIds);
-		await syncTaskTags(tx, taskId, task.tags);
+		await syncTaskTags(tx, taskId, tags);
 
 		return getTaskWithRelations(tx, taskId);
+	});
+}
+
+export async function createTaskComment(taskId, input) {
+	await ensureSchema();
+	const sql = getSql();
+	const normalizedTaskId = normalizeString(taskId);
+	const authorUserId = normalizeString(input.authorUserId);
+	const body = normalizeTaskCommentBody(input.body);
+
+	if (!normalizedTaskId) {
+		throw new Error('Task ID is required to add a comment.');
+	}
+
+	if (!authorUserId) {
+		throw new Error('Comment author is required.');
+	}
+
+	return sql.begin(async (tx) => {
+		await ensureUsersExist(tx, [authorUserId]);
+		const existingTask = await getTaskWithRelations(tx, normalizedTaskId);
+
+		if (!existingTask) {
+			throw new Error('Task not found.');
+		}
+
+		await tx`
+			INSERT INTO admin_task_comments (
+				id,
+				task_id,
+				author_user_id,
+				body
+			)
+			VALUES (
+				${randomUUID()},
+				${normalizedTaskId},
+				${authorUserId},
+				${body}
+			)
+		`;
+
+		const activityTimestamp = new Date().toISOString();
+		await tx`
+			UPDATE admin_tasks
+			SET last_activity_at = ${activityTimestamp},
+				updated_at = now()
+			WHERE id = ${normalizedTaskId}
+		`;
+		await syncTaskTags(
+			tx,
+			normalizedTaskId,
+			applySystemTaskTags(existingTask.tags, {
+				...existingTask,
+				lastActivityAt: activityTimestamp
+			})
+		);
+
+		return getTaskWithRelations(tx, normalizedTaskId, { includeComments: true });
+	});
+}
+
+export async function reconcileTaskSystemTags() {
+	await ensureSchema();
+	const sql = getSql();
+	const tasks = await sql`
+		SELECT id
+		FROM admin_tasks
+	`;
+
+	return sql.begin(async (tx) => {
+		const summary = {
+			scanned: 0,
+			updated: 0,
+			dueAdded: 0,
+			dueRemoved: 0,
+			staleAdded: 0,
+			staleRemoved: 0
+		};
+
+		for (const task of tasks) {
+			const currentTask = await getTaskWithRelations(tx, task.id);
+
+			if (!currentTask) {
+				continue;
+			}
+
+			summary.scanned += 1;
+			const nextTags = applySystemTaskTags(currentTask.tags, currentTask);
+			const changes = summarizeSystemTagChanges(currentTask.tags, nextTags);
+
+			if (changes.dueAdded || changes.dueRemoved || changes.staleAdded || changes.staleRemoved) {
+				await syncTaskTags(tx, currentTask.id, nextTags);
+				summary.updated += 1;
+				summary.dueAdded += changes.dueAdded;
+				summary.dueRemoved += changes.dueRemoved;
+				summary.staleAdded += changes.staleAdded;
+				summary.staleRemoved += changes.staleRemoved;
+			}
+		}
+
+		return summary;
 	});
 }

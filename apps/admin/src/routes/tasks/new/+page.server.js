@@ -1,31 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getLocalUserByLogtoUserId, listLocalUsers } from '$lib/server/admin-access-store';
 import { createTask, getTasksStoreErrorMessage } from '$lib/server/tasks-store';
+import { buildTaskFormValues, readTaskInput } from '$lib/server/task-form';
 import { syncTaskAlerts } from '$lib/server/task-alerts';
-
-function readTrimmedString(formData, name) {
-	return String(formData.get(name) ?? '').trim();
-}
-
-function readTaskInput(formData) {
-	return {
-		title: readTrimmedString(formData, 'title'),
-		description: readTrimmedString(formData, 'description'),
-		status: readTrimmedString(formData, 'status') || 'open',
-		dueAt: readTrimmedString(formData, 'dueAt'),
-		notificationOffsetMinutes: readTrimmedString(formData, 'notificationOffsetMinutes'),
-		recurrenceRule: readTrimmedString(formData, 'recurrenceRule') || 'none',
-		assignedUserIds: formData.getAll('assignedUserIds').map((value) => String(value).trim()).filter(Boolean),
-		tags: readTrimmedString(formData, 'tags')
-	};
-}
-
-function buildTaskFormValues(input) {
-	return {
-		...input,
-		tagsInput: input.tags
-	};
-}
 
 export async function load() {
 	return {
@@ -43,8 +20,8 @@ export const actions = {
 			errors.title = 'Task title is required.';
 		}
 
-		if (!input.dueAt) {
-			errors.dueAt = 'Task due date is required.';
+		if (!input.dueDate) {
+			errors.dueDate = 'Task due date is required.';
 		}
 
 		if (Object.keys(errors).length > 0) {
