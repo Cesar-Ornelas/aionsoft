@@ -47,7 +47,7 @@ export async function load() {
 }
 
 export const actions = {
-	default: async ({ locals, request }) => {
+	create: async ({ locals, request }) => {
 		const formData = await request.formData();
 		const input = {
 			name: readTrimmedString(formData, 'name'),
@@ -71,6 +71,7 @@ export const actions = {
 
 		if (Object.keys(errors).length > 0) {
 			return fail(400, {
+				intent: 'create',
 				errors,
 				values: buildValues(input)
 			});
@@ -81,6 +82,7 @@ export const actions = {
 
 			if (!currentLocalUser) {
 				return fail(403, {
+					intent: 'create',
 					message: 'No local admin user mapping was found for the current account.',
 					values: buildValues(input)
 				});
@@ -92,12 +94,15 @@ export const actions = {
 			});
 
 			return {
+				intent: 'create',
 				success: true,
 				integration: result.integration,
+				values: buildValues(input),
 				token: result.token
 			};
 		} catch (error) {
 			return fail(400, {
+				intent: 'create',
 				message: getIntegrationsStoreErrorMessage(error),
 				values: buildValues(input)
 			});
