@@ -1,10 +1,17 @@
 import { json } from '@sveltejs/kit';
-import { requireApiIntegration, ApiTokenAuthError, getApiAuthErrorMessage } from '$lib/server/api-token-auth';
-import { createTask, getTaskBySourceReference, getTasksStoreErrorMessage } from '$lib/server/tasks-store';
+import { requireApiIntegration, getApiIntegrationTaskReadScope, ApiTokenAuthError, getApiAuthErrorMessage } from '$lib/server/api-token-auth';
+import { createTask, getTaskBySourceReference, getTasksStoreErrorMessage, listTasksForIntegrationScope } from '$lib/server/tasks-store';
 import { syncTaskAlerts } from '$lib/server/task-alerts';
 
 function normalizeString(value) {
 	return String(value ?? '').trim();
+}
+
+function normalizeTagKey(value) {
+	return normalizeString(value)
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
 }
 
 function readAssignedUserIds(value) {
@@ -60,20 +67,69 @@ function validateTaskInput(input) {
 	return errors;
 }
 
+function getAuthErrorResponse(error) {
+	return json(
+		{
+			message: getApiAuthErrorMessage(error)
+		},
+		{
+			status: error instanceof ApiTokenAuthError ? error.status : 401
+		}
+	);
+}
+
+export async function GET({ request, url }) {
+	let integration;
+
+	try {
+		integration = await requireApiIntegration(request, 'tasks:read');
+	} catch (error) {
+		return getAuthErrorResponse(error);
+	}
+
+	const baseScope = getApiIntegrationTaskReadScope(integration);
+	const requestedTagKey = normalizeTagKey(url.searchParams.get('tag'));
+	let allowedTagKeys = baseScope.allowedTagKeys;
+
+	if (requestedTagKey) {
+		if (baseScope.allowedTagKeys.length > 0 && !baseScope.allowedTagKeys.includes(requestedTagKey)) {
+			return json({ tasks: [], count: 0 }, { status: 200 });
+		}
+
+		allowedTagKeys = [requestedTagKey];
+	}
+
+	try {
+		const tasks = await listTasksForIntegrationScope(
+			{
+				sourceIntegrationId: baseScope.sourceIntegrationId,
+				allowedTagKeys
+			},
+			{
+				status: normalizeString(url.searchParams.get('status')).toLowerCase(),
+				sourceExternalId: normalizeString(url.searchParams.get('sourceExternalId')),
+				limit: normalizeString(url.searchParams.get('limit'))
+			}
+		);
+
+		return json({ tasks, count: tasks.length }, { status: 200 });
+	} catch (error) {
+		return json(
+			{
+				message: getTasksStoreErrorMessage(error, 'The tasks could not be loaded.')
+			},
+			{ status: 400 }
+		);
+	}
+}
+
 export async function POST({ request }) {
 	let integration;
 
 	try {
 		integration = await requireApiIntegration(request, 'tasks:create');
 	} catch (error) {
-		return json(
-			{
-				message: getApiAuthErrorMessage(error)
-			},
-			{
-				status: error instanceof ApiTokenAuthError ? error.status : 401
-			}
-		);
+		return getAuthErrorResponse(error);
 	}
 
 	let payload;

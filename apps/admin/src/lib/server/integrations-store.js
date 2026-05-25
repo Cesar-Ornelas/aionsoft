@@ -5,6 +5,7 @@ import { ensureAdminAccessSchema } from '$lib/server/admin-access-store';
 
 const INTEGRATION_STATUSES = new Set(['active', 'revoked']);
 const INTEGRATION_PERMISSIONS = new Set(['tasks:create', 'tasks:update', 'tasks:read']);
+const INTEGRATION_TASK_ACCESS_SCOPES = new Set(['own', 'tags', 'all']);
 
 let sqlClient;
 let schemaPromise;
@@ -45,6 +46,8 @@ async function ensureSchema() {
 					token_hash text NOT NULL UNIQUE,
 					token_hint text NOT NULL,
 					permissions text[] NOT NULL DEFAULT '{}'::text[],
+						task_access_scope text NOT NULL DEFAULT 'own',
+						allowed_task_tags text[] NOT NULL DEFAULT '{}'::text[],
 					actor_user_id text NOT NULL REFERENCES admin_app_users(id) ON DELETE RESTRICT,
 					created_by_user_id text NOT NULL REFERENCES admin_app_users(id) ON DELETE RESTRICT,
 					last_used_at timestamptz,
@@ -55,6 +58,15 @@ async function ensureSchema() {
 					CHECK (status IN ('active', 'revoked'))
 				)
 			`;
+
+				await sql`ALTER TABLE admin_integrations ADD COLUMN IF NOT EXISTS task_access_scope text NOT NULL DEFAULT 'own'`;
+				await sql`ALTER TABLE admin_integrations ADD COLUMN IF NOT EXISTS allowed_task_tags text[] NOT NULL DEFAULT '{}'::text[]`;
+				await sql`ALTER TABLE admin_integrations DROP CONSTRAINT IF EXISTS admin_integrations_task_access_scope_check`;
+				await sql`
+					ALTER TABLE admin_integrations
+					ADD CONSTRAINT admin_integrations_task_access_scope_check
+					CHECK (task_access_scope IN ('own', 'tags', 'all'))
+				`;
 		})();
 
 		schemaPromise = schemaPromise.catch((error) => {
@@ -111,6 +123,58 @@ function normalizePermissions(value) {
 	return permissions;
 }
 
+function normalizeTagKey(value) {
+	return normalizeString(value)
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+}
+
+function normalizeTaskAccessScope(value) {
+	const normalizedValue = normalizeString(value).toLowerCase() || 'own';
+
+	if (!INTEGRATION_TASK_ACCESS_SCOPES.has(normalizedValue)) {
+		throw new Error('Integration task access scope is invalid.');
+	}
+
+	return normalizedValue;
+}
+
+function normalizeAllowedTaskTags(value) {
+	const items = Array.isArray(value) ? value : value ? [value] : [];
+	const seenKeys = new Set();
+	const tags = [];
+
+	for (const item of items) {
+		const normalizedKey = normalizeTagKey(item);
+
+		if (!normalizedKey || seenKeys.has(normalizedKey)) {
+			continue;
+		}
+
+		seenKeys.add(normalizedKey);
+		tags.push(normalizedKey);
+	}
+
+	return tags;
+}
+
+function normalizeIntegrationTaskAccess(input) {
+	const taskAccessScope = normalizeTaskAccessScope(input.taskAccessScope);
+	const allowedTaskTags = taskAccessScope === 'tags'
+		? normalizeAllowedTaskTags(input.allowedTaskTags)
+		: [];
+
+	if (taskAccessScope === 'tags' && allowedTaskTags.length === 0) {
+		throw new Error('At least one allowed task tag is required when task scope is set to tags.');
+	}
+
+	return {
+		taskAccessScope,
+		allowedTaskTags
+	};
+}
+
 function hashToken(token) {
 	return createHash('sha256').update(token).digest('hex');
 }
@@ -131,6 +195,8 @@ function normalizeIntegrationRecord(record) {
 		status: record.status,
 		tokenHint: record.token_hint,
 		permissions: record.permissions ?? [],
+		taskAccessScope: normalizeTaskAccessScope(record.task_access_scope),
+		allowedTaskTags: normalizeAllowedTaskTags(record.allowed_task_tags),
 		actorUserId: record.actor_user_id,
 		createdByUserId: record.created_by_user_id,
 		lastUsedAt: normalizeTimestamp(record.last_used_at),
@@ -175,6 +241,10 @@ export function listIntegrationPermissions() {
 	return [...INTEGRATION_PERMISSIONS];
 }
 
+export function listIntegrationTaskAccessScopes() {
+	return [...INTEGRATION_TASK_ACCESS_SCOPES];
+}
+
 export async function listIntegrations() {
 	await ensureSchema();
 	const sql = getSql();
@@ -208,6 +278,7 @@ export async function createIntegration(input) {
 	const actorUserId = normalizeString(input.actorUserId);
 	const createdByUserId = normalizeString(input.createdByUserId);
 	const permissions = normalizePermissions(input.permissions);
+	const taskAccess = normalizeIntegrationTaskAccess(input);
 
 	if (!name) {
 		throw new Error('Integration name is required.');
@@ -237,6 +308,8 @@ export async function createIntegration(input) {
 				token_hash,
 				token_hint,
 				permissions,
+				task_access_scope,
+				allowed_task_tags,
 				actor_user_id,
 				created_by_user_id,
 				rotated_at
@@ -249,6 +322,8 @@ export async function createIntegration(input) {
 				${tokenHash},
 				${tokenHint},
 				${permissions},
+				${taskAccess.taskAccessScope},
+				${taskAccess.allowedTaskTags},
 				${actorUserId},
 				${createdByUserId},
 				now()
@@ -344,4 +419,18 @@ export function hasIntegrationPermission(integration, permission) {
 	}
 
 	return (integration.permissions ?? []).includes(normalizeString(permission).toLowerCase());
+}
+
+export function getIntegrationTaskAccessScope(integration) {
+	if (!integration) {
+		return {
+			taskAccessScope: 'own',
+			allowedTaskTags: []
+		};
+	}
+
+	return {
+		taskAccessScope: normalizeTaskAccessScope(integration.taskAccessScope),
+		allowedTaskTags: normalizeAllowedTaskTags(integration.allowedTaskTags)
+	};
 }

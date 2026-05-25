@@ -43,6 +43,32 @@
 	function errors() {
 		return form?.errors ?? {};
 	}
+
+	function taskAccessScopeValue() {
+		return values().taskAccessScope ?? 'own';
+	}
+
+	function allowedTaskTagsValue() {
+		const sourceValue = values().allowedTaskTags;
+
+		if (Array.isArray(sourceValue)) {
+			return sourceValue.join(', ');
+		}
+
+		return sourceValue ?? '';
+	}
+
+	function taskAccessScopeLabel(value) {
+		if (value === 'all') {
+			return 'All tasks';
+		}
+
+		if (value === 'tags') {
+			return 'Specific tags';
+		}
+
+		return 'Own tasks only';
+	}
 </script>
 
 <section class="space-y-6">
@@ -88,6 +114,7 @@
 					<tr>
 						<th class="px-5 py-4">Integration</th>
 						<th class="px-5 py-4">Permissions</th>
+						<th class="px-5 py-4">Scope</th>
 						<th class="px-5 py-4">Token</th>
 						<th class="px-5 py-4">Last used</th>
 					</tr>
@@ -95,7 +122,7 @@
 				<tbody class="divide-y divide-slate-100">
 					{#if data.integrations.length === 0}
 						<tr>
-							<td colspan="4" class="px-5 py-10 text-center text-sm text-slate-500">
+							<td colspan="5" class="px-5 py-10 text-center text-sm text-slate-500">
 								No integrations have been created yet.
 							</td>
 						</tr>
@@ -107,6 +134,12 @@
 									<p class="mt-1 text-xs text-slate-400">{integration.kind} · {integration.status}</p>
 								</td>
 								<td class="px-5 py-4 text-slate-600">{integration.permissions.join(', ')}</td>
+								<td class="px-5 py-4 text-slate-600">
+									<p>{taskAccessScopeLabel(integration.taskAccessScope)}</p>
+									{#if integration.taskAccessScope === 'tags' && integration.allowedTaskTags.length > 0}
+										<p class="mt-1 text-xs text-slate-400">{integration.allowedTaskTags.join(', ')}</p>
+									{/if}
+								</td>
 								<td class="px-5 py-4 text-slate-500">{integration.tokenHint}</td>
 								<td class="px-5 py-4 text-slate-500">{formatDate(integration.lastUsedAt)}</td>
 							</tr>
@@ -215,6 +248,35 @@
 									<p class="mt-2 text-sm text-rose-600">{errors().permissions}</p>
 								{/if}
 							</fieldset>
+
+							<div>
+								<label for="taskAccessScope" class="block text-sm font-semibold text-slate-800">Task read scope</label>
+								<select id="taskAccessScope" name="taskAccessScope" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-300" value={taskAccessScopeValue()}>
+									<option value="own">Own tasks only</option>
+									<option value="tags">Tasks with specific tags</option>
+									<option value="all">All tasks</option>
+								</select>
+								<p class="mt-2 text-xs text-slate-500">
+									{#if taskAccessScopeValue() === 'all'}
+										This token will be able to read any task exposed by the API.
+									{:else if taskAccessScopeValue() === 'tags'}
+										This token will only read tasks whose tags match one of the allowed task tags below.
+									{:else}
+										This token will only read tasks created by this integration.
+									{/if}
+								</p>
+							</div>
+
+							{#if taskAccessScopeValue() === 'tags'}
+								<div>
+									<label for="allowedTaskTags" class="block text-sm font-semibold text-slate-800">Allowed task tags</label>
+									<input id="allowedTaskTags" name="allowedTaskTags" type="text" value={allowedTaskTagsValue()} class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-300" placeholder="customer-a, support, billing" />
+									<p class="mt-2 text-xs text-slate-500">Separate tags with commas. They are normalized and matched against task tag keys.</p>
+									{#if errors().allowedTaskTags}
+										<p class="mt-2 text-sm text-rose-600">{errors().allowedTaskTags}</p>
+									{/if}
+								</div>
+							{/if}
 						</div>
 
 						<div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">

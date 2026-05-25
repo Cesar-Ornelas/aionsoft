@@ -4,6 +4,7 @@ import {
 	createIntegration,
 	getIntegrationsStoreErrorMessage,
 	listIntegrationPermissions,
+	listIntegrationTaskAccessScopes,
 	listIntegrations
 } from '$lib/server/integrations-store';
 
@@ -23,8 +24,17 @@ function buildValues(input) {
 		name: input.name,
 		kind: input.kind,
 		actorUserId: input.actorUserId,
-		permissions: input.permissions
+		permissions: input.permissions,
+		taskAccessScope: input.taskAccessScope,
+		allowedTaskTags: input.allowedTaskTags
 	};
+}
+
+function readAllowedTaskTags(formData) {
+	return String(formData.get('allowedTaskTags') ?? '')
+		.split(',')
+		.map((value) => value.trim())
+		.filter(Boolean);
 }
 
 export async function load() {
@@ -34,13 +44,15 @@ export async function load() {
 		return {
 			integrations,
 			users,
-			permissions: listIntegrationPermissions()
+			permissions: listIntegrationPermissions(),
+			taskAccessScopes: listIntegrationTaskAccessScopes()
 		};
 	} catch (error) {
 		return {
 			integrations: [],
 			users: [],
 			permissions: listIntegrationPermissions(),
+			taskAccessScopes: listIntegrationTaskAccessScopes(),
 			errorMessage: getIntegrationsStoreErrorMessage(error, 'The integrations view could not be loaded.')
 		};
 	}
@@ -53,7 +65,9 @@ export const actions = {
 			name: readTrimmedString(formData, 'name'),
 			kind: readTrimmedString(formData, 'kind') || 'external',
 			actorUserId: readTrimmedString(formData, 'actorUserId'),
-			permissions: readPermissions(formData)
+			permissions: readPermissions(formData),
+			taskAccessScope: readTrimmedString(formData, 'taskAccessScope') || 'own',
+			allowedTaskTags: readAllowedTaskTags(formData)
 		};
 		const errors = {};
 
@@ -67,6 +81,10 @@ export const actions = {
 
 		if (input.permissions.length === 0) {
 			errors.permissions = 'Select at least one integration permission.';
+		}
+
+		if (input.taskAccessScope === 'tags' && input.allowedTaskTags.length === 0) {
+			errors.allowedTaskTags = 'Add at least one task tag when the scope is limited by tags.';
 		}
 
 		if (Object.keys(errors).length > 0) {

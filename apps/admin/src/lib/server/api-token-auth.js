@@ -1,4 +1,4 @@
-import { getIntegrationByToken, hasIntegrationPermission, markIntegrationUsed } from '$lib/server/integrations-store';
+import { getIntegrationByToken, getIntegrationTaskAccessScope, hasIntegrationPermission, markIntegrationUsed } from '$lib/server/integrations-store';
 
 export class ApiTokenAuthError extends Error {
 	constructor(message, status = 401) {
@@ -43,6 +43,29 @@ export async function requireApiIntegration(request, permission) {
 	await markIntegrationUsed(integration.id);
 
 	return integration;
+}
+
+export function getApiIntegrationTaskReadScope(integration) {
+	const taskAccess = getIntegrationTaskAccessScope(integration);
+
+	if (taskAccess.taskAccessScope === 'all') {
+		return {
+			sourceIntegrationId: null,
+			allowedTagKeys: []
+		};
+	}
+
+	if (taskAccess.taskAccessScope === 'tags') {
+		return {
+			sourceIntegrationId: null,
+			allowedTagKeys: taskAccess.allowedTaskTags
+		};
+	}
+
+	return {
+		sourceIntegrationId: integration?.id ?? null,
+		allowedTagKeys: []
+	};
 }
 
 export function getApiAuthErrorMessage(error, fallback = 'The API request could not be authenticated.') {

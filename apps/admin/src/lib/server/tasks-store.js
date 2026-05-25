@@ -677,6 +677,56 @@ export async function listTasks() {
 	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id)));
 }
 
+export async function listTasksForIntegrationScope(scope = {}, options = {}) {
+	await ensureSchema();
+	const sql = getSql();
+	const sourceIntegrationId = normalizeNullableString(scope.sourceIntegrationId);
+	const allowedTagKeys = [...new Set((Array.isArray(scope.allowedTagKeys) ? scope.allowedTagKeys : [])
+		.map((tagKey) => normalizeNullableString(tagKey))
+		.filter(Boolean))];
+	const status = normalizeNullableString(options.status);
+	const sourceExternalId = normalizeNullableString(options.sourceExternalId);
+	const limit = Math.min(Math.max(Number.parseInt(String(options.limit ?? '50'), 10) || 50, 1), 100);
+	const whereClauses = [];
+
+	if (sourceIntegrationId) {
+		whereClauses.push(sql`admin_tasks.source_integration_id = ${sourceIntegrationId}`);
+	}
+
+	if (allowedTagKeys.length > 0) {
+		whereClauses.push(sql`
+			EXISTS (
+				SELECT 1
+				FROM admin_task_tag_links ttl
+				JOIN admin_task_tags tt ON tt.id = ttl.tag_id
+				WHERE ttl.task_id = admin_tasks.id
+					AND tt.key IN ${sql(allowedTagKeys)}
+			)
+		`);
+	}
+
+	if (status) {
+		whereClauses.push(sql`admin_tasks.status = ${status}`);
+	}
+
+	if (sourceExternalId) {
+		whereClauses.push(sql`admin_tasks.source_external_id = ${sourceExternalId}`);
+	}
+
+	const whereSql = whereClauses.length > 0
+		? sql`WHERE ${sql.join(whereClauses, sql` AND `)}`
+		: sql``;
+	const tasks = await sql`
+		SELECT admin_tasks.id
+		FROM admin_tasks
+		${whereSql}
+		ORDER BY admin_tasks.due_at ASC, admin_tasks.created_at DESC
+		LIMIT ${limit}
+	`;
+
+	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id)));
+}
+
 export async function getTaskById(taskId, options = {}) {
 	await ensureSchema();
 	const sql = getSql();
