@@ -1,8 +1,8 @@
 import { requireAdminAppReady } from '$lib/server/admin-guard';
 
-export function load(event) {
+export async function load(event) {
 	return {
-		...requireAdminAppReady(event),
+		...(await requireAdminAppReady(event)),
 		workspaceShell: {
 			kicker: 'Tasks Workspace',
 			title: 'Tasks',

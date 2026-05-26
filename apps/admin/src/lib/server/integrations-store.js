@@ -338,6 +338,30 @@ export async function createIntegration(input) {
 	});
 }
 
+export async function updateIntegration(integrationId, input) {
+	await ensureSchema();
+	const sql = getSql();
+	const normalizedIntegrationId = normalizeString(integrationId);
+	const permissions = normalizePermissions(input.permissions);
+	const taskAccess = normalizeIntegrationTaskAccess(input);
+
+	if (!normalizedIntegrationId) {
+		throw new Error('Integration ID is required.');
+	}
+
+	const [row] = await sql`
+		UPDATE admin_integrations
+		SET permissions = ${permissions},
+			task_access_scope = ${taskAccess.taskAccessScope},
+			allowed_task_tags = ${taskAccess.allowedTaskTags},
+			updated_at = now()
+		WHERE id = ${normalizedIntegrationId}
+		RETURNING *
+	`;
+
+	return row ? normalizeIntegrationRecord(row) : null;
+}
+
 export async function rotateIntegrationToken(integrationId) {
 	await ensureSchema();
 	const sql = getSql();

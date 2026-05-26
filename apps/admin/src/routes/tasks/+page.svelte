@@ -206,9 +206,6 @@
 		</div>
 
 		<div class="flex items-center gap-3">
-			<a href="/tasks/view" class="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
-				Open view
-			</a>
 			<a href="/tasks/view?new=1" class="inline-flex h-10 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800">
 				Add task
 			</a>

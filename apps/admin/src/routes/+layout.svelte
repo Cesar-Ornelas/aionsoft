@@ -21,6 +21,12 @@
 			badge: 'Ops'
 		},
 		{
+			href: '/projects',
+			label: 'Projects',
+			description: 'Phases, milestones, delivery',
+			badge: 'Ops'
+		},
+		{
 			href: '/clients',
 			label: 'Clients',
 			description: 'Companies, contacts',
@@ -137,7 +143,7 @@
 		{/if}
 
 		<aside
-			class={`fixed inset-y-3 left-3 z-30 flex w-[min(19rem,calc(100vw-1rem))] flex-col rounded-[2rem] border border-white/75 bg-white/92 p-4 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition duration-300 lg:static lg:w-auto lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)] lg:translate-x-0'}`}
+			class={`fixed inset-y-3 left-3 z-30 flex h-[calc(100dvh-1.5rem)] w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border border-white/75 bg-white/92 p-4 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition duration-300 lg:sticky lg:top-3 lg:w-auto lg:self-start lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+1rem)] lg:translate-x-0'}`}
 		>
 			<div class="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 pb-4">
 				<div>
@@ -160,7 +166,7 @@
 				</button>
 			</div>
 
-			<nav class="mt-5 flex-1 space-y-2">
+			<nav class="mt-5 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
 				{#if workspaceShell}
 					{#each workspaceShell.navItems as item}
 						<a
@@ -191,11 +197,12 @@
 				{/if}
 			</nav>
 
+			<div class="mt-4 shrink-0 border-t border-slate-200/80 pt-4">
 			{#if workspaceShell}
 				<a
 					href={workspaceShell.exitHref}
 					onclick={closeMenu}
-					class="mb-4 inline-flex items-center justify-between rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+					class="mb-4 inline-flex w-full items-center justify-between rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
 				>
 					<span>{workspaceShell.exitLabel}</span>
 					<span aria-hidden="true">←</span>
@@ -256,6 +263,7 @@
 						</a>
 					{/if}
 				</div>
+			</div>
 			</div>
 		</aside>
 

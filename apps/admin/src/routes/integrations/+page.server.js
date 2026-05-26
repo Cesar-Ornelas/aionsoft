@@ -2,10 +2,12 @@ import { fail } from '@sveltejs/kit';
 import { getLocalUserByLogtoUserId, listLocalUsers } from '$lib/server/admin-access-store';
 import {
 	createIntegration,
+	getIntegrationById,
 	getIntegrationsStoreErrorMessage,
 	listIntegrationPermissions,
 	listIntegrationTaskAccessScopes,
-	listIntegrations
+	listIntegrations,
+	updateIntegration
 } from '$lib/server/integrations-store';
 
 function readTrimmedString(formData, name) {
@@ -37,13 +39,20 @@ function readAllowedTaskTags(formData) {
 		.filter(Boolean);
 }
 
-export async function load() {
+export async function load({ url }) {
+	const editIntegrationId = readTrimmedString(url.searchParams, 'edit');
+
 	try {
-		const [integrations, users] = await Promise.all([listIntegrations(), listLocalUsers()]);
+		const [integrations, users, editingIntegration] = await Promise.all([
+			listIntegrations(),
+			listLocalUsers(),
+			editIntegrationId ? getIntegrationById(editIntegrationId) : Promise.resolve(null)
+		]);
 
 		return {
 			integrations,
 			users,
+			editingIntegration,
 			permissions: listIntegrationPermissions(),
 			taskAccessScopes: listIntegrationTaskAccessScopes()
 		};
@@ -51,6 +60,7 @@ export async function load() {
 		return {
 			integrations: [],
 			users: [],
+			editingIntegration: null,
 			permissions: listIntegrationPermissions(),
 			taskAccessScopes: listIntegrationTaskAccessScopes(),
 			errorMessage: getIntegrationsStoreErrorMessage(error, 'The integrations view could not be loaded.')
@@ -123,6 +133,70 @@ export const actions = {
 				intent: 'create',
 				message: getIntegrationsStoreErrorMessage(error),
 				values: buildValues(input)
+			});
+		}
+	},
+	edit: async ({ request }) => {
+		const formData = await request.formData();
+		const integrationId = readTrimmedString(formData, 'integrationId');
+		const input = {
+			permissions: readPermissions(formData),
+			taskAccessScope: readTrimmedString(formData, 'taskAccessScope') || 'own',
+			allowedTaskTags: readAllowedTaskTags(formData)
+		};
+		const errors = {};
+
+		if (!integrationId) {
+			return fail(400, {
+				intent: 'edit',
+				message: 'Integration ID is required.',
+				values: buildValues(input),
+				integrationId
+			});
+		}
+
+		if (input.permissions.length === 0) {
+			errors.permissions = 'Select at least one integration permission.';
+		}
+
+		if (input.taskAccessScope === 'tags' && input.allowedTaskTags.length === 0) {
+			errors.allowedTaskTags = 'Add at least one task tag when the scope is limited by tags.';
+		}
+
+		if (Object.keys(errors).length > 0) {
+			return fail(400, {
+				intent: 'edit',
+				errors,
+				values: buildValues(input),
+				integrationId
+			});
+		}
+
+		try {
+			const integration = await updateIntegration(integrationId, input);
+
+			if (!integration) {
+				return fail(404, {
+					intent: 'edit',
+					message: 'Integration not found.',
+					values: buildValues(input),
+					integrationId
+				});
+			}
+
+			return {
+				intent: 'edit',
+				success: true,
+				integration,
+				values: buildValues(input),
+				integrationId
+			};
+		} catch (error) {
+			return fail(400, {
+				intent: 'edit',
+				message: getIntegrationsStoreErrorMessage(error),
+				values: buildValues(input),
+				integrationId
 			});
 		}
 	}
