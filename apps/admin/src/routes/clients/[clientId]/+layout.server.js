@@ -23,6 +23,11 @@ export async function load({ params }) {
 						href: `/clients/${client.id}/overview`,
 						label: 'Profile',
 						description: 'Summary, company details, contacts'
+					},
+					{
+						href: `/clients/${client.id}/api`,
+						label: 'API',
+						description: 'Site tokens and shared data access'
 					}
 				],
 				exitHref: '/clients',

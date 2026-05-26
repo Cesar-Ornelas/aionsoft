@@ -5,6 +5,7 @@
 		form,
 		task = null,
 		users = [],
+		clients = [],
 		mode = 'create',
 		surface = 'page',
 		formAction = null,
@@ -41,6 +42,13 @@
 		{ value: 'deferred', label: 'Deferred' },
 		{ value: 'canceled', label: 'Canceled' },
 		{ value: 'completed', label: 'Completed' }
+	];
+
+	const priorityOptions = [
+		{ value: 'low', label: 'Low' },
+		{ value: 'normal', label: 'Normal' },
+		{ value: 'high', label: 'High' },
+		{ value: 'critical', label: 'Critical' }
 	];
 
 	const progressActivatedStatuses = new Set(['open', 'on_hold', 'deferred']);
@@ -102,6 +110,14 @@
 
 	function assignedUserIds() {
 		return values().assignedUserIds ?? values().assignedUsers?.map((user) => user.id) ?? [];
+	}
+
+	function audienceIdValue() {
+		return values().audienceId ?? '';
+	}
+
+	function priorityValue() {
+		return values().priority ?? 'normal';
 	}
 
 	function taskComments() {
@@ -291,7 +307,7 @@
 			</div>
 		</div>
 
-		<div class={isDrawer() ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 lg:grid-cols-4'}>
+		<div class={isDrawer() ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 lg:grid-cols-5'}>
 			<div>
 				<label class="block text-sm font-medium text-slate-700" for="notificationOffsetMinutes">Reminder</label>
 				<select id="notificationOffsetMinutes" name="notificationOffsetMinutes" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white">
@@ -320,6 +336,15 @@
 			</div>
 
 			<div>
+				<label class="block text-sm font-medium text-slate-700" for="priority">Priority</label>
+				<select id="priority" name="priority" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white">
+					{#each priorityOptions as option}
+						<option value={option.value} selected={priorityValue() === option.value}>{option.label}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div>
 				<label class="block text-sm font-medium text-slate-700" for="progressPercentage">Progress</label>
 				<input type="hidden" name="progressPercentage" value={progressPercentage} />
 				<div class="mt-2 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -330,6 +355,17 @@
 					<p class="mt-2 text-xs text-slate-500">Completed tasks are locked to 100% progress.</p>
 				{/if}
 			</div>
+		</div>
+
+		<div>
+			<label class="block text-sm font-medium text-slate-700" for="audienceId">Customer audience</label>
+			<select id="audienceId" name="audienceId" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white">
+				<option value="">Internal only</option>
+				{#each clients as client}
+					<option value={client.id} selected={audienceIdValue() === client.id}>{client.companyName}</option>
+				{/each}
+			</select>
+			<p class="mt-2 text-xs text-slate-500">Select a client when this task should later be eligible for customer-facing shared views or APIs.</p>
 		</div>
 
 		<div>

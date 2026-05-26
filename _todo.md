@@ -19,3 +19,9 @@ Natural next steps:
 Add PATCH /api/v1/tasks/[taskId] and GET /api/v1/tasks/[taskId].
 Add token rotation and revocation actions to the integrations page.
 Add webhook subscriptions and signed outbound task events.
+
+What remains is the consumer side: these client tokens do not yet authenticate any customer-facing API route. The next natural step is:
+
+add client-token auth helpers parallel to integration auth
+add audience-scoped task read endpoints that use these client tokens
+later extend the same pattern to invoices or other shareable domains

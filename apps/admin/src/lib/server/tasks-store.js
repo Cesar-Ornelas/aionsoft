@@ -3,6 +3,7 @@ import { env } from '$env/dynamic/private';
 import postgres from 'postgres';
 
 const TASK_STATUSES = new Set(['open', 'in_progress', 'on_hold', 'deferred', 'canceled', 'completed']);
+const TASK_PRIORITIES = new Set(['low', 'normal', 'high', 'critical']);
 const PROGRESS_DRIVEN_STATUSES = new Set(['open', 'on_hold', 'deferred']);
 const TASK_RECURRENCE_RULES = new Set(['none', 'daily', 'weekly', 'monthly', 'yearly']);
 const TERMINAL_TASK_STATUSES = new Set(['completed', 'canceled']);
@@ -47,15 +48,18 @@ async function ensureSchema() {
 					title text NOT NULL,
 					description text NOT NULL DEFAULT '',
 					status text NOT NULL DEFAULT 'open',
+					priority text NOT NULL DEFAULT 'normal',
 					due_at timestamptz NOT NULL,
 						progress_percentage integer NOT NULL DEFAULT 0,
 						last_activity_at timestamptz NOT NULL DEFAULT now(),
 					notification_offset_minutes integer,
 					recurrence_rule text NOT NULL DEFAULT 'none',
 					created_by_user_id text NOT NULL REFERENCES admin_app_users(id) ON DELETE RESTRICT,
+					audience_id text REFERENCES admin_clients(id) ON DELETE SET NULL,
 					created_at timestamptz NOT NULL DEFAULT now(),
 					updated_at timestamptz NOT NULL DEFAULT now(),
 						CHECK (status IN ('open', 'in_progress', 'on_hold', 'deferred', 'canceled', 'completed')),
+						CHECK (priority IN ('low', 'normal', 'high', 'critical')),
 						CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
 					CHECK (recurrence_rule IN ('none', 'daily', 'weekly', 'monthly', 'yearly')),
 					CHECK (notification_offset_minutes IS NULL OR notification_offset_minutes >= 0)
@@ -71,7 +75,9 @@ async function ensureSchema() {
 					ADD COLUMN IF NOT EXISTS created_via text NOT NULL DEFAULT 'ui',
 					ADD COLUMN IF NOT EXISTS due_time text,
 					ADD COLUMN IF NOT EXISTS has_due_time boolean NOT NULL DEFAULT true,
-					ADD COLUMN IF NOT EXISTS progress_percentage integer NOT NULL DEFAULT 0
+					ADD COLUMN IF NOT EXISTS progress_percentage integer NOT NULL DEFAULT 0,
+					ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'normal',
+					ADD COLUMN IF NOT EXISTS audience_id text REFERENCES admin_clients(id) ON DELETE SET NULL
 				`;
 
 				await sql`ALTER TABLE admin_tasks ADD COLUMN IF NOT EXISTS last_activity_at timestamptz`;
@@ -95,6 +101,13 @@ async function ensureSchema() {
 					ALTER TABLE admin_tasks
 					ADD CONSTRAINT admin_tasks_progress_percentage_check
 					CHECK (progress_percentage >= 0 AND progress_percentage <= 100)
+				`;
+
+				await sql`ALTER TABLE admin_tasks DROP CONSTRAINT IF EXISTS admin_tasks_priority_check`;
+				await sql`
+					ALTER TABLE admin_tasks
+					ADD CONSTRAINT admin_tasks_priority_check
+					CHECK (priority IN ('low', 'normal', 'high', 'critical'))
 				`;
 
 				await sql`
@@ -179,6 +192,16 @@ function normalizeTaskStatus(value) {
 
 	if (!TASK_STATUSES.has(normalizedValue)) {
 		throw new Error('Task status is invalid.');
+	}
+
+	return normalizedValue;
+}
+
+function normalizeTaskPriority(value) {
+	const normalizedValue = normalizeString(value).toLowerCase() || 'normal';
+
+	if (!TASK_PRIORITIES.has(normalizedValue)) {
+		throw new Error('Task priority is invalid.');
 	}
 
 	return normalizedValue;
@@ -416,6 +439,7 @@ function normalizeTaskRecord(task) {
 		title: task.title,
 		description: task.description,
 		status: task.status,
+		priority: task.priority,
 		dueAt: normalizeTimestamp(task.due_at),
 		dueTime: task.has_due_time ? task.due_time ?? task.due_at?.toISOString?.().slice(11, 16) ?? null : null,
 		hasDueTime: Boolean(task.has_due_time),
@@ -423,6 +447,7 @@ function normalizeTaskRecord(task) {
 		notificationOffsetMinutes: task.notification_offset_minutes,
 		recurrenceRule: task.recurrence_rule,
 		createdByUserId: task.created_by_user_id,
+		audienceId: task.audience_id,
 		sourceIntegrationId: task.source_integration_id,
 		sourceType: task.source_type,
 		sourceLabel: task.source_label,
@@ -486,6 +511,7 @@ function normalizeTaskInput(input) {
 		title: normalizeString(input.title),
 		description: normalizeString(input.description),
 		status: resolveTaskStatus(normalizedStatus, progressPercentage),
+		priority: normalizeTaskPriority(input.priority),
 		dueAt: normalizeDueAt(input.dueAt),
 		dueTime: normalizeDueTime(input.dueTime),
 		hasDueTime: normalizeHasDueTime(input.hasDueTime, input.dueTime),
@@ -495,6 +521,7 @@ function normalizeTaskInput(input) {
 		assignedUserIds: normalizeAssignedUserIds(input.assignedUserIds),
 		tags: normalizeTagsInput(input.tags),
 		createdByUserId: normalizeString(input.createdByUserId),
+		audienceId: normalizeNullableString(input.audienceId),
 		sourceIntegrationId: normalizeNullableString(input.sourceIntegrationId),
 		sourceType: normalizeNullableString(input.sourceType),
 		sourceLabel: normalizeNullableString(input.sourceLabel),
@@ -773,6 +800,7 @@ export async function createTask(input) {
 				title,
 				description,
 				status,
+				priority,
 				due_at,
 				due_time,
 				has_due_time,
@@ -781,6 +809,7 @@ export async function createTask(input) {
 				notification_offset_minutes,
 				recurrence_rule,
 				created_by_user_id,
+				audience_id,
 				source_integration_id,
 				source_type,
 				source_label,
@@ -792,6 +821,7 @@ export async function createTask(input) {
 				${task.title},
 				${task.description},
 				${task.status},
+				${task.priority},
 				${task.dueAt},
 				${task.dueTime},
 				${task.hasDueTime},
@@ -800,6 +830,7 @@ export async function createTask(input) {
 				${task.notificationOffsetMinutes},
 				${task.recurrenceRule},
 				${task.createdByUserId},
+				${task.audienceId},
 				${task.sourceIntegrationId},
 				${task.sourceType},
 				${task.sourceLabel},
@@ -834,6 +865,7 @@ export async function updateTask(taskId, input) {
 			SET title = ${task.title},
 				description = ${task.description},
 				status = ${task.status},
+				priority = ${task.priority},
 				due_at = ${task.dueAt},
 				due_time = ${task.dueTime},
 				has_due_time = ${task.hasDueTime},
@@ -842,6 +874,7 @@ export async function updateTask(taskId, input) {
 				notification_offset_minutes = ${task.notificationOffsetMinutes},
 				recurrence_rule = ${task.recurrenceRule},
 				created_by_user_id = ${task.createdByUserId},
+				audience_id = ${task.audienceId},
 				updated_at = now()
 			WHERE id = ${taskId}
 			RETURNING *

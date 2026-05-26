@@ -1,8 +1,307 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getLocalUserByLogtoUserId, listLocalUsers } from '$lib/server/admin-access-store';
+import { listClients } from '$lib/server/clients-store';
 import { createTask, createTaskComment, getTaskById, listTasks, updateTask, getTasksStoreErrorMessage } from '$lib/server/tasks-store';
 import { buildTaskFormValues, readTaskInput } from '$lib/server/task-form';
 import { syncTaskAlerts } from '$lib/server/task-alerts';
+
+const TERMINAL_STATUSES = new Set(['completed', 'canceled']);
+const ACTIVE_STATUSES = new Set(['open', 'in_progress', 'on_hold', 'deferred']);
+
+function isSameDay(leftDate, rightDate) {
+	return leftDate.getFullYear() === rightDate.getFullYear()
+		&& leftDate.getMonth() === rightDate.getMonth()
+		&& leftDate.getDate() === rightDate.getDate();
+}
+
+function getDaysUntil(date, now) {
+	const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	return Math.round((startOfDate.getTime() - startOfToday.getTime()) / 86_400_000);
+}
+
+function getTaskTimestamp(task, field) {
+	const value = task?.[field];
+	const date = value ? new Date(value) : null;
+	return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+function isTerminalTask(task) {
+	return TERMINAL_STATUSES.has(task.status);
+}
+
+function isActiveTask(task) {
+	return ACTIVE_STATUSES.has(task.status);
+}
+
+function isOverdueTask(task, now) {
+	if (isTerminalTask(task)) {
+		return false;
+	}
+
+	const dueAt = getTaskTimestamp(task, 'dueAt');
+	return dueAt ? getDaysUntil(dueAt, now) < 0 : false;
+}
+
+function isDueThisWeek(task, now) {
+	if (isTerminalTask(task)) {
+		return false;
+	}
+
+	const dueAt = getTaskTimestamp(task, 'dueAt');
+
+	if (!dueAt) {
+		return false;
+	}
+
+	const dayOffset = getDaysUntil(dueAt, now);
+	return dayOffset >= 0 && dayOffset <= 6;
+}
+
+function isCompletedThisMonth(task, now) {
+	if (task.status !== 'completed') {
+		return false;
+	}
+
+	const completedAt = getTaskTimestamp(task, 'updatedAt') ?? getTaskTimestamp(task, 'lastActivityAt');
+	return completedAt
+		? completedAt.getMonth() === now.getMonth() && completedAt.getFullYear() === now.getFullYear()
+		: false;
+}
+
+function countTasksUpdatedToday(tasks, now) {
+	return tasks.filter((task) => {
+		const activityAt = getTaskTimestamp(task, 'lastActivityAt') ?? getTaskTimestamp(task, 'updatedAt');
+		return activityAt ? isSameDay(activityAt, now) : false;
+	}).length;
+}
+
+function buildDueForecast(tasks, now) {
+	const buckets = [
+		{ key: 'overdue', label: 'Overdue', count: 0 },
+		{ key: 'today', label: 'Today', count: 0 },
+		{ key: 'soon', label: '2-3 days', count: 0 },
+		{ key: 'thisWeek', label: 'This week', count: 0 },
+		{ key: 'nextWeek', label: 'Next week', count: 0 },
+		{ key: 'later', label: 'Later', count: 0 }
+	];
+
+	for (const task of tasks) {
+		if (isTerminalTask(task)) {
+			continue;
+		}
+
+		const dueAt = getTaskTimestamp(task, 'dueAt');
+
+		if (!dueAt) {
+			continue;
+		}
+
+		const dayOffset = getDaysUntil(dueAt, now);
+
+		if (dayOffset < 0) {
+			buckets[0].count += 1;
+		} else if (dayOffset === 0) {
+			buckets[1].count += 1;
+		} else if (dayOffset <= 3) {
+			buckets[2].count += 1;
+		} else if (dayOffset <= 6) {
+			buckets[3].count += 1;
+		} else if (dayOffset <= 13) {
+			buckets[4].count += 1;
+		} else {
+			buckets[5].count += 1;
+		}
+	}
+
+	const maxCount = Math.max(1, ...buckets.map((bucket) => bucket.count));
+
+	return buckets.map((bucket) => ({
+		...bucket,
+		percentage: Math.max(bucket.count > 0 ? Math.round((bucket.count / maxCount) * 100) : 0, bucket.count > 0 ? 16 : 0)
+	}));
+}
+
+function buildStatusMix(tasks) {
+	const buckets = [
+		{ key: 'in_progress', label: 'In progress', count: 0 },
+		{ key: 'open', label: 'Open', count: 0 },
+		{ key: 'on_hold', label: 'On hold', count: 0 },
+		{ key: 'deferred', label: 'Deferred', count: 0 },
+		{ key: 'completed', label: 'Completed', count: 0 }
+	];
+
+	for (const task of tasks) {
+		const bucket = buckets.find((entry) => entry.key === task.status);
+
+		if (bucket) {
+			bucket.count += 1;
+		}
+	}
+
+	const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
+
+	return {
+		total,
+		buckets: buckets.filter((bucket) => bucket.count > 0).map((bucket) => ({
+			...bucket,
+			percentage: total > 0 ? Math.round((bucket.count / total) * 100) : 0
+		}))
+	};
+}
+
+function buildClientWorkload(tasks, clients) {
+	const clientNamesById = new Map(clients.map((client) => [client.id, client.companyName]));
+	const workload = new Map();
+
+	for (const task of tasks) {
+		if (!isActiveTask(task)) {
+			continue;
+		}
+
+		const clientKey = task.audienceId || 'internal';
+		const current = workload.get(clientKey) ?? {
+			key: clientKey,
+			label: task.audienceId ? clientNamesById.get(task.audienceId) ?? 'Unknown client' : 'Internal',
+			count: 0
+		};
+
+		current.count += 1;
+		workload.set(clientKey, current);
+	}
+
+	const entries = [...workload.values()].sort((left, right) => right.count - left.count).slice(0, 4);
+	const maxCount = Math.max(1, ...entries.map((entry) => entry.count));
+
+	return entries.map((entry) => ({
+		...entry,
+		percentage: Math.round((entry.count / maxCount) * 100)
+	}));
+}
+
+function buildAttentionNeeded(tasks, now) {
+	const overdue = tasks.filter((task) => isOverdueTask(task, now)).length;
+	const critical = tasks.filter((task) => task.priority === 'critical' && !isTerminalTask(task)).length;
+	const stale = tasks.filter((task) => task.tags.some((tag) => tag.key === 'stale')).length;
+	const waiting = tasks.filter((task) => task.status === 'on_hold' || task.status === 'deferred').length;
+	const highPriorityDueSoon = tasks.filter((task) => {
+		if (isTerminalTask(task)) {
+			return false;
+		}
+
+		const dueAt = getTaskTimestamp(task, 'dueAt');
+
+		if (!dueAt) {
+			return false;
+		}
+
+		const dayOffset = getDaysUntil(dueAt, now);
+		return dayOffset >= 0 && dayOffset <= 7 && (task.priority === 'high' || task.priority === 'critical');
+	}).length;
+
+	return [
+		{ key: 'overdue', label: 'Overdue tasks', count: overdue, tone: 'rose' },
+		{ key: 'critical', label: 'Critical open tasks', count: critical, tone: 'rose' },
+		{ key: 'dueSoon', label: 'High priority due this week', count: highPriorityDueSoon, tone: 'amber' },
+		{ key: 'waiting', label: 'On hold or deferred', count: waiting, tone: 'sky' },
+		{ key: 'stale', label: 'Stale tasks', count: stale, tone: 'emerald' }
+	];
+}
+
+function buildThroughput(tasks, now) {
+	const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const dayOfWeek = today.getDay();
+	const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+	const monday = new Date(today);
+	monday.setDate(today.getDate() + mondayOffset);
+
+	return days.map((label, index) => {
+		const dayStart = new Date(monday);
+		dayStart.setDate(monday.getDate() + index);
+		const dayEnd = new Date(dayStart);
+		dayEnd.setDate(dayStart.getDate() + 1);
+
+		const createdCount = tasks.filter((task) => {
+			const createdAt = getTaskTimestamp(task, 'createdAt');
+			return createdAt ? createdAt >= dayStart && createdAt < dayEnd : false;
+		}).length;
+
+		const completedCount = tasks.filter((task) => {
+			if (task.status !== 'completed') {
+				return false;
+			}
+
+			const completedAt = getTaskTimestamp(task, 'updatedAt') ?? getTaskTimestamp(task, 'lastActivityAt');
+			return completedAt ? completedAt >= dayStart && completedAt < dayEnd : false;
+		}).length;
+
+		const maxCount = Math.max(createdCount, completedCount, 1);
+
+		return {
+			label,
+			createdCount,
+			completedCount,
+			createdPercentage: Math.round((createdCount / maxCount) * 100),
+			completedPercentage: Math.round((completedCount / maxCount) * 100)
+		};
+	});
+}
+
+function buildRecentActivity(tasks, clients) {
+	const clientNamesById = new Map(clients.map((client) => [client.id, client.companyName]));
+
+	return tasks
+		.filter((task) => getTaskTimestamp(task, 'lastActivityAt') ?? getTaskTimestamp(task, 'updatedAt'))
+		.sort((left, right) => {
+			const leftDate = getTaskTimestamp(left, 'lastActivityAt') ?? getTaskTimestamp(left, 'updatedAt');
+			const rightDate = getTaskTimestamp(right, 'lastActivityAt') ?? getTaskTimestamp(right, 'updatedAt');
+			return (rightDate?.getTime() ?? 0) - (leftDate?.getTime() ?? 0);
+		})
+		.slice(0, 5)
+		.map((task) => ({
+			id: task.id,
+			title: task.title,
+			status: task.status,
+			priority: task.priority,
+			activityAt: task.lastActivityAt ?? task.updatedAt,
+			audienceLabel: task.audienceId ? clientNamesById.get(task.audienceId) ?? 'Unknown client' : 'Internal',
+			progressPercentage: task.progressPercentage
+		}));
+}
+
+function buildDashboard(normalizedTasks, filteredTasks, clients, now = new Date()) {
+	const scopedTasks = filteredTasks;
+	const openTasksCount = scopedTasks.filter((task) => isActiveTask(task)).length;
+	const overdueCount = scopedTasks.filter((task) => isOverdueTask(task, now)).length;
+	const customerScopedCount = scopedTasks.filter((task) => task.audienceId && isActiveTask(task)).length;
+	const completedThisMonthCount = scopedTasks.filter((task) => isCompletedThisMonth(task, now)).length;
+	const dueThisWeekCount = scopedTasks.filter((task) => isDueThisWeek(task, now)).length;
+	const waitingCount = scopedTasks.filter((task) => task.status === 'on_hold' || task.status === 'deferred').length;
+	const updatesTodayCount = countTasksUpdatedToday(scopedTasks, now);
+	const criticalCount = scopedTasks.filter((task) => task.priority === 'critical' && !isTerminalTask(task)).length;
+
+	return {
+		summary: {
+			openTasksCount,
+			overdueCount,
+			customerScopedCount,
+			completedThisMonthCount,
+			dueThisWeekCount,
+			waitingCount,
+			updatesTodayCount,
+			criticalCount,
+			filteredCount: filteredTasks.length,
+			totalCount: normalizedTasks.length
+		},
+		dueForecast: buildDueForecast(scopedTasks, now),
+		statusMix: buildStatusMix(scopedTasks),
+		clientWorkload: buildClientWorkload(scopedTasks, clients),
+		attentionNeeded: buildAttentionNeeded(scopedTasks, now),
+		throughput: buildThroughput(scopedTasks, now),
+		recentActivity: buildRecentActivity(scopedTasks, clients)
+	};
+}
 
 function getNotice(searchParams) {
 	if (searchParams.get('created') === '1') {
@@ -33,6 +332,7 @@ function buildTaskUpdateInput(task, overrides = {}) {
 		title: task.title,
 		description: task.description,
 		status: task.status,
+		priority: task.priority,
 		progressPercentage: String(task.progressPercentage ?? 0),
 		dueAt: task.dueAt,
 		dueTime: task.dueTime,
@@ -42,6 +342,7 @@ function buildTaskUpdateInput(task, overrides = {}) {
 		assignedUserIds: task.assignedUsers.map((user) => user.id),
 		tags: task.tags.map((tag) => tag.name),
 		createdByUserId: task.createdByUserId,
+		audienceId: task.audienceId,
 		sourceIntegrationId: task.sourceIntegrationId,
 		sourceType: task.sourceType,
 		sourceLabel: task.sourceLabel,
@@ -56,6 +357,7 @@ function buildReturnTasksHref(url, formData, params = {}) {
 	const filters = [
 		['q', String(formData.get('returnQ') ?? '').trim()],
 		['status', String(formData.get('returnStatus') ?? '').trim()],
+		['priority', String(formData.get('returnPriority') ?? '').trim()],
 		['tag', String(formData.get('returnTag') ?? '').trim()],
 		['assignee', String(formData.get('returnAssignee') ?? '').trim()],
 		['edit', String(formData.get('returnEdit') ?? '').trim()],
@@ -97,6 +399,10 @@ function matchesFilters(task, filters) {
 		return false;
 	}
 
+	if (filters.priority && task.priority !== filters.priority) {
+		return false;
+	}
+
 	if (filters.tag && !task.tags.some((tag) => tag.key === filters.tag)) {
 		return false;
 	}
@@ -112,15 +418,17 @@ export async function load({ url }) {
 	const filters = {
 		q: String(url.searchParams.get('q') ?? '').trim().toLowerCase(),
 		status: String(url.searchParams.get('status') ?? '').trim(),
+		priority: String(url.searchParams.get('priority') ?? '').trim(),
 		tag: String(url.searchParams.get('tag') ?? '').trim().toLowerCase(),
 		assignee: String(url.searchParams.get('assignee') ?? '').trim()
 	};
 	const editTaskId = String(url.searchParams.get('edit') ?? '').trim();
 
 	try {
-		const [tasks, users, editTask] = await Promise.all([
+		const [tasks, users, clients, editTask] = await Promise.all([
 			listTasks(),
 			listLocalUsers(),
+			listClients(),
 			editTaskId ? getTaskById(editTaskId, { includeComments: true }) : Promise.resolve(null)
 		]);
 		const normalizedTasks = tasks.filter(Boolean);
@@ -128,14 +436,17 @@ export async function load({ url }) {
 		const availableAssignees = [
 			...new Map(normalizedTasks.flatMap((task) => task.assignedUsers).map((user) => [user.id, user])).values()
 		];
+		const filteredTasks = normalizedTasks.filter((task) => matchesFilters(task, filters));
 		const editErrorMessage = editTaskId && !editTask ? 'Task not found.' : null;
 
 		return {
-			tasks: normalizedTasks.filter((task) => matchesFilters(task, filters)),
+			tasks: filteredTasks,
 			users,
+			clients,
 			editTask,
 			availableTags,
 			availableAssignees,
+			dashboard: buildDashboard(normalizedTasks, filteredTasks, clients),
 			filters,
 			notice: getNotice(url.searchParams),
 			errorMessage: editErrorMessage
@@ -144,9 +455,11 @@ export async function load({ url }) {
 		return {
 			tasks: [],
 			users: [],
+			clients: [],
 			editTask: null,
 			availableTags: [],
 			availableAssignees: [],
+			dashboard: buildDashboard([], [], []),
 			filters,
 			notice: null,
 			errorMessage: getTasksStoreErrorMessage(caughtError)
@@ -155,7 +468,7 @@ export async function load({ url }) {
 }
 
 export const actions = {
-	create: async ({ locals, request }) => {
+	create: async ({ locals, request, url }) => {
 		const formData = await request.formData();
 		const input = readTaskInput(formData);
 		const errors = {};
@@ -199,7 +512,7 @@ export const actions = {
 			});
 		}
 
-		throw redirect(303, '/tasks?created=1');
+		throw redirect(303, buildReturnTasksHref(url, formData, { created: 1 }));
 	},
 	edit: async ({ request, url }) => {
 		const formData = await request.formData();
@@ -248,6 +561,7 @@ export const actions = {
 			const task = await updateTask(taskId, {
 				...input,
 				createdByUserId: existingTask.createdByUserId,
+				audienceId: input.audienceId,
 				sourceIntegrationId: existingTask.sourceIntegrationId,
 				sourceType: existingTask.sourceType,
 				sourceLabel: existingTask.sourceLabel,
@@ -375,7 +689,7 @@ export const actions = {
 			});
 		}
 	},
-	complete: async ({ request }) => {
+	complete: async ({ request, url }) => {
 		const formData = await request.formData();
 		const taskId = String(formData.get('taskId') ?? '').trim();
 
@@ -410,7 +724,7 @@ export const actions = {
 			});
 		}
 
-		throw redirect(303, '/tasks?completed=1');
+		throw redirect(303, buildReturnTasksHref(url, formData, { completed: 1 }));
 	},
 	bulkUpdate: async ({ request, url }) => {
 		const formData = await request.formData();

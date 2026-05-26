@@ -35,6 +35,7 @@ function buildTaskInput(payload, integration) {
 		title: normalizeString(payload.title),
 		description: normalizeString(payload.description),
 		status: normalizeString(payload.status) || 'open',
+		priority: normalizeString(payload.priority) || 'normal',
 		dueAt: normalizeString(payload.dueAt),
 		notificationOffsetMinutes: normalizeString(payload.notificationOffsetMinutes),
 		recurrenceRule: normalizeString(payload.recurrenceRule) || 'none',

@@ -38,6 +38,17 @@
 		return data.currentPath === href || data.currentPath.startsWith(`${href}/`);
 	}
 
+	function isWorkspaceItemActive(href) {
+		const navItems = workspaceShell?.navItems ?? [];
+		const hasExactMatch = navItems.some((item) => currentPath === item.href);
+
+		if (hasExactMatch) {
+			return currentPath === href;
+		}
+
+		return currentPath === href || currentPath.startsWith(`${href}/`);
+	}
+
 	function getSessionLabel(user) {
 		return user?.name ?? user?.email ?? 'Guest session';
 	}
@@ -155,7 +166,7 @@
 						<a
 							href={item.href}
 							onclick={closeMenu}
-							class={`block rounded-2xl border px-4 py-3 transition ${currentPath === item.href || currentPath.startsWith(`${item.href}/`) ? 'border-sky-100 bg-sky-50 text-slate-950 shadow-sm' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900'}`}
+							class={`block rounded-2xl border px-4 py-3 transition ${isWorkspaceItemActive(item.href) ? 'border-sky-100 bg-sky-50 text-slate-950 shadow-sm' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900'}`}
 						>
 							<span class="block text-sm font-semibold">{item.label}</span>
 							<span class="mt-1 block text-xs text-slate-400">{item.description}</span>

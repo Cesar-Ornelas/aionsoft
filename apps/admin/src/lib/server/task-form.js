@@ -116,6 +116,7 @@ export function readTaskInput(formData) {
 		title: readTrimmedString(formData, 'title'),
 		description: readTrimmedString(formData, 'description'),
 		status: readTrimmedString(formData, 'status') || 'open',
+		priority: readTrimmedString(formData, 'priority') || 'normal',
 		progressPercentage: readTrimmedString(formData, 'progressPercentage'),
 		dueDate,
 		dueTime,
@@ -124,7 +125,8 @@ export function readTaskInput(formData) {
 		notificationOffsetMinutes: readTrimmedString(formData, 'notificationOffsetMinutes'),
 		recurrenceRule: readTrimmedString(formData, 'recurrenceRule') || 'none',
 		assignedUserIds: formData.getAll('assignedUserIds').map((value) => String(value).trim()).filter(Boolean),
-		tags: readTrimmedString(formData, 'tags')
+		tags: readTrimmedString(formData, 'tags'),
+		audienceId: readTrimmedString(formData, 'audienceId')
 	};
 }
 

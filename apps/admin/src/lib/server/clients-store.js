@@ -26,7 +26,7 @@ function getSql() {
 	return sqlClient;
 }
 
-async function ensureSchema() {
+export async function ensureClientsSchema() {
 	if (!schemaPromise) {
 		const sql = getSql();
 		schemaPromise = (async () => {
@@ -287,7 +287,7 @@ export function getClientsStoreErrorMessage(error, fallback = 'The requested cli
 }
 
 export async function listClients() {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const clients = await sql`
 		SELECT
@@ -309,7 +309,7 @@ export async function listClients() {
 }
 
 export async function exportClientsSnapshot() {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const clients = await listClients();
 	const detailedClients = await Promise.all(clients.map((client) => getClientWithContacts(sql, client.id)));
@@ -337,13 +337,13 @@ export async function exportClientsSnapshot() {
 }
 
 export async function getClientById(clientId) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	return getClientWithContacts(sql, clientId);
 }
 
 export async function getClientContactById(clientId, contactId) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const contact = await getClientContactRecord(sql, clientId, contactId);
 
@@ -351,7 +351,7 @@ export async function getClientContactById(clientId, contactId) {
 }
 
 export async function createClient(input) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const companyName = normalizeString(input.companyName);
 	const contacts = normalizeContactsInput(input.contacts);
@@ -417,7 +417,7 @@ export async function updateClient(clientId, input) {
 }
 
 export async function updateClientProfile(clientId, input) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const companyName = normalizeString(input.companyName);
 
@@ -440,7 +440,7 @@ export async function updateClientProfile(clientId, input) {
 }
 
 export async function createClientContact(clientId, input) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const contact = normalizeContactInput(input);
 
@@ -487,7 +487,7 @@ export async function createClientContact(clientId, input) {
 }
 
 export async function updateClientContact(clientId, contactId, input) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const contact = normalizeContactInput(input);
 
@@ -534,7 +534,7 @@ export async function updateClientContact(clientId, contactId, input) {
 }
 
 export async function importClientsSnapshot(snapshot) {
-	await ensureSchema();
+	await ensureClientsSchema();
 	const sql = getSql();
 	const rawClients = snapshot?.clients;
 
