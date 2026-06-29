@@ -24,6 +24,21 @@ export async function load({ params }) {
 						label: 'Profile',
 						description: 'Summary, company details, contacts'
 					},
+						{
+							href: `/clients/${client.id}/tasks`,
+							label: 'Tasks',
+							description: 'Client-owned work and follow-up'
+						},
+						{
+							href: `/clients/${client.id}/projects`,
+							label: 'Projects',
+							description: 'Delivery plans and project work'
+						},
+					{
+						href: `/clients/${client.id}/storage`,
+						label: 'Storage',
+						description: 'R2 access and allowed directories'
+					},
 					{
 						href: `/clients/${client.id}/api`,
 						label: 'API',

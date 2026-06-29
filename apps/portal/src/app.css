@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
 	--font-sans: "Oxygen", sans-serif;
 	--color-portal-ink: #0f172a;
@@ -9,6 +11,10 @@
 
 @layer base {
 	body {
-		@apply bg-slate-100 text-slate-950;
+		@apply bg-slate-100 text-slate-950 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100;
+	}
+
+	html {
+		@apply font-sans;
 	}
 }

@@ -4,7 +4,7 @@ import {
 	createProject,
 	getProjectsStoreErrorMessage,
 	importProjectsSnapshot,
-	listProjects
+	listInternalProjects
 } from '$lib/server/projects-store';
 
 function readTrimmedString(formData, name) {
@@ -38,7 +38,7 @@ function buildValues(input) {
 export async function load({ url }) {
 	try {
 		return {
-			projects: await listProjects(),
+			projects: await listInternalProjects(),
 			notice: getNotice(url.searchParams)
 		};
 	} catch (error) {

@@ -108,11 +108,11 @@
 </script>
 
 <section class="space-y-6">
-	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 lg:flex-row lg:items-end lg:justify-between">
+	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-white/10 lg:flex-row lg:items-end lg:justify-between">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Integrations</p>
-			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Task API integrations</h1>
-			<p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Task API integrations</h1>
+			<p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-400">
 				Register external systems that can create internal tasks through the API. Each integration gets its own token and internal owner.
 			</p>
 		</div>
@@ -121,32 +121,20 @@
 		</a>
 	</header>
 
-	{#if data.errorMessage}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{data.errorMessage}
-		</div>
-	{/if}
-
-	{#if form?.message}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{form.message}
-		</div>
-	{/if}
-
-	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white">
-		<div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5">
+	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/92">
+		<div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 dark:border-white/10">
 			<div>
-				<p class="text-lg font-semibold tracking-tight text-slate-950">API entries</p>
-				<p class="mt-2 text-sm leading-7 text-slate-600">
+				<p class="text-lg font-semibold tracking-tight text-slate-950 dark:text-white">API entries</p>
+				<p class="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
 					Review integrations that can authenticate against the task API and see their current permissions and usage hints.
 				</p>
 			</div>
-			<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{data.integrations.length} entries</span>
+			<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-white/8 dark:text-slate-300">{data.integrations.length} entries</span>
 		</div>
 
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-slate-200 text-sm">
-				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+			<table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-white/10">
+				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:bg-white/5 dark:text-slate-500">
 					<tr>
 						<th class="px-5 py-4">Integration</th>
 						<th class="px-5 py-4">Permissions</th>
@@ -156,7 +144,7 @@
 						<th class="px-5 py-4 text-right">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-slate-100">
+				<tbody class="divide-y divide-slate-100 dark:divide-white/10">
 					{#if data.integrations.length === 0}
 						<tr>
 							<td colspan="6" class="px-5 py-10 text-center text-sm text-slate-500">
@@ -165,22 +153,22 @@
 						</tr>
 					{:else}
 						{#each data.integrations as integration}
-							<tr class="bg-white align-top">
+							<tr class="bg-white align-top dark:bg-transparent">
 								<td class="px-5 py-4">
-									<p class="font-semibold text-slate-950">{integration.name}</p>
+									<p class="font-semibold text-slate-950 dark:text-white">{integration.name}</p>
 									<p class="mt-1 text-xs text-slate-400">{integration.kind} · {integration.status}</p>
 								</td>
-								<td class="px-5 py-4 text-slate-600">{integration.permissions.join(', ')}</td>
-								<td class="px-5 py-4 text-slate-600">
+								<td class="px-5 py-4 text-slate-600 dark:text-slate-400">{integration.permissions.join(', ')}</td>
+								<td class="px-5 py-4 text-slate-600 dark:text-slate-400">
 									<p>{taskAccessScopeLabel(integration.taskAccessScope)}</p>
 									{#if integration.taskAccessScope === 'tags' && integration.allowedTaskTags.length > 0}
 										<p class="mt-1 text-xs text-slate-400">{integration.allowedTaskTags.join(', ')}</p>
 									{/if}
 								</td>
-								<td class="px-5 py-4 text-slate-500">{integration.tokenHint}</td>
-								<td class="px-5 py-4 text-slate-500">{formatDate(integration.lastUsedAt)}</td>
+								<td class="px-5 py-4 text-slate-500 dark:text-slate-400">{integration.tokenHint}</td>
+								<td class="px-5 py-4 text-slate-500 dark:text-slate-400">{formatDate(integration.lastUsedAt)}</td>
 								<td class="px-5 py-4 text-right">
-									<a href={editDrawerHref(integration.id)} class="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+									<a href={editDrawerHref(integration.id)} class="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">
 										Edit
 									</a>
 								</td>
@@ -196,16 +184,16 @@
 		<div class="fixed inset-0 z-50">
 			<a href={drawerHref(false)} class="absolute inset-0 bg-slate-950/35 backdrop-blur-[3px]" aria-label={editDrawerOpen() ? 'Close edit API entry drawer' : 'Close new API entry drawer'} in:fade={{ duration: 180 }} out:fade={{ duration: 140 }}></a>
 
-			<div class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]" in:fly={{ x: 96, duration: 220, opacity: 1 }} out:fly={{ x: 96, duration: 180, opacity: 1 }}>
-				<section class="flex h-full flex-col bg-white">
-					<div class="border-b border-slate-200 px-5 py-5 sm:px-6">
+			<div class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] dark:bg-slate-950 dark:shadow-[-24px_0_80px_-48px_rgba(2,6,23,0.85)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]" in:fly={{ x: 96, duration: 220, opacity: 1 }} out:fly={{ x: 96, duration: 180, opacity: 1 }}>
+				<section class="flex h-full flex-col bg-white dark:bg-slate-950">
+					<div class="border-b border-slate-200 px-5 py-5 dark:border-white/10 sm:px-6">
 						<div class="flex items-start justify-between gap-4">
 							<div>
 								<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Integrations</p>
-								<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{drawerTitle()}</h2>
-								<p class="mt-2 text-sm leading-6 text-slate-600">{drawerDescription()}</p>
+								<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">{drawerTitle()}</h2>
+								<p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{drawerDescription()}</p>
 							</div>
-							<a href={drawerHref(false)} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+							<a href={drawerHref(false)} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">
 								Close
 							</a>
 						</div>
@@ -217,26 +205,26 @@
 						{/if}
 						<div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
 							{#if form?.message}
-								<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+								<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/12 dark:text-rose-200">
 									{form.message}
 								</div>
 							{/if}
 
 							{#if form?.success && form?.token}
-								<div class="rounded-[1.7rem] border border-emerald-200 bg-emerald-50 px-5 py-4">
+								<div class="rounded-[1.7rem] border border-emerald-200 bg-emerald-50 px-5 py-4 dark:border-emerald-500/25 dark:bg-emerald-500/12">
 									<p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">Token created</p>
 									<p class="mt-2 text-sm text-emerald-800">
 										Copy this API token now. It will not be shown again after this response.
 									</p>
-									<pre class="mt-3 overflow-x-auto rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950">{form.token}</pre>
+									<pre class="mt-3 overflow-x-auto rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 dark:bg-slate-950 dark:text-slate-100">{form.token}</pre>
 								</div>
 							{/if}
 
 							{#if editDrawerOpen()}
-								<div class="rounded-[1.7rem] border border-slate-200 bg-slate-50/80 px-5 py-4">
+								<div class="rounded-[1.7rem] border border-slate-200 bg-slate-50/80 px-5 py-4 dark:border-white/10 dark:bg-white/5">
 									<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Integration</p>
-									<p class="mt-2 text-lg font-semibold text-slate-950">{data.editingIntegration?.name ?? 'Unknown integration'}</p>
-									<p class="mt-1 text-sm text-slate-500">{data.editingIntegration?.kind ?? 'external'} · {data.editingIntegration?.status ?? 'active'}</p>
+									<p class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">{data.editingIntegration?.name ?? 'Unknown integration'}</p>
+									<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{data.editingIntegration?.kind ?? 'external'} · {data.editingIntegration?.status ?? 'active'}</p>
 								</div>
 							{:else}
 								<div>

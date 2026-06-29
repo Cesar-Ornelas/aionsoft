@@ -2,13 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import postgres from 'postgres';
 import { ensureAdminAccessSchema } from '$lib/server/admin-access-store';
+import { ensureClientsSchema } from '$lib/server/clients-store';
 
 const DEFAULT_PHASES = ['Planning', 'Design', 'Development', 'QA', 'Release'];
 const DEFAULT_BUCKETS = [
-	{ key: 'backlog', name: 'Backlog', status: 'open', isTerminal: false },
-	{ key: 'in-progress', name: 'In progress', status: 'in_progress', isTerminal: false },
-	{ key: 'completed', name: 'Completed', status: 'completed', isTerminal: true },
-	{ key: 'canceled', name: 'Canceled', status: 'canceled', isTerminal: true }
+	{ key: 'backlog', name: 'Backlog', status: 'open', isTerminal: false, color: '#64748b' },
+	{ key: 'in-progress', name: 'In progress', status: 'in_progress', isTerminal: false, color: '#f97316' },
+	{ key: 'completed', name: 'Completed', status: 'completed', isTerminal: true, color: '#10b981' },
+	{ key: 'canceled', name: 'Canceled', status: 'canceled', isTerminal: true, color: '#ef4444' }
 ];
 const PROJECT_STATUSES = new Set(['planning', 'active', 'on_hold', 'completed', 'canceled']);
 const TASK_STATUSES = new Set(['open', 'in_progress', 'on_hold', 'deferred', 'completed', 'canceled']);
@@ -45,6 +46,7 @@ async function ensureSchema() {
 		const sql = getSql();
 		schemaPromise = (async () => {
 			await ensureAdminAccessSchema();
+			await ensureClientsSchema();
 
 			await sql`
 				CREATE TABLE IF NOT EXISTS admin_projects (
@@ -54,11 +56,17 @@ async function ensureSchema() {
 					status text NOT NULL DEFAULT 'active',
 					start_at date,
 					due_at date,
+					audience_id text REFERENCES admin_clients(id) ON DELETE SET NULL,
 					created_by_user_id text REFERENCES admin_app_users(id) ON DELETE SET NULL,
 					created_at timestamptz NOT NULL DEFAULT now(),
 					updated_at timestamptz NOT NULL DEFAULT now(),
 					CHECK (status IN ('planning', 'active', 'on_hold', 'completed', 'canceled'))
 				)
+			`;
+
+			await sql`
+				ALTER TABLE admin_projects
+				ADD COLUMN IF NOT EXISTS audience_id text REFERENCES admin_clients(id) ON DELETE SET NULL
 			`;
 
 			await sql`
@@ -97,6 +105,7 @@ async function ensureSchema() {
 					key text NOT NULL,
 					name text NOT NULL,
 					status text NOT NULL DEFAULT 'open',
+					color text NOT NULL DEFAULT '#64748b',
 					is_terminal boolean NOT NULL DEFAULT false,
 					sort_order integer NOT NULL DEFAULT 0,
 					created_at timestamptz NOT NULL DEFAULT now(),
@@ -104,6 +113,11 @@ async function ensureSchema() {
 					UNIQUE (project_id, key),
 					CHECK (status IN ('open', 'in_progress', 'on_hold', 'deferred', 'completed', 'canceled'))
 				)
+			`;
+
+			await sql`
+				ALTER TABLE admin_project_buckets
+				ADD COLUMN IF NOT EXISTS color text NOT NULL DEFAULT '#64748b'
 			`;
 
 			await sql`
@@ -174,6 +188,7 @@ async function ensureSchema() {
 
 			await sql`CREATE INDEX IF NOT EXISTS admin_project_phases_project_idx ON admin_project_phases (project_id, sort_order)`;
 			await sql`CREATE INDEX IF NOT EXISTS admin_project_milestones_project_idx ON admin_project_milestones (project_id, phase_id, sort_order)`;
+			await sql`CREATE INDEX IF NOT EXISTS admin_projects_audience_idx ON admin_projects (audience_id, updated_at DESC)`;
 			await sql`CREATE INDEX IF NOT EXISTS admin_project_tasks_project_idx ON admin_project_tasks (project_id, phase_id, milestone_id, sort_order)`;
 			await sql`CREATE INDEX IF NOT EXISTS admin_project_task_comments_task_idx ON admin_project_task_comments (task_id, created_at DESC)`;
 		})();
@@ -194,6 +209,20 @@ function normalizeString(value) {
 function normalizeNullableString(value) {
 	const normalizedValue = normalizeString(value);
 	return normalizedValue || null;
+}
+
+function normalizeBucketColor(value) {
+	const normalizedValue = normalizeString(value);
+
+	if (!normalizedValue) {
+		return '#64748b';
+	}
+
+	if (!/^#(?:[0-9a-fA-F]{6})$/.test(normalizedValue)) {
+		throw new Error('Bucket color must use a six-digit hex value.');
+	}
+
+	return normalizedValue.toLowerCase();
 }
 
 function normalizeDate(value) {
@@ -355,6 +384,7 @@ function normalizeProjectInput(input) {
 		status: normalizeProjectStatus(input.status),
 		startAt: normalizeDate(input.startAt),
 		dueAt: normalizeDate(input.dueAt),
+		audienceId: normalizeNullableString(input.audienceId),
 		createdByUserId: normalizeNullableString(input.createdByUserId)
 	};
 }
@@ -435,6 +465,7 @@ function normalizeProjectRecord(record) {
 		status: record.status,
 		startAt: normalizeDateRecord(record.start_at),
 		dueAt: normalizeDateRecord(record.due_at),
+		audienceId: record.audience_id,
 		createdByUserId: record.created_by_user_id,
 		createdAt: normalizeTimestamp(record.created_at),
 		updatedAt: normalizeTimestamp(record.updated_at)
@@ -477,6 +508,7 @@ function normalizeBucketRecord(record) {
 		key: record.key,
 		name: record.name,
 		status: record.status,
+		color: normalizeBucketColor(record.color),
 		isTerminal: Boolean(record.is_terminal),
 		sortOrder: record.sort_order,
 		createdAt: normalizeTimestamp(record.created_at),
@@ -652,8 +684,8 @@ async function seedProjectDefaults(executor, projectId) {
 
 	for (const [index, bucket] of DEFAULT_BUCKETS.entries()) {
 		await executor`
-			INSERT INTO admin_project_buckets (id, project_id, key, name, status, is_terminal, sort_order)
-			VALUES (${randomUUID()}, ${projectId}, ${bucket.key}, ${bucket.name}, ${bucket.status}, ${bucket.isTerminal}, ${index})
+			INSERT INTO admin_project_buckets (id, project_id, key, name, status, color, is_terminal, sort_order)
+			VALUES (${randomUUID()}, ${projectId}, ${bucket.key}, ${bucket.name}, ${bucket.status}, ${bucket.color}, ${bucket.isTerminal}, ${index})
 		`;
 	}
 }
@@ -793,6 +825,46 @@ export async function listProjects() {
 	}));
 }
 
+export async function listProjectsByAudienceId(audienceId) {
+	await ensureSchema();
+	const sql = getSql();
+	const normalizedAudienceId = normalizeNullableString(audienceId);
+
+	if (!normalizedAudienceId) {
+		return [];
+	}
+
+	const projects = await sql`
+		SELECT *
+		FROM admin_projects
+		WHERE audience_id = ${normalizedAudienceId}
+		ORDER BY updated_at DESC, name ASC
+	`;
+	const detailedProjects = await Promise.all(projects.map((project) => getProjectParts(sql, project.id)));
+
+	return detailedProjects.filter(Boolean).map((project) => ({
+		...project,
+		summary: summarizeProject(project)
+	}));
+}
+
+export async function listInternalProjects() {
+	await ensureSchema();
+	const sql = getSql();
+	const projects = await sql`
+		SELECT *
+		FROM admin_projects
+		WHERE audience_id IS NULL
+		ORDER BY updated_at DESC, name ASC
+	`;
+	const detailedProjects = await Promise.all(projects.map((project) => getProjectParts(sql, project.id)));
+
+	return detailedProjects.filter(Boolean).map((project) => ({
+		...project,
+		summary: summarizeProject(project)
+	}));
+}
+
 export async function getProjectById(projectId) {
 	await ensureSchema();
 	const sql = getSql();
@@ -814,8 +886,8 @@ export async function createProject(input) {
 	return sql.begin(async (tx) => {
 		await ensureUsersExist(tx, [project.createdByUserId]);
 		const [createdProject] = await tx`
-			INSERT INTO admin_projects (id, name, description, status, start_at, due_at, created_by_user_id)
-			VALUES (${randomUUID()}, ${project.name}, ${project.description}, ${project.status}, ${project.startAt}, ${project.dueAt}, ${project.createdByUserId})
+			INSERT INTO admin_projects (id, name, description, status, start_at, due_at, audience_id, created_by_user_id)
+			VALUES (${randomUUID()}, ${project.name}, ${project.description}, ${project.status}, ${project.startAt}, ${project.dueAt}, ${project.audienceId}, ${project.createdByUserId})
 			RETURNING *
 		`;
 
@@ -836,6 +908,7 @@ export async function updateProject(projectId, input) {
 			status = ${project.status},
 			start_at = ${project.startAt},
 			due_at = ${project.dueAt},
+			audience_id = ${project.audienceId},
 			updated_at = now()
 		WHERE id = ${projectId}
 		RETURNING *
@@ -876,16 +949,38 @@ export async function createProjectBucket(projectId, input) {
 	const name = normalizeString(input.name);
 	const key = normalizeBucketKey(input.key || name);
 	const status = normalizeTaskStatus(input.status || 'open');
+	const color = normalizeBucketColor(input.color);
 
 	if (!name || !key) {
 		throw new Error('Bucket name is required.');
 	}
 
 	const [row] = await sql`
-		INSERT INTO admin_project_buckets (id, project_id, key, name, status, is_terminal, sort_order)
-		VALUES (${randomUUID()}, ${projectId}, ${key}, ${name}, ${status}, ${Boolean(input.isTerminal)}, ${normalizeInteger(input.sortOrder, 0)})
+		INSERT INTO admin_project_buckets (id, project_id, key, name, status, color, is_terminal, sort_order)
+		VALUES (${randomUUID()}, ${projectId}, ${key}, ${name}, ${status}, ${color}, ${Boolean(input.isTerminal)}, ${normalizeInteger(input.sortOrder, 0)})
 		RETURNING *
 	`;
+	await sql`UPDATE admin_projects SET updated_at = now() WHERE id = ${projectId}`;
+	return normalizeBucketRecord(row);
+}
+
+export async function updateProjectBucketColor(projectId, bucketId, color) {
+	await ensureSchema();
+	const sql = getSql();
+	const normalizedColor = normalizeBucketColor(color);
+	const [row] = await sql`
+		UPDATE admin_project_buckets
+		SET color = ${normalizedColor},
+			updated_at = now()
+		WHERE project_id = ${projectId}
+			AND id = ${bucketId}
+		RETURNING *
+	`;
+
+	if (!row) {
+		return null;
+	}
+
 	await sql`UPDATE admin_projects SET updated_at = now() WHERE id = ${projectId}`;
 	return normalizeBucketRecord(row);
 }
@@ -978,23 +1073,80 @@ export async function moveProjectTask(projectId, taskId, input) {
 		throw new Error('Select a valid project bucket.');
 	}
 
-	const nextStatus = bucket.status;
-	const nextProgress = nextStatus === 'completed' ? 100 : normalizeInteger(input.progressPercentage, 0);
-	const [task] = await sql`
-		UPDATE admin_project_tasks
-		SET bucket_id = ${bucket.id},
-			status = ${nextStatus},
-			progress_percentage = ${nextProgress},
-			sort_order = ${normalizeInteger(input.sortOrder, 0)},
-			last_activity_at = now(),
-			updated_at = now()
-		WHERE project_id = ${projectId}
-			AND id = ${taskId}
-		RETURNING *
-	`;
+	return sql.begin(async (tx) => {
+		const [existingTask] = await tx`
+			SELECT *
+			FROM admin_project_tasks
+			WHERE project_id = ${projectId}
+				AND id = ${taskId}
+			LIMIT 1
+		`;
 
-	await sql`UPDATE admin_projects SET updated_at = now() WHERE id = ${projectId}`;
-	return task ? getProjectTaskById(projectId, taskId) : null;
+		if (!existingTask) {
+			return null;
+		}
+
+		const sourceBucketId = existingTask.bucket_id;
+		const nextStatus = bucket.status;
+		const nextProgress = nextStatus === 'completed' ? 100 : normalizeInteger(input.progressPercentage, 0);
+		const requestedIndex = normalizeInteger(input.targetIndex, 0);
+		const siblingTasks = await tx`
+			SELECT id
+			FROM admin_project_tasks
+			WHERE project_id = ${projectId}
+				AND bucket_id = ${bucket.id}
+				AND id <> ${taskId}
+			ORDER BY sort_order ASC, created_at ASC
+		`;
+		const boundedIndex = Math.max(0, Math.min(requestedIndex, siblingTasks.length));
+		const reorderedTaskIds = [...siblingTasks.map((row) => row.id)];
+		reorderedTaskIds.splice(boundedIndex, 0, taskId);
+
+		await tx`
+			UPDATE admin_project_tasks
+			SET bucket_id = ${bucket.id},
+				status = ${nextStatus},
+				progress_percentage = ${nextProgress},
+				sort_order = ${boundedIndex},
+				last_activity_at = now(),
+				updated_at = now()
+			WHERE project_id = ${projectId}
+				AND id = ${taskId}
+		`;
+
+		for (const [index, reorderedTaskId] of reorderedTaskIds.entries()) {
+			await tx`
+				UPDATE admin_project_tasks
+				SET sort_order = ${index},
+					updated_at = CASE WHEN id = ${taskId} THEN updated_at ELSE now() END
+				WHERE project_id = ${projectId}
+					AND id = ${reorderedTaskId}
+			`;
+		}
+
+		if (sourceBucketId && sourceBucketId !== bucket.id) {
+			const sourceTasks = await tx`
+				SELECT id
+				FROM admin_project_tasks
+				WHERE project_id = ${projectId}
+					AND bucket_id = ${sourceBucketId}
+				ORDER BY sort_order ASC, created_at ASC
+			`;
+
+			for (const [index, sourceTask] of sourceTasks.entries()) {
+				await tx`
+					UPDATE admin_project_tasks
+					SET sort_order = ${index},
+						updated_at = now()
+					WHERE project_id = ${projectId}
+						AND id = ${sourceTask.id}
+				`;
+			}
+		}
+
+		await tx`UPDATE admin_projects SET updated_at = now() WHERE id = ${projectId}`;
+		return getProjectTaskByIdWithExecutor(tx, projectId, taskId);
+	});
 }
 
 export async function createProjectTaskComment(projectId, taskId, input) {
@@ -1076,6 +1228,7 @@ function buildProjectSnapshot(project) {
 		status: project.status,
 		startAt: project.startAt,
 		dueAt: project.dueAt,
+		audienceId: project.audienceId,
 		phases: project.phases.map((phase) => ({
 			id: phase.id,
 			name: phase.name,
@@ -1098,6 +1251,7 @@ function buildProjectSnapshot(project) {
 			key: bucket.key,
 			name: bucket.name,
 			status: bucket.status,
+			color: bucket.color,
 			isTerminal: bucket.isTerminal,
 			sortOrder: bucket.sortOrder
 		})),
@@ -1158,8 +1312,8 @@ export async function importProjectsSnapshot(snapshot, options = {}) {
 		for (const rawProject of rawProjects) {
 			const project = normalizeProjectInput({ ...rawProject, createdByUserId: options.createdByUserId });
 			const [projectRecord] = await tx`
-				INSERT INTO admin_projects (id, name, description, status, start_at, due_at, created_by_user_id)
-				VALUES (${randomUUID()}, ${project.name}, ${project.description}, ${project.status}, ${project.startAt}, ${project.dueAt}, ${project.createdByUserId})
+				INSERT INTO admin_projects (id, name, description, status, start_at, due_at, audience_id, created_by_user_id)
+				VALUES (${randomUUID()}, ${project.name}, ${project.description}, ${project.status}, ${project.startAt}, ${project.dueAt}, ${project.audienceId}, ${project.createdByUserId})
 				RETURNING *
 			`;
 			const phaseIdMap = new Map();

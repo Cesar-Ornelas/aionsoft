@@ -7,6 +7,9 @@ export async function load(event) {
 			kicker: 'Tasks Workspace',
 			title: 'Tasks',
 			subtitle: 'Delivery dashboard and operational queue',
+			actions: [
+				{ href: '/tasks/view?new=1', label: 'Add task', symbol: '+', tone: 'primary' }
+			],
 			navItems: [
 				{
 					href: '/tasks',

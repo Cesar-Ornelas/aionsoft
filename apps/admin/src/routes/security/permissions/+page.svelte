@@ -42,28 +42,10 @@
 </script>
 
 <section class="space-y-5">
-	{#if data.notice}
-		<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-			{data.notice}
-		</div>
-	{/if}
-
-	{#if data.errorMessage}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{data.errorMessage}
-		</div>
-	{/if}
-
-	{#if form?.message}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{form.message}
-		</div>
-	{/if}
-
-	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white">
+	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/92">
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-slate-200 text-sm">
-				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+			<table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-white/10">
+				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:bg-white/5 dark:text-slate-500">
 					<tr>
 						<th class="px-5 py-4">Key</th>
 						<th class="px-5 py-4">Description</th>
@@ -71,7 +53,7 @@
 						<th class="px-5 py-4 text-right">Action</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-slate-100">
+				<tbody class="divide-y divide-slate-100 dark:divide-white/5">
 					{#if data.permissions.length === 0}
 						<tr>
 							<td colspan="4" class="px-5 py-10 text-center text-sm text-slate-500">
@@ -80,15 +62,15 @@
 						</tr>
 					{:else}
 						{#each data.permissions as permission}
-							<tr class="bg-white">
+							<tr class="bg-white dark:bg-slate-900/92">
 								<td class="px-5 py-4 align-top">
-									<p class="font-semibold text-slate-950">{permission.key}</p>
+									<p class="font-semibold text-slate-950 dark:text-white">{permission.key}</p>
 									<p class="mt-1 text-xs text-slate-400">{permission.id}</p>
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">{permission.description || 'No description'}</td>
-								<td class="px-5 py-4 align-top text-slate-500">{formatDate(permission.updatedAt ?? permission.createdAt)}</td>
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">{permission.description || 'No description'}</td>
+								<td class="px-5 py-4 align-top text-slate-500 dark:text-slate-400">{formatDate(permission.updatedAt ?? permission.createdAt)}</td>
 								<td class="px-5 py-4 text-right align-top">
-									<a href={`/security/permissions/${permission.id}/edit`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+									<a href={`/security/permissions/${permission.id}/edit`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">
 										Edit
 									</a>
 								</td>
@@ -104,13 +86,13 @@
 		<div class="fixed inset-0 z-50">
 			<a href={drawerHref(false)} class="absolute inset-0 bg-slate-950/35 backdrop-blur-[3px]" aria-label="Close new permission dialog" in:fade={{ duration: 180 }} out:fade={{ duration: 140 }}></a>
 
-			<div class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]" in:fly={{ x: 96, duration: 220, opacity: 1 }} out:fly={{ x: 96, duration: 180, opacity: 1 }}>
-				<section class="flex h-full flex-col bg-white">
-					<div class="border-b border-slate-200 px-5 py-5 sm:px-6">
+			<div class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] dark:bg-slate-950 dark:shadow-[-24px_0_80px_-48px_rgba(2,6,23,0.8)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]" in:fly={{ x: 96, duration: 220, opacity: 1 }} out:fly={{ x: 96, duration: 180, opacity: 1 }}>
+				<section class="flex h-full flex-col bg-white dark:bg-slate-950">
+					<div class="border-b border-slate-200 px-5 py-5 dark:border-white/10 sm:px-6">
 						<div>
 							<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Permissions</p>
-							<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Create a permission</h2>
-							<p class="mt-2 text-sm leading-6 text-slate-600">Create a permission without leaving the permissions list.</p>
+							<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Create a permission</h2>
+							<p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">Create a permission without leaving the permissions list.</p>
 						</div>
 					</div>
 
@@ -121,19 +103,19 @@
 							{/if}
 
 							<div>
-								<label class="block text-sm font-medium text-slate-700" for="key">Permission key</label>
-								<input id="key" name="key" value={values().key ?? ''} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="manage:users" />
+								<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="key">Permission key</label>
+								<input id="key" name="key" value={values().key ?? ''} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-teal-500/40 dark:focus:bg-white/10" placeholder="manage:users" />
 								{#if errors().key}<p class="mt-2 text-sm text-rose-600">{errors().key}</p>{/if}
 							</div>
 
 							<div>
-								<label class="block text-sm font-medium text-slate-700" for="description">Description</label>
-								<textarea id="description" name="description" rows="4" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="Describe what this permission allows.">{values().description ?? ''}</textarea>
+								<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="description">Description</label>
+								<textarea id="description" name="description" rows="4" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-teal-500/40 dark:focus:bg-white/10" placeholder="Describe what this permission allows.">{values().description ?? ''}</textarea>
 							</div>
 						</div>
 
-						<div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
-							<a href={drawerHref(false)} class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">Cancel</a>
+						<div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 dark:border-white/10 sm:px-6">
+							<a href={drawerHref(false)} class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">Cancel</a>
 							<button class="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">Save permission</button>
 						</div>
 					</form>

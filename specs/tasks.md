@@ -63,10 +63,21 @@ This allows the app to track which external system created a task while still as
 
 Routes:
 - `/tasks`
-- `/tasks/new`
-- `/tasks/[taskId]/edit`
+- `/tasks/view`
 
 Tasks is a top-level operational domain, not a Tool card.
+
+Current route responsibilities:
+- `/tasks` is the command-center dashboard for workload, risk, and throughput summaries.
+- `/tasks/view` is the operational table view for filters, bulk actions, progress updates, and task create/edit drawers.
+
+## UI Requirements
+
+- Task surfaces must support both light mode and dark mode.
+- New task UI should follow the existing admin color vocabulary rather than introducing page-specific palettes.
+- Tables, filter rails, popovers, drawers, dialogs, and badges should use the same neutral surface and border treatment already established across the admin app.
+- Semantic states such as success, warning, danger, info, and muted should keep the same meaning in both themes.
+- Route-level updates should be reviewed in both `/tasks` and `/tasks/view` when shared task patterns are changed.
 
 ## Rules
 

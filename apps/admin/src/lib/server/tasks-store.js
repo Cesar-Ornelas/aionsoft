@@ -704,6 +704,38 @@ export async function listTasks() {
 	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id)));
 }
 
+export async function listInternalTasks() {
+	await ensureSchema();
+	const sql = getSql();
+	const tasks = await sql`
+		SELECT id
+		FROM admin_tasks
+		WHERE audience_id IS NULL
+		ORDER BY due_at ASC, created_at DESC
+	`;
+
+	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id)));
+}
+
+export async function listTasksByAudienceId(audienceId) {
+	await ensureSchema();
+	const sql = getSql();
+	const normalizedAudienceId = normalizeNullableString(audienceId);
+
+	if (!normalizedAudienceId) {
+		return [];
+	}
+
+	const tasks = await sql`
+		SELECT id
+		FROM admin_tasks
+		WHERE audience_id = ${normalizedAudienceId}
+		ORDER BY due_at ASC, created_at DESC
+	`;
+
+	return Promise.all(tasks.map((task) => getTaskWithRelations(sql, task.id, { includeComments: true })));
+}
+
 export async function listTasksForIntegrationScope(scope = {}, options = {}) {
 	await ensureSchema();
 	const sql = getSql();

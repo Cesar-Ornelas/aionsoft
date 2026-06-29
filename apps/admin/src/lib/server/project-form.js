@@ -34,7 +34,8 @@ export function readProjectInput(formData) {
 		description: readTrimmedString(formData, 'description'),
 		status: readTrimmedString(formData, 'status') || 'active',
 		startAt: readTrimmedString(formData, 'startAt'),
-		dueAt: readTrimmedString(formData, 'dueAt')
+		dueAt: readTrimmedString(formData, 'dueAt'),
+		audienceId: readTrimmedString(formData, 'audienceId')
 	};
 }
 
@@ -64,6 +65,7 @@ export function readProjectBucketInput(formData) {
 		name: readTrimmedString(formData, 'name'),
 		key: readTrimmedString(formData, 'key'),
 		status: readTrimmedString(formData, 'status') || 'open',
+		color: readTrimmedString(formData, 'color'),
 		isTerminal: Boolean(formData.get('isTerminal')),
 		sortOrder: readTrimmedString(formData, 'sortOrder')
 	};

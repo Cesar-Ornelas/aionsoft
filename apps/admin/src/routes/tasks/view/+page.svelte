@@ -114,26 +114,26 @@
 
 	function statusBadgeClass(status) {
 		if (status === 'completed') {
-			return 'bg-emerald-50 text-emerald-700';
+			return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-200';
 		}
 
 		if (status === 'in_progress') {
-			return 'bg-sky-50 text-sky-700';
+			return 'bg-sky-50 text-sky-700 dark:bg-sky-500/12 dark:text-sky-200';
 		}
 
 		if (status === 'canceled') {
-			return 'bg-rose-50 text-rose-700';
+			return 'bg-rose-50 text-rose-700 dark:bg-rose-500/12 dark:text-rose-200';
 		}
 
 		if (status === 'deferred') {
-			return 'bg-indigo-50 text-indigo-700';
+			return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/12 dark:text-indigo-200';
 		}
 
 		if (status === 'on_hold') {
-			return 'bg-slate-100 text-slate-700';
+			return 'bg-slate-100 text-slate-700 dark:bg-white/8 dark:text-slate-300';
 		}
 
-		return 'bg-amber-50 text-amber-700';
+		return 'bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-200';
 	}
 
 	function bulkStatusValue() {
@@ -174,18 +174,18 @@
 
 	function priorityBadgeClass(priority) {
 		if (priority === 'critical') {
-			return 'bg-rose-50 text-rose-700';
+			return 'bg-rose-50 text-rose-700 dark:bg-rose-500/12 dark:text-rose-200';
 		}
 
 		if (priority === 'high') {
-			return 'bg-amber-50 text-amber-700';
+			return 'bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-200';
 		}
 
 		if (priority === 'low') {
-			return 'bg-slate-100 text-slate-600';
+			return 'bg-slate-100 text-slate-600 dark:bg-white/8 dark:text-slate-300';
 		}
 
-		return 'bg-sky-50 text-sky-700';
+		return 'bg-sky-50 text-sky-700 dark:bg-sky-500/12 dark:text-sky-200';
 	}
 
 	function priorityLabel(priority) {
@@ -271,11 +271,11 @@
 </script>
 
 <section class="space-y-5">
-	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-white/10 sm:flex-row sm:items-end sm:justify-between">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Tasks</p>
-			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Task view</h1>
-			<p class="mt-2 text-sm leading-7 text-slate-600">
+			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Task view</h1>
+			<p class="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
 				Use the current table and filters for day-to-day task operations. Return to Dashboard for workload and risk summaries.
 			</p>
 		</div>
@@ -284,7 +284,7 @@
 			<div class="relative">
 				<button
 					type="button"
-					class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-45"
+					class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white"
 					onclick={toggleBulkUpdate}
 					disabled={!canOpenBulkUpdate()}
 					aria-haspopup="dialog"
@@ -299,7 +299,7 @@
 				</button>
 
 				{#if bulkUpdateOpen}
-					<div class="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[22rem] rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 sm:p-5">
+					<div class="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[22rem] rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 dark:border-white/10 dark:bg-slate-900 dark:ring-white/10 dark:shadow-[0_32px_80px_-32px_rgba(2,6,23,0.85)] sm:p-5">
 						<form id="tasks-bulk-update-form" method="POST" action="?/bulkUpdate" class="space-y-4">
 							<input type="hidden" name="returnQ" value={data.filters.q ?? ''} />
 							<input type="hidden" name="returnStatus" value={data.filters.status ?? ''} />
@@ -308,13 +308,13 @@
 							<input type="hidden" name="returnAssignee" value={data.filters.assignee ?? ''} />
 
 							<div>
-								<p class="text-sm font-semibold text-slate-950">Bulk update tasks</p>
-								<p class="mt-1 text-sm text-slate-500">Apply changes to {selectedBulkTaskIds.length} selected tasks.</p>
+								<p class="text-sm font-semibold text-slate-950 dark:text-white">Bulk update tasks</p>
+								<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Apply changes to {selectedBulkTaskIds.length} selected tasks.</p>
 							</div>
 
 							<div>
-								<label class="block text-sm font-medium text-slate-700" for="bulk-status">Status</label>
-								<select id="bulk-status" name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white">
+								<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="bulk-status">Status</label>
+								<select id="bulk-status" name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-teal-500/40 dark:focus:bg-white/10">
 									<option value="" selected={bulkStatusValue() === ''}>Keep current status</option>
 									<option value="open" selected={bulkStatusValue() === 'open'}>Open</option>
 									<option value="in_progress" selected={bulkStatusValue() === 'in_progress'}>In progress</option>
@@ -326,33 +326,30 @@
 							</div>
 
 							<div>
-								<label class="block text-sm font-medium text-slate-700" for="bulk-progressPercentage">Progress</label>
-								<input id="bulk-progressPercentage" name="progressPercentage" type="number" min="0" max="100" step="1" value={bulkProgressValue()} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:bg-white" placeholder="Keep current" />
+								<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="bulk-progressPercentage">Progress</label>
+								<input id="bulk-progressPercentage" name="progressPercentage" type="number" min="0" max="100" step="1" value={bulkProgressValue()} class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-teal-500/40 dark:focus:bg-white/10" placeholder="Keep current" />
 							</div>
 
 							<div class="flex justify-end gap-3">
-								<button type="button" class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950" onclick={closeBulkUpdate}>Cancel</button>
+								<button type="button" class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white" onclick={closeBulkUpdate}>Cancel</button>
 								<button class="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">Update selected</button>
 							</div>
 						</form>
 					</div>
 				{/if}
 			</div>
-			<a href={createDrawerHref(true)} class="inline-flex h-10 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800">
-				Add task
-			</a>
 		</div>
 	</header>
 
-	<form method="GET" class="grid gap-4 rounded-[1.7rem] border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,0.7fr))_auto] sm:p-5">
+	<form method="GET" class="grid gap-4 rounded-[1.7rem] border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,0.7fr))_auto] sm:p-5">
 		<div>
-			<label class="block text-sm font-medium text-slate-700" for="q">Search</label>
-			<input id="q" name="q" value={data.filters.q ?? ''} class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400" placeholder="Search titles, assignees, tags" />
+			<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="q">Search</label>
+			<input id="q" name="q" value={data.filters.q ?? ''} class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-100 dark:focus:border-teal-500/40" placeholder="Search titles, assignees, tags" />
 		</div>
 
 		<div>
-			<label class="block text-sm font-medium text-slate-700" for="status">Status</label>
-			<select id="status" name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400">
+			<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="status">Status</label>
+			<select id="status" name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-100 dark:focus:border-teal-500/40">
 				<option value="">All statuses</option>
 				<option value="open" selected={data.filters.status === 'open'}>Open</option>
 				<option value="in_progress" selected={data.filters.status === 'in_progress'}>In progress</option>
@@ -364,8 +361,8 @@
 		</div>
 
 		<div>
-			<label class="block text-sm font-medium text-slate-700" for="priority">Priority</label>
-			<select id="priority" name="priority" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400">
+			<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="priority">Priority</label>
+			<select id="priority" name="priority" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-100 dark:focus:border-teal-500/40">
 				<option value="">All priorities</option>
 				<option value="critical" selected={data.filters.priority === 'critical'}>Critical</option>
 				<option value="high" selected={data.filters.priority === 'high'}>High</option>
@@ -375,8 +372,8 @@
 		</div>
 
 		<div>
-			<label class="block text-sm font-medium text-slate-700" for="tag">Tag</label>
-			<select id="tag" name="tag" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400">
+			<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="tag">Tag</label>
+			<select id="tag" name="tag" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-100 dark:focus:border-teal-500/40">
 				<option value="">All tags</option>
 				{#each data.availableTags as tag}
 					<option value={tag.key} selected={data.filters.tag === tag.key}>{tag.name}</option>
@@ -385,8 +382,8 @@
 		</div>
 
 		<div>
-			<label class="block text-sm font-medium text-slate-700" for="assignee">Assignee</label>
-			<select id="assignee" name="assignee" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400">
+			<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="assignee">Assignee</label>
+			<select id="assignee" name="assignee" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-teal-400 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-100 dark:focus:border-teal-500/40">
 				<option value="">All assignees</option>
 				{#each data.availableAssignees as assignee}
 					<option value={assignee.id} selected={data.filters.assignee === assignee.id}>{assignee.name}</option>
@@ -396,21 +393,9 @@
 
 		<div class="flex items-end gap-3">
 			<button class="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">Filter</button>
-			<a href="/tasks/view" class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">Reset</a>
+			<a href="/tasks/view" class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">Reset</a>
 		</div>
 	</form>
-
-	{#if data.notice}
-		<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-			{data.notice}
-		</div>
-	{/if}
-
-	{#if data.errorMessage || form?.message}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{data.errorMessage || form?.message}
-		</div>
-	{/if}
 
 	{#if bulkUpdateOpen}
 		<button type="button" class="fixed inset-0 z-10" onclick={closeBulkUpdate} aria-label="Close bulk update panel"></button>
@@ -419,10 +404,10 @@
 	{#if openTaskActionsId}
 		<button type="button" class="fixed inset-0 z-10" onclick={closeTaskActions} aria-label="Close task actions menu"></button>
 
-		<div class="fixed z-20 w-44 rounded-[1.3rem] border border-slate-200 bg-white p-2 text-left shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5" style={`top: ${openTaskActionsTop}px; left: ${openTaskActionsLeft}px;`}>
+		<div class="fixed z-20 w-44 rounded-[1.3rem] border border-slate-200 bg-white p-2 text-left shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 dark:border-white/10 dark:bg-slate-900 dark:ring-white/10 dark:shadow-[0_32px_80px_-32px_rgba(2,6,23,0.85)]" style={`top: ${openTaskActionsTop}px; left: ${openTaskActionsLeft}px;`}>
 			<a
 				href={editDrawerHref(openTaskActionsId)}
-				class="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+				class="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:text-white"
 				onclick={closeTaskActions}
 			>
 				<svg viewBox="0 0 20 20" fill="none" class="h-4 w-4" aria-hidden="true">
@@ -439,7 +424,7 @@
 					<input type="hidden" name="returnPriority" value={data.filters.priority ?? ''} />
 					<input type="hidden" name="returnTag" value={data.filters.tag ?? ''} />
 					<input type="hidden" name="returnAssignee" value={data.filters.assignee ?? ''} />
-					<button onclick={closeTaskActions} class="flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950">
+					<button onclick={closeTaskActions} class="flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:text-white">
 						<svg viewBox="0 0 20 20" fill="none" class="h-4 w-4" aria-hidden="true">
 							<path d="M4.75 10.5 8 13.75l7.25-7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
 						</svg>
@@ -450,10 +435,10 @@
 		</div>
 	{/if}
 
-	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white">
+	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/92">
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-slate-200 text-sm">
-				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+			<table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-white/10">
+				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:bg-white/5 dark:text-slate-500">
 					<tr>
 						<th class="px-5 py-4">Select</th>
 						<th class="px-5 py-4">Task</th>
@@ -467,17 +452,17 @@
 						<th class="px-5 py-4 text-right">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-slate-100">
+				<tbody class="divide-y divide-slate-100 dark:divide-white/5">
 					{#if data.tasks.length === 0}
 						<tr>
-							<td colspan="10" class="px-5 py-10 text-center text-sm text-slate-500">
+							<td colspan="10" class="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
 								No tasks match the current filters.
 							</td>
 						</tr>
 					{:else}
 						{#each data.tasks as task}
 							{@const currentTask = getTaskView(task)}
-							<tr class="bg-white">
+							<tr class="bg-white dark:bg-slate-900/92">
 								<td class="px-5 py-4 align-top">
 									<input
 										type="checkbox"
@@ -485,20 +470,20 @@
 										name="taskIds"
 										value={task.id}
 										form="tasks-bulk-update-form"
-										class="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
+										class="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300 dark:border-white/15 dark:bg-slate-900"
 									/>
 								</td>
 								<td class="px-5 py-4 align-top">
-									<p class="font-semibold text-slate-950">{task.title}</p>
-									<p class="mt-1 max-w-md text-sm text-slate-500">{task.description || 'No description'}</p>
+										<p class="font-semibold text-slate-950 dark:text-white">{task.title}</p>
+										<p class="mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400">{task.description || 'No description'}</p>
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">{formatDate(currentTask.dueAt, currentTask.hasDueTime)}</td>
+									<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">{formatDate(currentTask.dueAt, currentTask.hasDueTime)}</td>
 								<td class="px-5 py-4 align-top">
 									<span class={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityBadgeClass(currentTask.priority)}`}>
 										{priorityLabel(currentTask.priority)}
 									</span>
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">
 									<form method="POST" action="?/updateProgress" use:enhance={enhanceProgressUpdate} class="flex min-w-36 items-center gap-3">
 										<input type="hidden" name="taskId" value={task.id} />
 										<input type="hidden" name="returnQ" value={data.filters.q ?? ''} />
@@ -515,26 +500,26 @@
 											value={currentTask.progressPercentage}
 											disabled={currentTask.status === 'completed'}
 											onchange={submitProgressUpdate}
-											class="w-full accent-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+											class="w-full accent-slate-950 disabled:cursor-not-allowed disabled:opacity-60 dark:accent-slate-100"
 										/>
 										<span class="min-w-11 text-right text-xs font-semibold">{currentTask.progressPercentage}%</span>
 									</form>
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">{currentTask.recurrenceRule}</td>
-								<td class="px-5 py-4 align-top text-slate-600">
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">{currentTask.recurrenceRule}</td>
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">
 									{#if currentTask.assignedUsers.length === 0}
 										No assignees
 									{:else}
 										{currentTask.assignedUsers.map((user) => user.name).join(', ')}
 									{/if}
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">
 									{#if currentTask.tags.length === 0}
 										No tags
 									{:else}
 										<div class="flex flex-wrap gap-2">
 											{#each currentTask.tags as tag}
-												<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{tag.name}</span>
+												<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-white/8 dark:text-slate-300">{tag.name}</span>
 											{/each}
 										</div>
 									{/if}
@@ -548,7 +533,7 @@
 									<div class="relative flex justify-end">
 										<button
 											type="button"
-											class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+											class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white"
 											onclick={(event) => toggleTaskActions(event, task.id)}
 											aria-haspopup="menu"
 											aria-expanded={openTaskActionsId === task.id}
@@ -580,7 +565,7 @@
 			></a>
 
 			<div
-				class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]"
+				class="absolute inset-y-0 right-0 w-full bg-white shadow-[-24px_0_80px_-48px_rgba(15,23,42,0.55)] dark:bg-slate-950 dark:shadow-[-24px_0_80px_-48px_rgba(2,6,23,0.85)] sm:max-w-2xl lg:w-[40vw] lg:max-w-none lg:min-w-[32rem]"
 				in:fly={{ x: 96, duration: 220, opacity: 1 }}
 				out:fly={{ x: 96, duration: 180, opacity: 1 }}
 			>

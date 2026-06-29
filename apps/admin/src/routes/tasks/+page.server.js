@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getLocalUserByLogtoUserId, listLocalUsers } from '$lib/server/admin-access-store';
 import { listClients } from '$lib/server/clients-store';
-import { createTask, createTaskComment, getTaskById, listTasks, updateTask, getTasksStoreErrorMessage } from '$lib/server/tasks-store';
+import { createTask, createTaskComment, getTaskById, listInternalTasks, updateTask, getTasksStoreErrorMessage } from '$lib/server/tasks-store';
 import { buildTaskFormValues, readTaskInput } from '$lib/server/task-form';
 import { syncTaskAlerts } from '$lib/server/task-alerts';
 
@@ -426,24 +426,25 @@ export async function load({ url }) {
 
 	try {
 		const [tasks, users, clients, editTask] = await Promise.all([
-			listTasks(),
+			listInternalTasks(),
 			listLocalUsers(),
 			listClients(),
 			editTaskId ? getTaskById(editTaskId, { includeComments: true }) : Promise.resolve(null)
 		]);
 		const normalizedTasks = tasks.filter(Boolean);
+		const normalizedEditTask = editTask?.audienceId ? null : editTask;
 		const availableTags = [...new Map(normalizedTasks.flatMap((task) => task.tags).map((tag) => [tag.key, tag])).values()];
 		const availableAssignees = [
 			...new Map(normalizedTasks.flatMap((task) => task.assignedUsers).map((user) => [user.id, user])).values()
 		];
 		const filteredTasks = normalizedTasks.filter((task) => matchesFilters(task, filters));
-		const editErrorMessage = editTaskId && !editTask ? 'Task not found.' : null;
+		const editErrorMessage = editTaskId && !normalizedEditTask ? 'Task not found.' : null;
 
 		return {
 			tasks: filteredTasks,
 			users,
 			clients,
-			editTask,
+			editTask: normalizedEditTask,
 			availableTags,
 			availableAssignees,
 			dashboard: buildDashboard(normalizedTasks, filteredTasks, clients),

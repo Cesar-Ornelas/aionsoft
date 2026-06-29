@@ -3,6 +3,24 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			(() => {
+				const storageKey = 'aionsoft-portal-theme';
+				const root = document.documentElement;
+
+				try {
+					const storedTheme = localStorage.getItem(storageKey);
+					const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+					const theme = storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : systemTheme;
+
+					root.classList.toggle('dark', theme === 'dark');
+					root.dataset.theme = theme;
+				} catch {
+					root.classList.remove('dark');
+					root.dataset.theme = 'light';
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

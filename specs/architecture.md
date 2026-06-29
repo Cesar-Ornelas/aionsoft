@@ -22,6 +22,16 @@ This document defines the baseline architecture decisions for current and future
 - Shared UI primitives live in `packages/ui`.
 - Shared non-UI utilities live in `packages/shared`.
 
+### UI Theming
+
+- Dynamic admin-facing surfaces must support both light mode and dark mode as first-class states.
+- New route work should not ship with light-only shells, cards, tables, drawers, dialogs, or forms.
+- UI updates should extend the existing theme vocabulary already in the app instead of introducing one-off color systems.
+- Prefer the existing neutral slate surfaces, borders, text ramps, and accent treatments already established in the app.
+- When a surface uses semantic color, the dark-mode variant should preserve the same meaning and hierarchy rather than switching to unrelated colors.
+- Shared or repeated UI should prefer app-level tokens, existing utility patterns, or shared primitives before adding new color combinations.
+- Visual changes should be reviewed in both themes so layout, contrast, hover states, and overlays remain coherent.
+
 ### Data Layer
 
 - All dynamic apps use **PostgreSQL** as the primary relational database.
@@ -44,6 +54,16 @@ This document defines the baseline architecture decisions for current and future
 - The repo uses **Bun workspaces**.
 - Application packages live under `apps/*`.
 - Shared packages live under `packages/*`.
+
+### Template Model
+
+- Project starter templates live under `templates/*`.
+- Current template categories:
+  - `templates/astro-static-site`
+  - `templates/sveltekit-dynamic-app`
+  - `templates/dotnet-minimal-api`
+- Templates are reference scaffolds and are intentionally **outside** Bun workspace globs.
+- Promote copied or generated projects into `apps/*` only after they are production candidates.
 
 ---
 

@@ -30,11 +30,11 @@
 </script>
 
 <section class="space-y-5">
-	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+	<header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-white/10 sm:flex-row sm:items-end sm:justify-between">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Clients</p>
-			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Companies and primary contacts</h1>
-			<p class="mt-2 text-sm leading-7 text-slate-600">
+			<h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Companies and primary contacts</h1>
+			<p class="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
 				Manage customer records, store company details, and keep a primary point of contact for every client.
 			</p>
 		</div>
@@ -43,7 +43,7 @@
 			<div class="relative">
 				<button
 					type="button"
-					class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+					class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:bg-slate-900/92 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
 					onclick={toggleActions}
 					aria-haspopup="menu"
 					aria-expanded={actionsOpen}
@@ -63,10 +63,10 @@
 						aria-label="Close actions menu"
 					></button>
 
-					<div class="absolute right-0 top-[calc(100%+0.6rem)] z-20 w-52 rounded-[1.3rem] border border-slate-200 bg-white p-2 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5">
+					<div class="absolute right-0 top-[calc(100%+0.6rem)] z-20 w-52 rounded-[1.3rem] border border-slate-200 bg-white p-2 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 dark:border-white/10 dark:bg-slate-900 dark:ring-white/10 dark:shadow-[0_32px_80px_-32px_rgba(2,6,23,0.85)]">
 						<a
 							href="/clients/export"
-							class="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+							class="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
 							onclick={() => (actionsOpen = false)}
 						>
 							<svg viewBox="0 0 20 20" fill="none" class="h-4 w-4" aria-hidden="true">
@@ -77,7 +77,7 @@
 
 						<button
 							type="button"
-							class="flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+							class="flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
 							onclick={openImportDialog}
 						>
 							<svg viewBox="0 0 20 20" fill="none" class="h-4 w-4" aria-hidden="true">
@@ -95,28 +95,10 @@
 		</div>
 	</header>
 
-	{#if data.notice}
-		<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-			{data.notice}
-		</div>
-	{/if}
-
-	{#if data.errorMessage}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{data.errorMessage}
-		</div>
-	{/if}
-
-	{#if form?.message}
-		<div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-			{form.message}
-		</div>
-	{/if}
-
-	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white">
+	<div class="overflow-hidden rounded-[1.9rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/92">
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-slate-200 text-sm">
-				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+			<table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-white/10">
+				<thead class="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:bg-white/5 dark:text-slate-500">
 					<tr>
 						<th class="px-5 py-4">Company</th>
 						<th class="px-5 py-4">Primary contact</th>
@@ -126,7 +108,7 @@
 						<th class="px-5 py-4 text-right">Action</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-slate-100">
+				<tbody class="divide-y divide-slate-100 dark:divide-white/5">
 					{#if data.clients.length === 0}
 						<tr>
 							<td colspan="6" class="px-5 py-10 text-center text-sm text-slate-500">
@@ -135,34 +117,34 @@
 						</tr>
 					{:else}
 						{#each data.clients as client}
-							<tr class="bg-white">
+							<tr class="bg-white dark:bg-slate-900/92">
 								<td class="px-5 py-4 align-top">
-									<a href={`/clients/${client.id}`} class="font-semibold text-slate-950 transition hover:text-slate-700 hover:underline">
+									<a href={`/clients/${client.id}`} class="font-semibold text-slate-950 transition hover:text-slate-700 hover:underline dark:text-white dark:hover:text-slate-200">
 										{client.companyName}
 									</a>
 									<p class="mt-1 text-xs text-slate-400">{client.id}</p>
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">
 									{#if client.primaryContact}
-										<p class="font-medium text-slate-950">{client.primaryContact.name}</p>
+										<p class="font-medium text-slate-950 dark:text-slate-200">{client.primaryContact.name}</p>
 										<p class="mt-1 text-xs text-slate-500">{client.primaryContact.email || 'No email'}</p>
 									{:else}
 										No primary contact
 									{/if}
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">
 									{#if client.website}
-										<a href={client.website} target="_blank" rel="noreferrer" class="transition hover:text-slate-950 hover:underline">
+										<a href={client.website} target="_blank" rel="noreferrer" class="transition hover:text-slate-950 hover:underline dark:hover:text-white">
 											{client.website}
 										</a>
 									{:else}
 										No website
 									{/if}
 								</td>
-								<td class="px-5 py-4 align-top text-slate-600">{client.phone || 'No phone'}</td>
-								<td class="px-5 py-4 align-top text-slate-500">{formatDate(client.updatedAt ?? client.createdAt)}</td>
+								<td class="px-5 py-4 align-top text-slate-600 dark:text-slate-400">{client.phone || 'No phone'}</td>
+								<td class="px-5 py-4 align-top text-slate-500 dark:text-slate-400">{formatDate(client.updatedAt ?? client.createdAt)}</td>
 								<td class="px-5 py-4 text-right align-top">
-									<a href={`/clients/${client.id}`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">
+									<a href={`/clients/${client.id}`} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white">
 										Open
 									</a>
 								</td>
@@ -183,19 +165,19 @@
 				aria-label="Close import dialog"
 			></button>
 
-			<div class="relative z-10 w-full max-w-xl rounded-[1.8rem] border border-white/80 bg-white p-6 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] sm:p-7">
-				<div class="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+			<div class="relative z-10 w-full max-w-xl rounded-[1.8rem] border border-white/80 bg-white p-6 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-slate-900 dark:shadow-[0_32px_80px_-42px_rgba(2,6,23,0.85)] sm:p-7">
+				<div class="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4 dark:border-white/10">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Import</p>
-						<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Import clients JSON</h2>
-						<p class="mt-2 text-sm leading-7 text-slate-600">
+						<h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Import clients JSON</h2>
+						<p class="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
 							Choose a previously exported JSON file. Imported records are added as new clients.
 						</p>
 					</div>
 
 					<button
 						type="button"
-						class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-950"
+						class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/20 dark:hover:text-white"
 						onclick={closeImportDialog}
 						aria-label="Close import dialog"
 					>
@@ -205,24 +187,24 @@
 
 				<form method="POST" action="?/import" enctype="multipart/form-data" class="mt-5 space-y-5">
 					<div>
-						<label class="block text-sm font-medium text-slate-700" for="client-import-file">Export file</label>
+						<label class="block text-sm font-medium text-slate-700 dark:text-slate-300" for="client-import-file">Export file</label>
 						<input
 							id="client-import-file"
 							type="file"
 							name="file"
 							accept="application/json,.json"
-							class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-slate-950 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+							class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-slate-950 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
 						/>
 					</div>
 
-					<div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+					<div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200">
 						This import is additive. Existing client records are not replaced.
 					</div>
 
 					<div class="flex flex-wrap items-center justify-end gap-3">
 						<button
 							type="button"
-							class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+							class="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-200 dark:hover:border-white/20 dark:hover:text-white"
 							onclick={closeImportDialog}
 						>
 							Cancel
