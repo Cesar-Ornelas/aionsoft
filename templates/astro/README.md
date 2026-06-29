@@ -4,16 +4,16 @@ Installable private npm package that scaffolds a static Astro site starter.
 
 ## Package identity
 
-- Name: `@aionsoft/template-astro`
+- Name pattern: `@<github-owner>/template-astro`
 - Binary: `create-aionsoft-astro`
 - Registry target: GitHub Packages (`https://npm.pkg.github.com`)
 
 ## Generate a project
 
 ```bash
-npx @aionsoft/template-astro my-site
+npx @<github-owner>/template-astro my-site
 # or
-npx @aionsoft/template-astro my-site --name my-site
+npx @<github-owner>/template-astro my-site --name my-site
 ```
 
 Then run:
@@ -44,7 +44,7 @@ node ./bin/create-aionsoft-astro.mjs ./tmp-smoke --force
 ## Publish to GitHub Packages
 
 1. Authenticate npm to GitHub Packages for your org scope.
-2. Ensure package scope matches your GitHub org (`@aionsoft`).
+2. Ensure package scope matches your GitHub owner/org (example: `@my-org`).
 3. From `templates/astro`, run:
 
 ```bash

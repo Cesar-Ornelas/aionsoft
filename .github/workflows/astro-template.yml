@@ -23,6 +23,9 @@ jobs:
   validate:
     name: Validate Astro Template Package
     runs-on: ubuntu-latest
+    outputs:
+      owner_scope: ${{ steps.scope.outputs.owner_scope }}
+      package_file: ${{ steps.pack.outputs.package_file }}
     permissions:
       contents: read
     defaults:
@@ -37,6 +40,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Set package scope for this repository owner
+        id: scope
+        run: |
+          owner_scope=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          npm pkg set name="@${owner_scope}/template-astro"
+          echo "owner_scope=${owner_scope}" >> "$GITHUB_OUTPUT"
 
       - name: Create package tarball
         id: pack
@@ -79,7 +89,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com
-          scope: '@aionsoft'
+          scope: '@${{ needs.validate.outputs.owner_scope }}'
 
       - name: Download package artifact
         uses: actions/download-artifact@v4
@@ -90,4 +100,4 @@ jobs:
       - name: Publish package tarball
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm publish ./dist/*.tgz
+        run: npm publish --registry=https://npm.pkg.github.com ./dist/*.tgz
