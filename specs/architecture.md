@@ -59,9 +59,9 @@ This document defines the baseline architecture decisions for current and future
 
 - Project starter templates live under `templates/*`.
 - Current template categories:
-  - `templates/astro-static-site`
-  - `templates/sveltekit-dynamic-app`
-  - `templates/dotnet-minimal-api`
+  - `templates/astro`
+  - `templates/svelte-kit`
+  - `templates/minimal-api`
 - Templates are reference scaffolds and are intentionally **outside** Bun workspace globs.
 - Promote copied or generated projects into `apps/*` only after they are production candidates.
 

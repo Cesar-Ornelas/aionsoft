@@ -12,7 +12,7 @@ Use this template for marketing pages, landing sites, docs sites, and other most
 ## Default structure blueprint
 
 ```text
-astro-static-site/
+astro/
   src/
     components/
     layouts/

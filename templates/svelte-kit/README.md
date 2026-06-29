@@ -13,7 +13,7 @@ Use this template for application-style products with forms, auth, role-aware ro
 ## Default structure blueprint
 
 ```text
-sveltekit-dynamic-app/
+svelte-kit/
   src/
     lib/
       server/

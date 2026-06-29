@@ -13,7 +13,7 @@ Use this template for backend services and APIs where ASP.NET Core Minimal API i
 ## Default structure blueprint
 
 ```text
-dotnet-minimal-api/
+minimal-api/
   src/
     Api/
       Program.cs

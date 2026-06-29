@@ -16,9 +16,9 @@ This directory contains starter templates used to bootstrap new Aionsoft project
 
 ## Template types
 
-- `astro-static-site`: static or mostly static websites with little to no custom backend logic.
-- `sveltekit-dynamic-app`: dynamic apps with authenticated flows, form input, and server-side processing.
-- `dotnet-minimal-api`: backend APIs built with ASP.NET Core Minimal API.
+- `astro`: static or mostly static websites with little to no custom backend logic.
+- `svelte-kit`: dynamic apps with authenticated flows, form input, and server-side processing.
+- `minimal-api`: backend APIs built with ASP.NET Core Minimal API.
 
 ## Workspace boundary
 
@@ -35,7 +35,7 @@ This avoids coupling template scaffolds to production dependency and build flows
 If/when template automation is added at the root, use script naming:
 
 - `template:astro:<action>`
-- `template:sveltekit:<action>`
-- `template:dotnet:<action>`
+- `template:svelte-kit:<action>`
+- `template:minimal-api:<action>`
 
 Example actions: `new`, `validate`, `sync`.
