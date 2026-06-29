@@ -1,0 +1,33 @@
+{
+  "name": "@aionsoft/template-astro",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Aionsoft Astro starter template package",
+  "type": "module",
+  "bin": {
+    "create-aionsoft-astro": "./bin/create-aionsoft-astro.mjs"
+  },
+  "files": [
+    "bin",
+    "template",
+    "README.md"
+  ],
+  "scripts": {
+    "pack": "npm pack",
+    "test:smoke": "node ./bin/create-aionsoft-astro.mjs ./tmp-smoke --force"
+  },
+  "keywords": [
+    "aionsoft",
+    "template",
+    "astro",
+    "starter"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "UNLICENSED"
+}

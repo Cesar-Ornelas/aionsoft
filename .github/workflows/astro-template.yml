@@ -1,0 +1,42 @@
+name: Astro Template CI
+
+on:
+  push:
+    paths:
+      - templates/astro/**
+      - .github/workflows/astro-template.yml
+  pull_request:
+    paths:
+      - templates/astro/**
+      - .github/workflows/astro-template.yml
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Astro Template Package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: templates/astro
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify package can be packed
+        run: npm pack --dry-run
+
+      - name: Smoke test generator
+        run: |
+          npm run test:smoke
+          test -f ./tmp-smoke/package.json
+          test -f ./tmp-smoke/src/pages/index.astro
+
+      - name: Cleanup smoke output
+        if: always()
+        run: rm -rf ./tmp-smoke
