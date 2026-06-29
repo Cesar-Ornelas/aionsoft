@@ -4,16 +4,16 @@ Installable private npm package that scaffolds a static Astro site starter.
 
 ## Package identity
 
-- Name pattern: `@<github-owner>/template-astro`
+- Name pattern: `@<github-owner>/template-astro` (this repo: `@cesar-ornelas/template-astro`)
 - Binary: `create-aionsoft-astro`
 - Registry target: GitHub Packages (`https://npm.pkg.github.com`)
 
 ## Generate a project
 
 ```bash
-npx @<github-owner>/template-astro my-site
+npx @cesar-ornelas/template-astro my-site
 # or
-npx @<github-owner>/template-astro my-site --name my-site
+npx @cesar-ornelas/template-astro my-site --name my-site
 ```
 
 Then run:
