@@ -1,6 +1,6 @@
 {
   "name": "@cesar-ornelas/template-astro",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Aionsoft Astro starter template package",
   "type": "module",
