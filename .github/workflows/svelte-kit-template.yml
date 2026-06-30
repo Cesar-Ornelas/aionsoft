@@ -3,7 +3,7 @@ name: SvelteKit Template CI
 on:
   push:
     tags:
-      - svelte-kit-template-v*
+      - svelte-template-v*
     paths:
       - templates/svelte-kit/**
       - .github/workflows/svelte-kit-template.yml
