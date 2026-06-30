@@ -107,6 +107,15 @@ bun install
 bun run dev
 ```
 
+Optional shadcn-svelte skill setup for AI-assisted component work:
+
+```bash
+cd my-app
+bun x skills add huntabyte/shadcn-svelte
+```
+
+Then restart your editor session so the skill is discovered.
+
 ## What the Astro template includes
 
 - Astro 7

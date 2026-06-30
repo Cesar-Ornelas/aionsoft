@@ -16,6 +16,16 @@ bun install
 bun run dev
 ```
 
+## shadcn-svelte AI skill (optional)
+
+If you use Copilot skills, install the shadcn-svelte skill in this project:
+
+```bash
+bun x skills add huntabyte/shadcn-svelte
+```
+
+Then restart your editor session so the skill is discovered.
+
 ## Build
 
 ```bash

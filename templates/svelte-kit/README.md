@@ -24,6 +24,15 @@ bun install
 bun run dev
 ```
 
+Optional skill setup for AI-assisted UI work:
+
+```bash
+cd my-app
+bun x skills add huntabyte/shadcn-svelte
+```
+
+Then restart your editor session so the skill is discovered.
+
 The generated app includes Tailwind CSS 4, optional Swetrix analytics wiring, and starter AI guidance/spec files.
 
 ## Local package checks
