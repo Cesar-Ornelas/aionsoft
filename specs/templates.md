@@ -26,19 +26,18 @@ Recommended permissions:
 
 ### 2) Configure npm to use GitHub Packages for the owner scope
 
-Add this to your global npm config at `~/.npmrc`:
-```shell
+Run this in macOS terminal to append the GitHub Packages scope config to `~/.npmrc`:
+
+```bash
 cat >> ~/.npmrc <<'EOF'
-heredoc> @cesar-ornelas:registry=https://npm.pkg.github.com
+@cesar-ornelas:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
-always-auth=true
 EOF
 ```
 
 ```ini
 @cesar-ornelas:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
-always-auth=true
 ```
 
 Then set your token in shell startup or current terminal:
@@ -84,6 +83,21 @@ cd my-site
 bun install
 bun run dev
 ```
+
+## What the Astro template includes
+
+- Astro 7
+- Tailwind CSS 4 via `@tailwindcss/vite`
+- shared AI guidance in `AGENTS.md`
+- starter implementation specs in `specs/`
+
+## Standard project guidance included in the template
+
+Generated Astro projects include:
+
+- `AGENTS.md` for AI collaboration rules and codebase structure expectations
+- `specs/architecture.md` for stack and structural decisions
+- `specs/content-and-seo.md` for launch, accessibility, and metadata requirements
 
 ## Post-generation checklist
 

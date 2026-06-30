@@ -26,13 +26,16 @@ bun install
 bun run dev
 ```
 
+The generated app includes Tailwind CSS 4 and starter AI guidance/spec files.
+
 ## Template contents
 
 The generated project includes:
 
 - Astro + TypeScript starter config
+- Tailwind CSS 4 wired through the Astro Vite pipeline
 - basic layout and landing page
-- global styles with a clean static-site baseline
+- project guidance files (`AGENTS.md` and `specs/`)
 - placeholder README and robots file
 
 ## Local package checks
