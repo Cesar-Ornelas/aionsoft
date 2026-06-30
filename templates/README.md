@@ -39,3 +39,8 @@ If/when template automation is added at the root, use script naming:
 - `template:minimal-api:<action>`
 
 Example actions: `new`, `validate`, `sync`.
+
+## Documentation
+
+- Full templates usage and private package setup: `specs/templates.md`
+- Astro package details and local commands: `templates/astro/README.md`

@@ -2,6 +2,8 @@
 
 Installable private npm package that scaffolds a static Astro site starter.
 
+Detailed setup for private package auth and usage is documented in `specs/templates.md`.
+
 ## Package identity
 
 - Name pattern: `@<github-owner>/template-astro` (this repo: `@cesar-ornelas/template-astro`)
