@@ -28,7 +28,7 @@
     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-sky-300">Included by default</p>
     <ul class="mt-5 space-y-4 text-sm leading-6 text-slate-300">
       <li><span class="font-semibold text-white">SvelteKit 2</span> with modern Vite and Svelte 5 tooling.</li>
-      <li><span class="font-semibold text-white">Tailwind 4</span> for consistent utility-first styling.</li>
+      <li><span class="font-semibold text-white">Tailwind 4 + shadcn-svelte</span> for a ready-made UI system baseline.</li>
       <li><span class="font-semibold text-white">Optional Swetrix</span> analytics via `PUBLIC_SWETRIX_*` vars.</li>
       <li><span class="font-semibold text-white">Specs + AGENTS</span> to keep delivery standards explicit.</li>
     </ul>

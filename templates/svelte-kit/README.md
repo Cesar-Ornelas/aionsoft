@@ -35,6 +35,43 @@ Then restart your editor session so the skill is discovered.
 
 The generated app includes Tailwind CSS 4, optional Swetrix analytics wiring, and starter AI guidance/spec files.
 
+It also includes a Drizzle ORM + PostgreSQL baseline with a starter schema, database client, and migration config.
+
+It also includes shadcn-svelte baseline configuration, so users can start adding components without running `init` first.
+
+## Design system configuration
+
+The generated SvelteKit app includes:
+
+- `components.json` for shadcn-svelte builder selections such as style, base color, icon library, and menu settings
+- `src/app.css` for theme tokens such as radius, fonts, semantic colors, and chart colors
+- `src/lib/utils.ts` for the shared `cn()` helper used by shadcn components
+
+Current default profile in the template:
+
+- style: `nova`
+- base color: `neutral`
+- icon library: `lucide`
+- menu: `default`
+- menu accent: `subtle`
+
+## Database baseline
+
+The generated SvelteKit app includes:
+
+- `drizzle.config.ts`
+- `src/lib/server/db/index.ts`
+- `src/lib/server/db/schema/`
+- `.env.example` with `DATABASE_URL`
+
+Starter commands:
+
+```bash
+bun run db:generate
+bun run db:migrate
+bun run db:studio
+```
+
 ## Local package checks
 
 ```bash

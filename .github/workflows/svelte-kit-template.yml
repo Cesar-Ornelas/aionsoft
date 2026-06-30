@@ -1,0 +1,124 @@
+name: SvelteKit Template CI
+
+on:
+  push:
+    tags:
+      - svelte-kit-template-v*
+    paths:
+      - templates/svelte-kit/**
+      - .github/workflows/svelte-kit-template.yml
+  pull_request:
+    paths:
+      - templates/svelte-kit/**
+      - .github/workflows/svelte-kit-template.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish package to GitHub Packages
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  validate:
+    name: Validate SvelteKit Template Package
+    runs-on: ubuntu-latest
+    outputs:
+      owner_scope: ${{ steps.scope.outputs.owner_scope }}
+      package_file: ${{ steps.pack.outputs.package_file }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: templates/svelte-kit
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set package scope for this repository owner
+        id: scope
+        run: |
+          owner_scope=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          npm pkg set name="@${owner_scope}/template-svelte-kit"
+          echo "owner_scope=${owner_scope}" >> "$GITHUB_OUTPUT"
+
+      - name: Create package tarball
+        id: pack
+        run: |
+          package_file=$(npm pack)
+          echo "package_file=$package_file" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tarball package scope
+        run: |
+          package_name=$(tar -xOf "${{ steps.pack.outputs.package_file }}" package/package.json | node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(p.name)")
+          expected_scope="@${{ steps.scope.outputs.owner_scope }}/"
+          echo "Tarball package name: ${package_name}"
+          if [[ "$package_name" != ${expected_scope}* ]]; then
+            echo "Expected package scope prefix ${expected_scope} but got ${package_name}"
+            exit 1
+          fi
+
+      - name: Smoke test generator
+        run: |
+          npm run test:smoke
+          test -f ./tmp-smoke/package.json
+          test -f ./tmp-smoke/src/routes/+page.svelte
+          test -f ./tmp-smoke/components.json
+
+      - name: Install and validate generated app
+        run: |
+          cd ./tmp-smoke
+          bun install
+          bun run check
+          bun run build
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: svelte-kit-template-package
+          path: templates/svelte-kit/${{ steps.pack.outputs.package_file }}
+          if-no-files-found: error
+
+      - name: Cleanup smoke output
+        if: always()
+        run: rm -rf ./tmp-smoke ./*.tgz
+
+  publish:
+    name: Publish SvelteKit Template Package
+    runs-on: ubuntu-latest
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/svelte-kit-template-v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js for GitHub Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: '@${{ needs.validate.outputs.owner_scope }}'
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: svelte-kit-template-package
+          path: dist
+
+      - name: Publish package tarball
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          package_name=$(tar -xOf ./dist/*.tgz package/package.json | node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(p.name)")
+          echo "Publishing ${package_name}"
+          npm publish --registry=https://npm.pkg.github.com ./dist/*.tgz

@@ -8,6 +8,7 @@ This project is generated from the Aionsoft SvelteKit template.
 - Use Tailwind utilities and shared theme tokens before adding bespoke CSS patterns.
 - Keep server-side logic under `src/lib/server/` and avoid leaking secrets to client routes.
 - Keep analytics and integration credentials environment-driven (`PUBLIC_SWETRIX_*`, server env vars).
+- Use Drizzle ORM as the default persistence layer for PostgreSQL-backed features.
 - Update `specs/` when architecture, product behavior, or operating assumptions change.
 
 ## Architecture expectations
@@ -15,6 +16,7 @@ This project is generated from the Aionsoft SvelteKit template.
 - `src/routes/` holds route entry points and layout composition.
 - `src/lib/components/` holds reusable UI building blocks.
 - `src/lib/server/` holds server-only helpers and business logic.
+- `src/lib/server/db/` holds database client and schema definitions.
 - `src/app.css` is the Tailwind entrypoint and should remain lean.
 
 ## Delivery expectations

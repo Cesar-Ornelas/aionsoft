@@ -128,8 +128,28 @@ Then restart your editor session so the skill is discovered.
 
 - SvelteKit 2 + Svelte 5 + TypeScript 6
 - Tailwind CSS 4 via `@tailwindcss/vite`
+- shadcn-svelte baseline config via `components.json`, `src/app.css`, and `src/lib/utils.ts`
+- Drizzle ORM + PostgreSQL baseline via `drizzle.config.ts`, `src/lib/server/db/`, and `DATABASE_URL`
 - optional Swetrix analytics wiring via `PUBLIC_SWETRIX_*` environment variables
 - `AGENTS.md` and starter specs under `specs/`
+
+## SvelteKit design system defaults
+
+Generated SvelteKit projects ship with a shadcn-svelte baseline so teams can add UI components immediately.
+
+Configuration locations:
+
+- `components.json`: shadcn builder selections such as style, base color, icon library, and menu settings
+- `src/app.css`: theme tokens such as fonts, radius, semantic colors, and chart palette
+- `src/lib/utils.ts`: shared `cn()` helper used by shadcn component source
+
+Default profile:
+
+- style: `nova`
+- base color: `neutral`
+- icon library: `lucide`
+- menu: `default`
+- menu accent: `subtle`
 
 ## Astro analytics defaults (Swetrix)
 
