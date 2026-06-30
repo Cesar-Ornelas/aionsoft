@@ -11,6 +11,7 @@ Current template directories:
 
 Current publishable package:
 - `@cesar-ornelas/template-astro`
+- `@cesar-ornelas/template-svelte-kit`
 
 ## One-time setup to install private packages
 
@@ -84,6 +85,28 @@ bun install
 bun run dev
 ```
 
+## How to scaffold a SvelteKit app from template package
+
+Run from any parent directory where you want the project created:
+
+```bash
+npx @cesar-ornelas/template-svelte-kit my-app
+```
+
+Equivalent binary usage:
+
+```bash
+npx create-aionsoft-svelte-kit my-app
+```
+
+Then start development:
+
+```bash
+cd my-app
+bun install
+bun run dev
+```
+
 ## What the Astro template includes
 
 - Astro 7
@@ -91,6 +114,13 @@ bun run dev
 - shared AI guidance in `AGENTS.md`
 - starter implementation specs in `specs/`
 - optional Swetrix analytics wiring via `PUBLIC_SWETRIX_*` environment variables
+
+## What the SvelteKit template includes
+
+- SvelteKit 2 + Svelte 5 + TypeScript 6
+- Tailwind CSS 4 via `@tailwindcss/vite`
+- optional Swetrix analytics wiring via `PUBLIC_SWETRIX_*` environment variables
+- `AGENTS.md` and starter specs under `specs/`
 
 ## Astro analytics defaults (Swetrix)
 

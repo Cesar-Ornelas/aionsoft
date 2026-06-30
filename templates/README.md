@@ -44,3 +44,4 @@ Example actions: `new`, `validate`, `sync`.
 
 - Full templates usage and private package setup: `specs/templates.md`
 - Astro package details and local commands: `templates/astro/README.md`
+- SvelteKit package details and local commands: `templates/svelte-kit/README.md`

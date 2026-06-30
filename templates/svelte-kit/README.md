@@ -1,55 +1,51 @@
-# SvelteKit Dynamic App Template
+# SvelteKit Template
 
-Use this template for application-style products with forms, auth, role-aware routing, and server-side processing.
+Installable private npm package that scaffolds a dynamic SvelteKit app starter.
 
-## Recommended stack
+## Package identity
 
-- SvelteKit (latest stable)
-- TypeScript
-- PostgreSQL
-- Drizzle ORM
-- Logto auth integration (for authenticated apps)
+- Name: `@cesar-ornelas/template-svelte-kit`
+- Binary: `create-aionsoft-svelte-kit`
+- Registry target: GitHub Packages (`https://npm.pkg.github.com`)
 
-## Default structure blueprint
-
-```text
-svelte-kit/
-  src/
-    lib/
-      server/
-      components/
-      stores/
-    routes/
-    app.css
-    app.html
-    hooks.server.ts
-  static/
-  drizzle/
-  svelte.config.js
-  vite.config.ts
-  package.json
-```
-
-## First-run commands
+## Generate a project
 
 ```bash
-# from a generated project directory
-bun install
-bun run dev
-bun run build
-bun run preview
+npx @cesar-ornelas/template-svelte-kit my-app
+# or
+npx @cesar-ornelas/template-svelte-kit my-app --name my-app
 ```
 
-## Minimum checklist
+Then run:
 
-- Define auth model and protected route boundaries.
-- Define database schema and migration flow.
-- Add server-side authorization checks for critical actions.
-- Add baseline observability/logging for API and auth failures.
-- Validate light/dark theme parity if app has operator-facing UI.
+```bash
+cd my-app
+bun install
+bun run dev
+```
+
+The generated app includes Tailwind CSS 4, optional Swetrix analytics wiring, and starter AI guidance/spec files.
+
+## Local package checks
+
+```bash
+cd templates/svelte-kit
+npm pack
+node ./bin/create-aionsoft-svelte-kit.mjs ./tmp-smoke --force
+```
+
+## Publish to GitHub Packages
+
+1. Authenticate npm to GitHub Packages for your org scope.
+2. Ensure package scope matches your GitHub owner/org.
+3. From `templates/svelte-kit`, run:
+
+```bash
+npm publish
+```
 
 ## Use this template when
 
-- The project includes user workflows and stateful interactions.
-- You need server-side business logic.
-- You expect frequent feature additions over time.
+- the project includes user workflows and stateful interactions
+- you need server-side business logic
+- you want SvelteKit with a standardized delivery baseline

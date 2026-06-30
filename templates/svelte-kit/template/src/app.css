@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", "Segoe UI", sans-serif;
+  --color-brand-500: #2563eb;
+  --color-brand-700: #1d4ed8;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 text-slate-900 antialiased;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(56, 189, 248, 0.16), transparent 32%),
+      radial-gradient(circle at 88% 82%, rgba(59, 130, 246, 0.16), transparent 32%);
+  }
+}

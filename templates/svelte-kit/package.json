@@ -1,0 +1,33 @@
+{
+  "name": "@cesar-ornelas/template-svelte-kit",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Aionsoft SvelteKit starter template package",
+  "type": "module",
+  "bin": {
+    "create-aionsoft-svelte-kit": "./bin/create-aionsoft-svelte-kit.mjs"
+  },
+  "files": [
+    "bin",
+    "template",
+    "README.md"
+  ],
+  "scripts": {
+    "pack": "npm pack",
+    "test:smoke": "node ./bin/create-aionsoft-svelte-kit.mjs ./tmp-smoke --force"
+  },
+  "keywords": [
+    "aionsoft",
+    "template",
+    "sveltekit",
+    "starter"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "UNLICENSED"
+}
