@@ -7,6 +7,7 @@
 - Open Graph title, description, and image plan
 - Robots and sitemap strategy
 - Analytics and privacy requirements clarified
+- `PUBLIC_SWETRIX_PROJECT_ID` configured (if analytics is required)
 
 ## Content rules
 
@@ -19,3 +20,8 @@
 - Headings must remain hierarchical.
 - Interactive elements must be keyboard reachable.
 - Color choices must maintain readable contrast.
+
+## Analytics rules
+
+- Keep analytics provider ids in environment variables only.
+- Verify a no-JavaScript fallback path is present for page view tracking when required.

@@ -10,6 +10,11 @@ const {
   title = "Aionsoft Site",
   description = "Built from the Aionsoft Astro template"
 } = Astro.props as Props;
+
+const swetrixProjectId = import.meta.env.PUBLIC_SWETRIX_PROJECT_ID;
+const swetrixScriptUrl = import.meta.env.PUBLIC_SWETRIX_SCRIPT_URL || "https://swetrix.org/swetrix.js";
+const swetrixApiUrl = import.meta.env.PUBLIC_SWETRIX_API_URL || "https://analytics.aionsoft.io/backend/v1/log";
+const swetrixNoscriptBase = import.meta.env.PUBLIC_SWETRIX_NOSCRIPT_URL || "https://analytics.aionsoft.io/backend/log/noscript";
 ---
 
 <!doctype html>
@@ -20,10 +25,33 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {swetrixProjectId && <script src={swetrixScriptUrl} defer></script>}
+    {swetrixProjectId && (
+      <script is:inline define:vars={{ swetrixProjectId, swetrixApiUrl }}>
+        document.addEventListener("DOMContentLoaded", function () {
+          if (!globalThis.swetrix) return;
+
+          globalThis.swetrix.init(swetrixProjectId, {
+            apiURL: swetrixApiUrl
+          });
+
+          globalThis.swetrix.trackViews();
+        });
+      </script>
+    )}
   </head>
   <body class="font-sans">
     <main class="mx-auto min-h-screen w-full max-w-6xl px-5 py-12 sm:px-8 lg:px-10">
       <slot />
     </main>
+    {swetrixProjectId && (
+      <noscript>
+        <img
+          src={`${swetrixNoscriptBase}?pid=${encodeURIComponent(swetrixProjectId)}`}
+          alt=""
+          referrerpolicy="no-referrer-when-downgrade"
+        />
+      </noscript>
+    )}
   </body>
 </html>

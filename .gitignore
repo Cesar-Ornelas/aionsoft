@@ -31,6 +31,9 @@ yarn-debug.log*
 yarn-error.log*
 bun-error.log*
 
+# Local template smoke-test output
+templates/*/tmp-smoke/
+
 # Editor
 .vscode/
 .idea/

@@ -90,6 +90,25 @@ bun run dev
 - Tailwind CSS 4 via `@tailwindcss/vite`
 - shared AI guidance in `AGENTS.md`
 - starter implementation specs in `specs/`
+- optional Swetrix analytics wiring via `PUBLIC_SWETRIX_*` environment variables
+
+## Astro analytics defaults (Swetrix)
+
+Generated Astro projects include Swetrix integration in the main layout.
+
+Enable it by setting these in `.env`:
+
+```dotenv
+PUBLIC_SWETRIX_PROJECT_ID=YOUR_PROJECT_ID
+PUBLIC_SWETRIX_SCRIPT_URL=https://swetrix.org/swetrix.js
+PUBLIC_SWETRIX_API_URL=https://analytics.aionsoft.io/backend/v1/log
+PUBLIC_SWETRIX_NOSCRIPT_URL=https://analytics.aionsoft.io/backend/log/noscript
+```
+
+Notes:
+- only `PUBLIC_SWETRIX_PROJECT_ID` is required to enable tracking
+- URL variables are optional overrides
+- if project id is empty, analytics script is not injected
 
 ## Standard project guidance included in the template
 

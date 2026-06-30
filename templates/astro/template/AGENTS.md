@@ -23,3 +23,4 @@ This project is generated from the Aionsoft Astro template.
 - Keep Lighthouse performance and accessibility in good standing.
 - Add metadata, canonical URLs, and social cards before launch.
 - Document non-obvious project decisions in `specs/architecture.md`.
+- Keep analytics configuration environment-driven (for example `PUBLIC_SWETRIX_*`), never hardcoded.
