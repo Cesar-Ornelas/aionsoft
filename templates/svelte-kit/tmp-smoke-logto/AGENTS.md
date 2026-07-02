@@ -18,6 +18,7 @@ This project is generated from the Aionsoft SvelteKit template.
 - Import across layers using each slice public API (`index.ts`) instead of deep internals.
 - Keep entity persistence contracts with the owning entity slice (`src/lib/entities/<entity>/server`).
 - Keep only technical infrastructure in shared server code (`src/lib/shared/server`).
+- Optional auth scaffolding can be generated with `--features logto`; keep auth server logic inside `src/lib/features/auth-logto/server/`.
 
 ## Architecture expectations
 

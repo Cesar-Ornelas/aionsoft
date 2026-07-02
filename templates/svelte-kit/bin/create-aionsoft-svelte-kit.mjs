@@ -163,11 +163,15 @@ async function scaffoldLogtoFeature(targetDirectory) {
   packageJson.devDependencies["@logto/sveltekit"] = packageJson.devDependencies["@logto/sveltekit"] || "^0.3.23";
   await writeJson(packageJsonPath, packageJson);
 
-  await appendEnvSectionIfMissing(envPath, "# Logto authentication (optional when --features logto is enabled)", [
-    "LOGTO_ENDPOINT=http://localhost:3001",
+  await appendEnvSectionIfMissing(envPath, "# Logto auth", [
+    "LOGTO_ENDPOINT=",
+    "LOGTO_ADMIN_ENDPOINT=",
     "LOGTO_APP_ID=",
     "LOGTO_APP_SECRET=",
-    "LOGTO_COOKIE_ENCRYPTION_KEY="
+    "LOGTO_M2M_APP_ID=",
+    "LOGTO_M2M_APP_SECRET=",
+    "LOGTO_COOKIE_ENCRYPTION_KEY=",
+    "LOGTO_MANAGEMENT_RESOURCE=https://default.logto.app/api"
   ]);
 
   const authServerDir = path.join(targetDirectory, "src", "lib", "features", "auth-logto", "server");

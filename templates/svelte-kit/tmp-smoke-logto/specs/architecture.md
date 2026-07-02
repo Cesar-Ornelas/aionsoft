@@ -50,6 +50,15 @@ Layers must never import upward.
 	- `src/routes/+page.server.ts` orchestrates load
 	- `src/routes/+page.svelte` composes widget only
 
+## Optional features at generation time
+
+- `--features logto` adds a minimal auth slice and route endpoints:
+	- `src/lib/features/auth-logto/server/config.ts`
+	- `src/hooks.server.ts`
+	- `src/routes/auth/sign-in/+server.ts`
+	- `src/routes/auth/sign-out/+server.ts`
+- Logto-specific env variables are only added when this feature is enabled.
+
 ## Quality rules
 
 - Accessibility is a default requirement, not a stretch goal.
