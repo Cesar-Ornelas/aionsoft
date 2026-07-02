@@ -93,6 +93,12 @@ Run from any parent directory where you want the project created:
 npx @cesar-ornelas/template-svelte-kit my-app
 ```
 
+Enable optional features during generation:
+
+```bash
+npx @cesar-ornelas/template-svelte-kit my-app --features logto
+```
+
 Equivalent binary usage:
 
 ```bash
@@ -129,9 +135,21 @@ Then restart your editor session so the skill is discovered.
 - SvelteKit 2 + Svelte 5 + TypeScript 6
 - Tailwind CSS 4 via `@tailwindcss/vite`
 - shadcn-svelte baseline config via `components.json`, `src/app.css`, and `src/lib/utils.ts`
-- Drizzle ORM + PostgreSQL baseline via `drizzle.config.ts`, `src/lib/server/db/`, and `DATABASE_URL`
+- Feature-Sliced Design baseline via `src/lib/widgets/`, `src/lib/features/`, `src/lib/entities/`, and `src/lib/shared/`
+- Drizzle ORM + PostgreSQL baseline with entity-owned persistence via `drizzle.config.ts`, `src/lib/shared/server/db/client.ts`, entity model schema files, and `DATABASE_URL`
 - optional Swetrix analytics wiring via `PUBLIC_SWETRIX_*` environment variables
 - `AGENTS.md` and starter specs under `specs/`
+- optional generation features via `--features` (currently `logto`)
+
+Dependency direction contract:
+
+- `app -> pages -> widgets -> features -> entities -> shared`
+
+Boundary validation command in generated apps:
+
+```bash
+bun run lint:boundaries
+```
 
 ## SvelteKit design system defaults
 

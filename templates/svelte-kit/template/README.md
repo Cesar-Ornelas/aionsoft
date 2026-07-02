@@ -18,6 +18,23 @@ bun install
 bun run dev
 ```
 
+## Optional generation features
+
+This project can be scaffolded with optional features at generation time:
+
+```bash
+npx @cesar-ornelas/template-svelte-kit my-app --features logto
+```
+
+When `logto` is enabled, the generated app includes:
+
+- `@logto/sveltekit`
+- `src/hooks.server.ts`
+- `src/lib/features/auth-logto/server/config.ts`
+- `src/routes/auth/sign-in/+server.ts`
+- `src/routes/auth/sign-out/+server.ts`
+- Logto env placeholders in `.env.example`
+
 ## shadcn-svelte AI skill (optional)
 
 If you use Copilot skills, install the shadcn-svelte skill in this project:
@@ -89,7 +106,31 @@ bun run db:migrate
 bun run db:studio
 ```
 
-The template includes a minimal `app_settings` table as a starting point. Extend `src/lib/server/db/schema/` with your project tables.
+The template includes a minimal `app_settings` table as a starting point. Add new schemas under `src/lib/entities/<entity>/model/schema.ts`.
+
+## Feature-Sliced architecture baseline
+
+This template is organized with Feature-Sliced Design defaults:
+
+- `src/lib/widgets/` for page-building blocks
+- `src/lib/features/` for user workflows
+- `src/lib/entities/` for business entities and persistence
+- `src/lib/shared/` for generic utilities and technical infrastructure
+
+Dependency direction is enforced with a boundary check script:
+
+```bash
+bun run lint:boundaries
+```
+
+The default reference slice demonstrates entity-owned persistence:
+
+- `src/lib/entities/app-settings/model/schema.ts`
+- `src/lib/entities/app-settings/server/repository.ts`
+- `src/lib/features/settings-health/server/get-settings-health.ts`
+- `src/lib/widgets/home-dashboard/ui/HomeDashboard.svelte`
+
+`src/lib/server/db/` remains as a compatibility shim for older imports, but new code should use `src/lib/shared/server/db/client.ts` and entity-owned models.
 
 ## Project guidance
 

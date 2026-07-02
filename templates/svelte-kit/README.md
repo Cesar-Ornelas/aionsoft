@@ -14,6 +14,8 @@ Installable private npm package that scaffolds a dynamic SvelteKit app starter.
 npx @cesar-ornelas/template-svelte-kit my-app
 # or
 npx @cesar-ornelas/template-svelte-kit my-app --name my-app
+# or include optional feature scaffolds
+npx @cesar-ornelas/template-svelte-kit my-app --features logto
 ```
 
 Then run:
@@ -39,6 +41,14 @@ It also includes a Drizzle ORM + PostgreSQL baseline with a starter schema, data
 
 It also includes shadcn-svelte baseline configuration, so users can start adding components without running `init` first.
 
+It now includes a Feature-Sliced Design baseline (`widgets`, `features`, `entities`, `shared`) with import-boundary checks and a reference feature slice.
+
+Optional features can be enabled at generation time using `--features`.
+
+Current feature options:
+
+- `logto` - adds Logto auth scaffolding (`@logto/sveltekit`, auth routes, hooks, and Logto env placeholders)
+
 ## Design system configuration
 
 The generated SvelteKit app includes:
@@ -60,8 +70,9 @@ Current default profile in the template:
 The generated SvelteKit app includes:
 
 - `drizzle.config.ts`
-- `src/lib/server/db/index.ts`
-- `src/lib/server/db/schema/`
+- `src/lib/shared/server/db/client.ts`
+- `src/lib/entities/app-settings/model/schema.ts`
+- `src/lib/entities/app-settings/server/repository.ts`
 - `.env.example` with `DATABASE_URL`
 
 Starter commands:
@@ -70,6 +81,25 @@ Starter commands:
 bun run db:generate
 bun run db:migrate
 bun run db:studio
+```
+
+## Feature-Sliced architecture baseline
+
+Generated apps include:
+
+- `src/lib/widgets/` for page composition blocks
+- `src/lib/features/` for user workflows
+- `src/lib/entities/` for domain and persistence ownership
+- `src/lib/shared/` for generic utilities and technical infrastructure
+
+Dependency direction:
+
+- `app -> pages -> widgets -> features -> entities -> shared`
+
+Boundary validation command:
+
+```bash
+bun run lint:boundaries
 ```
 
 ## Local package checks
