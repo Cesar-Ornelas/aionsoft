@@ -11,12 +11,23 @@ This project is generated from the Aionsoft SvelteKit template.
 - Use Drizzle ORM as the default persistence layer for PostgreSQL-backed features.
 - Update `specs/` when architecture, product behavior, or operating assumptions change.
 
+## Feature-Sliced defaults
+
+- Treat routes as composition points, not owners of business logic.
+- Keep dependency flow one-way: `app -> pages -> widgets -> features -> entities -> shared`.
+- Import across layers using each slice public API (`index.ts`) instead of deep internals.
+- Keep entity persistence contracts with the owning entity slice (`src/lib/entities/<entity>/server`).
+- Keep only technical infrastructure in shared server code (`src/lib/shared/server`).
+- Optional auth scaffolding can be generated with `--features logto`; keep auth server logic inside `src/lib/features/auth-logto/server/`.
+
 ## Architecture expectations
 
-- `src/routes/` holds route entry points and layout composition.
-- `src/lib/components/` holds reusable UI building blocks.
-- `src/lib/server/` holds server-only helpers and business logic.
-- `src/lib/server/db/` holds database client and schema definitions.
+- `src/routes/` holds route entry points and thin composition.
+- `src/lib/widgets/` holds UI blocks assembled from features/entities.
+- `src/lib/features/` holds user workflows and interaction logic.
+- `src/lib/entities/` holds domain models and persistence boundaries.
+- `src/lib/shared/` holds generic utilities and technical infrastructure.
+- `src/lib/server/db/` remains as a compatibility shim for older imports.
 - `src/app.css` is the Tailwind entrypoint and should remain lean.
 
 ## Delivery expectations

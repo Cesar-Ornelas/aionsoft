@@ -1,1 +1,1 @@
-export * from "./core";
+export * from "$lib/entities/app-settings/model/schema";
