@@ -42,6 +42,19 @@ This document defines the baseline architecture decisions for current and future
   - user linkage tables
   - app-specific operational data
 
+### Shared Data Contracts
+
+- Cross-feature shared data access must use TypeScript interfaces (ports), not direct concrete repository imports.
+- A feature should depend on contracts defined in its domain-facing layer, then receive concrete adapters at composition time.
+- Keep external-provider details (for example Logto-specific fields) in auth/access implementations, not in feature tables or feature business logic.
+- For relational links between app features, prefer app-local ids from entity tables (for example `app_users.id`) rather than provider ids.
+
+Recommended pattern:
+- define feature-facing interfaces in `model` or `server/contracts`
+- implement adapters in `server/repository` or integration modules
+- compose implementations in route-level server code (`+page.server`, `+layout.server`, `+server`)
+- in tests, swap adapters with in-memory fakes that satisfy the same interfaces
+
 ### Authentication
 
 - All authenticated apps use **Logto** for authentication.

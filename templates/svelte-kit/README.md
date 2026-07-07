@@ -14,8 +14,8 @@ Installable private npm package that scaffolds a dynamic SvelteKit app starter.
 npx @cesar-ornelas/template-svelte-kit my-app
 # or
 npx @cesar-ornelas/template-svelte-kit my-app --name my-app
-# or include optional feature scaffolds
-npx @cesar-ornelas/template-svelte-kit my-app --features logto
+# or include auth scaffolding
+npx @cesar-ornelas/template-svelte-kit my-app --auth logto
 ```
 
 Then run:
@@ -43,11 +43,15 @@ It also includes shadcn-svelte baseline configuration, so users can start adding
 
 It now includes a Feature-Sliced Design baseline (`widgets`, `features`, `entities`, `shared`) with import-boundary checks and a reference feature slice.
 
-Optional features can be enabled at generation time using `--features`.
+Auth is selected explicitly at generation time.
 
-Current feature options:
+Current generator options:
 
-- `logto` - adds Logto auth scaffolding (`@logto/sveltekit`, auth routes, hooks, and Logto env placeholders)
+- `--auth logto` - adds Logto auth scaffolding (`@logto/sveltekit`, auth routes, hooks, Logto env placeholders) and includes the internal RBAC starter scaffold (`access-control` entities plus permission helpers)
+
+When `--auth logto` is selected, generated apps also include a first-run `/setup` page that is intentionally public until the first app-local user is created. Setup creates the default organization (if needed), creates the first user using username/email/password, links that user to the organization, then switches the app to authenticated-only access for all other pages.
+
+The legacy `--features logto` flag is still accepted as an alias for `--auth logto`, but new usage should prefer `--auth logto`.
 
 ## Design system configuration
 
@@ -74,6 +78,8 @@ The generated SvelteKit app includes:
 - `src/lib/entities/app-settings/model/schema.ts`
 - `src/lib/entities/app-settings/server/repository.ts`
 - `.env.example` with `DATABASE_URL`
+
+Generated app documentation also includes a copy-paste PostgreSQL bootstrap script for internal setup. It creates the app role, creates the database, sets the app role as owner, and grants database access using an existing admin connection.
 
 Starter commands:
 

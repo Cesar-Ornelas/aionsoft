@@ -35,3 +35,9 @@ When processing checks the current workflow is not effective. Sales/Technicians 
 
 We could improve the process by having any estimate that causes a signed agreement to create a list of checks to be returned to the office by the end of the day. The next day a consolidations should take place for any missing payments. This will also create a report for tracking/missing/repeat offenders on checks payments.
 
+
+local logto aionsoft
+cornelas:cesar.ornelas@aionsoft.io
+
+# make a page builder in admin
+https://www.shadcnblocks.com/explorer/builder

@@ -50,14 +50,36 @@ Layers must never import upward.
 	- `src/routes/+page.server.ts` orchestrates load
 	- `src/routes/+page.svelte` composes widget only
 
-## Optional features at generation time
+## Optional auth at generation time
 
-- `--features logto` adds a minimal auth slice and route endpoints:
+- `--auth logto` adds a minimal auth slice and route endpoints:
 	- `src/lib/features/auth-logto/server/config.ts`
 	- `src/hooks.server.ts`
 	- `src/routes/auth/sign-in/+server.ts`
 	- `src/routes/auth/sign-out/+server.ts`
-- Logto-specific env variables are only added when this feature is enabled.
+	- request authz context baseline:
+		- `src/lib/features/authorization-rbac/server/current-request-user.ts`
+		- `src/lib/features/authorization-rbac/server/permissions.ts`
+		- `src/app.d.ts` locals contract (`currentAppUser`, `sessionUserKey`)
+	- RBAC starter schema and helpers:
+		- `src/lib/entities/access-control/model/schema.ts`
+		- `src/lib/entities/access-control/model/types.ts`
+		- `src/lib/features/authorization-rbac/server/permissions.ts`
+- Logto-specific env variables are only added when this auth mode is enabled.
+
+## Request user context contract
+
+The generated auth baseline resolves a request-scoped user authorization object once in hooks and makes it available to all server handlers.
+
+Contract intent:
+- `locals.user` is identity/session input from Logto
+- `locals.currentAppUser` is app-local authorization context (`id`, `logtoUserId`, `roleIds`, `permissionKeys`)
+- `locals.sessionUserKey` is a lightweight identity marker for request/session correlation
+
+Usage rule for new features:
+- in `+page.server`, `+layout.server`, and `+server` handlers, call guard helpers from `src/lib/features/authorization-rbac/server/permissions.ts`
+- avoid direct per-route identity-to-permission lookup logic
+- treat DB role/permission assignments as the source of truth
 
 ## Quality rules
 

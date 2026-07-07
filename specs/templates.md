@@ -141,9 +141,23 @@ Then restart your editor session so the skill is discovered.
 - `AGENTS.md` and starter specs under `specs/`
 - optional generation features via `--features` (currently `logto`)
 
+When auth is enabled (`--auth logto` or `--features logto`), generated apps also include a server request-user context baseline:
+
+- `src/app.d.ts` locals contract for `currentAppUser` and `sessionUserKey`
+- `src/lib/features/authorization-rbac/server/current-request-user.ts` to resolve and memoize request user context
+- `src/lib/features/authorization-rbac/server/permissions.ts` guard helpers for `load`, actions, and endpoints
+
+New feature handlers should use those guard helpers rather than duplicating identity-to-permission lookup logic.
+
 Dependency direction contract:
 
 - `app -> pages -> widgets -> features -> entities -> shared`
+
+Shared-data contract rule:
+
+- when a feature needs data owned by another feature or entity, consume it through TypeScript interfaces (ports), not direct implementation imports
+- keep implementation wiring in server composition points (route handlers or server modules)
+- prefer app-local entity ids for relations; keep auth-provider ids behind auth/access adapters
 
 Boundary validation command in generated apps:
 

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./auth-logto": "./src/auth-logto.js",
     "./legal-markdown": "./src/legal-markdown.js"
   },
   "dependencies": {

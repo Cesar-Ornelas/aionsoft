@@ -33,6 +33,7 @@ bun-error.log*
 
 # Local template smoke-test output
 templates/*/tmp-smoke/
+templates/*/tmp-smoke-*/
 
 # Editor
 .vscode/

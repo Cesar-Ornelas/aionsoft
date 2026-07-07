@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@aionsoft/config": "workspace:*",
+    "@aionsoft/shared": "workspace:*",
     "@aionsoft/ui": "workspace:*",
     "@logto/sveltekit": "^0.3.23"
   },

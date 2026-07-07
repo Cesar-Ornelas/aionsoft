@@ -25,6 +25,12 @@ This separation is intentional because Aionsoft apps are separate operational do
 
 ## Current Auth Pattern
 
+Generator direction for new template-based apps:
+
+- auth should be selected with an explicit generator axis such as `--auth logto`
+- for internal template usage, `--auth logto` can bundle the baseline RBAC starter scaffold by default
+- authorization data ownership remains app-local even when scaffolded with auth
+
 The current `portal` and `admin` apps both follow the same base pattern:
 
 1. A SvelteKit hook initializes Logto with `@logto/sveltekit`.
@@ -212,6 +218,58 @@ Recommended server pattern:
 - map the Logto user id to the local app user
 - load role assignments and effective permissions
 - fail early with `redirect(302, ...)`, `error(401, ...)`, or `error(403, ...)`
+
+### Current Request User Object
+
+Authenticated dynamic apps should expose a request-scoped authorization object on server requests.
+
+Canonical shape:
+
+```ts
+type CurrentAppUser = {
+	id: string;
+	logtoUserId: string;
+	roleIds: string[];
+	permissionKeys: string[];
+};
+```
+
+Recommended request lifecycle:
+- `hooks.server` resolves `locals.user.sub` to local authz context once per request
+- resolved data is stored in `event.locals.currentAppUser`
+- routes/actions/endpoints call guard helpers instead of implementing ad hoc checks
+
+Session guidance:
+- keep session/cookie state lightweight (identity marker only, for example subject)
+- do not treat long-lived session permission snapshots as source of truth
+- use app DB as source of truth for roles and permissions
+
+### Route usage for new features
+
+Every new feature server handler should require current request user context before business logic.
+
+```ts
+import type { Actions, PageServerLoad } from "./$types";
+import {
+	requireCurrentRequestUser,
+	requireUserPermission
+} from "$lib/features/authorization-rbac/server/permissions";
+
+export const load: PageServerLoad = async (event) => {
+	await requireCurrentRequestUser(event);
+	// optional: await requireUserPermission(event, "view:my-feature");
+	return {};
+};
+
+export const actions: Actions = {
+	save: async (event) => {
+		await requireUserPermission(event, "manage:my-feature");
+		const formData = await event.request.formData();
+		// feature workflow here
+		return { ok: true };
+	}
+};
+```
 
 ---
 
