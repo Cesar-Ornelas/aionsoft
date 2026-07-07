@@ -9,6 +9,7 @@ import {
   setUserRoles,
   upsertAccessUser
 } from "$lib/entities/access-control";
+import { publishNotification } from "$lib/entities/notifications";
 import { requireCurrentRequestUser } from "$lib/features/authorization-rbac/server/permissions";
 import { getPublicErrorMessage, updateLogtoUserCredentials } from "$lib/features/auth-logto/server/management";
 
@@ -66,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   create: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const logtoUserId = readTrimmedString(formData, "logtoUserId");
@@ -92,6 +93,23 @@ export const actions: Actions = {
         displayName: displayName || null,
         email: email || null
       });
+
+      await publishNotification({
+        recipientScope: "global",
+        type: "success",
+        title: "User created",
+        message: `A new user (${logtoUserId}) was added to access control.`,
+        actionHref: "/security"
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "success",
+        title: "Security updated",
+        message: `You created user ${logtoUserId}.`,
+        actionHref: "/security"
+      });
     } catch (error) {
       return fail(500, {
         intent: "create",
@@ -103,7 +121,7 @@ export const actions: Actions = {
     throw redirect(303, "/security?created=1");
   },
   updateRoles: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const userId = readTrimmedString(formData, "userId");
@@ -122,6 +140,15 @@ export const actions: Actions = {
 
     try {
       await setUserRoles(userId, roleIds);
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "User roles updated",
+        message: "Role assignments were updated successfully.",
+        actionHref: "/security"
+      });
     } catch (error) {
       return fail(500, {
         intent: "updateRoles",
@@ -133,7 +160,7 @@ export const actions: Actions = {
     throw redirect(303, "/security?updatedRoles=1");
   },
   updateUser: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const userId = readTrimmedString(formData, "userId");
@@ -187,6 +214,15 @@ export const actions: Actions = {
         displayName: selectedUser.displayName,
         email: email || selectedUser.email
       });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "User credentials updated",
+        message: `Credentials were updated for ${selectedUser.logtoUserId}.`,
+        actionHref: "/security"
+      });
     } catch (error) {
       return fail(500, {
         intent: "updateUser",
@@ -198,7 +234,7 @@ export const actions: Actions = {
     throw redirect(303, "/security?updatedUser=1");
   },
   delete: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const userId = readTrimmedString(formData, "userId");
@@ -235,6 +271,23 @@ export const actions: Actions = {
       }
 
       await deleteAccessUser(userId);
+
+      await publishNotification({
+        recipientScope: "global",
+        type: "warning",
+        title: "User removed",
+        message: `User ${selectedUser.logtoUserId} was removed from access control.`,
+        actionHref: "/security"
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "warning",
+        title: "Security updated",
+        message: `You removed user ${selectedUser.logtoUserId}.`,
+        actionHref: "/security"
+      });
     } catch (error) {
       return fail(500, {
         intent: "delete",

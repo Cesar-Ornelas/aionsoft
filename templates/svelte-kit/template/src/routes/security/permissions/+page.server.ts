@@ -6,6 +6,7 @@ import {
   listAccessPermissions,
   updateAccessPermission
 } from "$lib/entities/access-control";
+import { publishNotification } from "$lib/entities/notifications";
 import { requireCurrentRequestUser } from "$lib/features/authorization-rbac/server/permissions";
 
 function readTrimmedString(formData: FormData, name: string) {
@@ -43,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   create: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const key = readTrimmedString(formData, "key");
@@ -63,7 +64,24 @@ export const actions: Actions = {
     }
 
     try {
-      await createAccessPermission({ key, description });
+      const permission = await createAccessPermission({ key, description });
+
+      await publishNotification({
+        recipientScope: "global",
+        type: "success",
+        title: "Permission created",
+        message: `Permission ${permission.key} was created.`,
+        actionHref: "/security/permissions"
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "success",
+        title: "Permission created",
+        message: `You created permission ${permission.key}.`,
+        actionHref: "/security/permissions"
+      });
     } catch (error) {
       return fail(500, {
         intent: "create",
@@ -75,7 +93,7 @@ export const actions: Actions = {
     throw redirect(303, "/security/permissions?created=1");
   },
   updateDescription: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const permissionId = readTrimmedString(formData, "permissionId");
@@ -105,6 +123,15 @@ export const actions: Actions = {
         key: target.key,
         name: target.name,
         description
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "Permission updated",
+        message: `Description updated for permission ${target.key}.`,
+        actionHref: "/security/permissions"
       });
     } catch (error) {
       return fail(500, {

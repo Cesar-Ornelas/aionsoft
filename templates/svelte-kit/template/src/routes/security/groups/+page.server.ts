@@ -12,6 +12,7 @@ import {
   setGroupUsers,
   updateAccessGroup
 } from "$lib/entities/access-control";
+import { publishNotification } from "$lib/entities/notifications";
 import { requireCurrentRequestUser } from "$lib/features/authorization-rbac/server/permissions";
 
 function readTrimmedString(formData: FormData, name: string) {
@@ -70,7 +71,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   create: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const name = readTrimmedString(formData, "name");
@@ -90,7 +91,24 @@ export const actions: Actions = {
     }
 
     try {
-      await createAccessGroup({ name, description });
+      const group = await createAccessGroup({ name, description });
+
+      await publishNotification({
+        recipientScope: "global",
+        type: "success",
+        title: "Group created",
+        message: `Group ${group.key} was created.`,
+        actionHref: "/security/groups"
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "success",
+        title: "Group created",
+        message: `You created group ${group.key}.`,
+        actionHref: "/security/groups"
+      });
     } catch (error) {
       return fail(500, {
         intent: "create",
@@ -102,7 +120,7 @@ export const actions: Actions = {
     throw redirect(303, "/security/groups?created=1");
   },
   updateUsers: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const groupId = readTrimmedString(formData, "groupId");
@@ -121,6 +139,15 @@ export const actions: Actions = {
 
     try {
       await setGroupUsers(groupId, userIds);
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "Group members updated",
+        message: "Group membership assignments were updated.",
+        actionHref: "/security/groups"
+      });
     } catch (error) {
       return fail(500, {
         intent: "updateUsers",
@@ -132,7 +159,7 @@ export const actions: Actions = {
     throw redirect(303, "/security/groups?updatedUsers=1");
   },
   updateRoles: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const groupId = readTrimmedString(formData, "groupId");
@@ -151,6 +178,15 @@ export const actions: Actions = {
 
     try {
       await setGroupRoles(groupId, roleIds);
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "Group roles updated",
+        message: "Group role assignments were updated.",
+        actionHref: "/security/groups"
+      });
     } catch (error) {
       return fail(500, {
         intent: "updateRoles",

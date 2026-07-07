@@ -2,12 +2,16 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
   import type { Snippet } from "svelte";
   import { env } from "$env/dynamic/public";
   import AppSidebar from "$lib/components/app-sidebar.svelte";
+  import { Button } from "$lib/components/ui/button";
+  import { toastError } from "$lib/stores/toast";
   import ToastHost from "$lib/components/toast-host.svelte";
   import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
+  import * as Sheet from "$lib/components/ui/sheet";
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
   const swetrixProjectId = env.PUBLIC_SWETRIX_PROJECT_ID || "";
@@ -20,8 +24,131 @@
     data
   }: {
     children?: Snippet;
-    data: { user: { name: string; email: string; avatar: string }; hasLogtoManagement: boolean };
+    data: {
+      user: { name: string; email: string; avatar: string };
+      hasLogtoManagement: boolean;
+      unreadNotificationsCount: number;
+      notificationsFilter: "all";
+      notifications: Array<{
+        id: string;
+        type: "info" | "success" | "warning" | "error";
+        title: string;
+        message: string;
+        actionHref: string | null;
+        readAt: Date | null | string;
+        createdAt: Date | string;
+      }>;
+    };
   } = $props();
+
+  let notificationsOpen = $state(false);
+  let notifications = $state<typeof data.notifications>([]);
+  let unreadNotificationsCount = $state(0);
+  let pendingNotificationActions = $state<string[]>([]);
+
+  type NotificationActionIntent = "markRead" | "markAllRead" | "delete";
+
+  function getNotificationActionKey(intent: NotificationActionIntent, notificationId?: string) {
+    return `${intent}:${notificationId ?? "all"}`;
+  }
+
+  function isNotificationActionPending(intent: NotificationActionIntent, notificationId?: string) {
+    return pendingNotificationActions.includes(getNotificationActionKey(intent, notificationId));
+  }
+
+  $effect(() => {
+    notifications = data.notifications;
+    unreadNotificationsCount = data.unreadNotificationsCount;
+  });
+
+  async function runNotificationAction(intent: NotificationActionIntent, notificationId?: string) {
+    const actionKey = getNotificationActionKey(intent, notificationId);
+    pendingNotificationActions = [...pendingNotificationActions, actionKey];
+
+    try {
+      const body = new URLSearchParams({
+        intent,
+        redirectTo: notificationsHref(activeNotificationsFilter())
+      });
+
+      if (notificationId) {
+        body.set("notificationId", notificationId);
+      }
+
+      const response = await fetch("/notifications", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload.ok) {
+        toastError("Notifications action failed", payload.message || "Unable to update notifications.");
+        return;
+      }
+
+      notifications = payload.notifications;
+      unreadNotificationsCount = payload.unreadNotificationsCount;
+    } catch {
+      toastError("Notifications action failed", "Unable to update notifications.");
+    } finally {
+      pendingNotificationActions = pendingNotificationActions.filter((item) => item !== actionKey);
+    }
+  }
+
+  function notificationsHref(filter?: "all" | "unread" | "read") {
+    const url = new URL(page.url);
+    url.searchParams.set("notifications", "1");
+
+    if (filter && filter !== "all") {
+      url.searchParams.set("notificationsFilter", filter);
+    } else {
+      url.searchParams.delete("notificationsFilter");
+    }
+
+    const search = url.searchParams.toString();
+    return `${url.pathname}${search ? `?${search}` : ""}`;
+  }
+
+  function closeNotificationsHref() {
+    const url = new URL(page.url);
+    url.searchParams.delete("notifications");
+    url.searchParams.delete("notificationsFilter");
+    const search = url.searchParams.toString();
+    return `${url.pathname}${search ? `?${search}` : ""}`;
+  }
+
+  function activeNotificationsFilter() {
+    const filter = page.url.searchParams.get("notificationsFilter");
+    return filter === "read" || filter === "unread" ? filter : "all";
+  }
+
+  function isUnread(readAt: Date | string | null) {
+    return !readAt;
+  }
+
+  function formatNotificationDate(value: Date | string) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    return Number.isNaN(date.getTime()) ? "Now" : date.toLocaleString();
+  }
+
+  const visibleNotifications = $derived.by(() => {
+    const filter = activeNotificationsFilter();
+
+    if (filter === "unread") {
+      return notifications.filter((notification) => isUnread(notification.readAt));
+    }
+
+    if (filter === "read") {
+      return notifications.filter((notification) => !isUnread(notification.readAt));
+    }
+
+    return notifications;
+  });
 
   onMount(() => {
     if (!swetrixProjectId) return;
@@ -41,6 +168,12 @@
     });
 
     document.head.appendChild(script);
+
+    const notificationsError = page.url.searchParams.get("notificationsError");
+
+    if (notificationsError) {
+      toastError("Notifications action failed", decodeURIComponent(notificationsError));
+    }
   });
 
   function isSetupRoute() {
@@ -71,6 +204,18 @@
   }
 
   const breadcrumbItems = $derived(getBreadcrumbItems(page.url.pathname));
+
+  $effect(() => {
+    if (page.url.searchParams.get("notifications") === "1") {
+      notificationsOpen = true;
+    }
+  });
+
+  $effect(() => {
+    if (!notificationsOpen && page.url.searchParams.get("notifications") === "1") {
+      void goto(closeNotificationsHref(), { keepFocus: true, noScroll: true, replaceState: true });
+    }
+  });
 </script>
 
 <svelte:head>
@@ -86,7 +231,12 @@
   </main>
 {:else}
   <Sidebar.Provider>
-    <AppSidebar user={data.user} hasLogtoManagement={data.hasLogtoManagement} />
+    <AppSidebar
+      user={data.user}
+      hasLogtoManagement={data.hasLogtoManagement}
+      notificationsHref={notificationsHref()}
+      unreadNotificationsCount={unreadNotificationsCount}
+    />
     <ToastHost />
 
     <Sidebar.Inset>
@@ -120,6 +270,95 @@
 
       <footer class="border-t border-border px-4 py-3 text-xs text-muted-foreground">© 2026 __PROJECT_NAME__. App default shell.</footer>
     </Sidebar.Inset>
+
+    <Sheet.Root bind:open={notificationsOpen}>
+      <Sheet.Content side="right" class="w-full max-w-xl overflow-y-auto p-0 [&>button]:hidden">
+        <Sheet.Header class="p-6 pb-3">
+          <Sheet.Title>Notifications</Sheet.Title>
+        </Sheet.Header>
+
+        <div class="px-6 pb-6">
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <a href={notificationsHref("all")}>
+              <Button variant={activeNotificationsFilter() === "all" ? "default" : "outline"} size="sm">All</Button>
+            </a>
+            <a href={notificationsHref("unread")}>
+              <Button variant={activeNotificationsFilter() === "unread" ? "default" : "outline"} size="sm">Unread</Button>
+            </a>
+            <a href={notificationsHref("read")}>
+              <Button variant={activeNotificationsFilter() === "read" ? "default" : "outline"} size="sm">Read</Button>
+            </a>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="ms-auto"
+              disabled={isNotificationActionPending("markAllRead")}
+              onclick={() => runNotificationAction("markAllRead")}
+            >
+              {isNotificationActionPending("markAllRead") ? "Marking..." : "Mark all read"}
+            </Button>
+          </div>
+
+          {#if visibleNotifications.length === 0}
+            <p class="rounded-lg border border-border bg-muted/40 px-3 py-4 text-sm text-muted-foreground">
+              No notifications yet.
+            </p>
+          {:else}
+            <div class="space-y-3">
+              {#each visibleNotifications as notification}
+                <article class="rounded-lg border border-border bg-card p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <p class="text-sm font-semibold">{notification.title}</p>
+                      <p class="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                      <p class="mt-2 text-xs text-muted-foreground">{formatNotificationDate(notification.createdAt)}</p>
+                    </div>
+                    {#if isUnread(notification.readAt)}
+                      <span class="rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+                        New
+                      </span>
+                    {/if}
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    {#if notification.actionHref}
+                      <a href={notification.actionHref}>
+                        <Button variant="outline" size="sm">Open</Button>
+                      </a>
+                    {/if}
+
+                    {#if isUnread(notification.readAt)}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isNotificationActionPending("markRead", notification.id)}
+                        onclick={() => runNotificationAction("markRead", notification.id)}
+                      >
+                        {isNotificationActionPending("markRead", notification.id) ? "Marking..." : "Mark read"}
+                      </Button>
+                    {/if}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="ms-auto"
+                      disabled={isNotificationActionPending("delete", notification.id)}
+                      onclick={() => runNotificationAction("delete", notification.id)}
+                    >
+                      {isNotificationActionPending("delete", notification.id) ? "Deleting..." : "Delete"}
+                    </Button>
+                  </div>
+                </article>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </Sheet.Content>
+    </Sheet.Root>
   </Sidebar.Provider>
 {/if}
 

@@ -81,6 +81,26 @@ Usage rule for new features:
 - avoid direct per-route identity-to-permission lookup logic
 - treat DB role/permission assignments as the source of truth
 
+## Notifications center
+
+The template includes a global notifications center opened from a single `Notifications` menu item in the app sidebar.
+
+Current behavior:
+- opens in a right-side sheet from the root layout
+- loads persisted notifications for the current user context (user-scoped + global)
+- supports list, read-state filter, mark-one-read, mark-all-read, and delete
+- uses standard server actions/endpoints and does not depend on live push updates
+
+Ownership and contracts:
+- entity schema and persistence live under `src/lib/entities/notifications/`
+- feature publishers must call `publishNotification()` from the notifications entity barrel instead of writing direct DB queries in route files
+- notifications actions are handled by `src/routes/notifications/+server.ts`
+
+Publish contract guidance:
+- include clear `title` + `message`
+- set `recipientScope` to `global` for broad operational events and `user` with `recipientUserId` for actor-targeted events
+- prefer including an `actionHref` to help users jump to relevant screens
+
 ## Quality rules
 
 - Accessibility is a default requirement, not a stretch goal.

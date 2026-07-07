@@ -10,14 +10,6 @@
       }
     ]
   };
-
-  const alertsItems = [
-    { title: "Notifications", icon: BellIcon, badge: "5" },
-    { title: "Todo", icon: CheckSquareIcon },
-    { title: "Messages", icon: MessageSquareIcon, badge: "12" },
-    { title: "Tasks", icon: ListTodoIcon },
-    { title: "Events", icon: CalendarClockIcon }
-  ];
 </script>
 
 <script lang="ts">
@@ -25,22 +17,25 @@
   import NavUser from "$lib/components/nav-user.svelte";
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
   import BellIcon from "@lucide/svelte/icons/bell";
-  import CalendarClockIcon from "@lucide/svelte/icons/calendar-clock";
-  import CheckSquareIcon from "@lucide/svelte/icons/check-square";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
   import FolderKanbanIcon from "@lucide/svelte/icons/folder-kanban";
   import KeyRoundIcon from "@lucide/svelte/icons/key-round";
   import ListTodoIcon from "@lucide/svelte/icons/list-todo";
-  import MessageSquareIcon from "@lucide/svelte/icons/message-square";
   import Settings2Icon from "@lucide/svelte/icons/settings-2";
   import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
   import UserRoundIcon from "@lucide/svelte/icons/user-round";
 
   let {
     user,
-    hasLogtoManagement
-  }: { user: { name: string; email: string; avatar: string }; hasLogtoManagement: boolean } = $props();
-  let alertsOpen = $state(false);
+    hasLogtoManagement,
+    notificationsHref,
+    unreadNotificationsCount
+  }: {
+    user: { name: string; email: string; avatar: string };
+    hasLogtoManagement: boolean;
+    notificationsHref: string;
+    unreadNotificationsCount: number;
+  } = $props();
   let managementOpen = $state(false);
 
   function isItemActive(url: string) {
@@ -89,33 +84,19 @@
   <Sidebar.Footer>
     <Sidebar.Menu>
       <Sidebar.MenuItem>
-        <Sidebar.MenuButton
-          onclick={() => {
-            alertsOpen = !alertsOpen;
-          }}
-        >
-          <BellIcon data-icon="inline-start" />
-          <span>Alerts</span>
-          <ChevronRightIcon class={`ms-auto transition-transform ${alertsOpen ? "rotate-90" : ""}`} />
+        <Sidebar.MenuButton>
+          {#snippet child({ props })}
+            <a {...props} href={notificationsHref}>
+              <BellIcon data-icon="inline-start" />
+              <span>Notifications</span>
+              {#if unreadNotificationsCount > 0}
+                <span class="ms-auto rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                  {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                </span>
+              {/if}
+            </a>
+          {/snippet}
         </Sidebar.MenuButton>
-
-        {#if alertsOpen}
-          <Sidebar.MenuSub>
-            {#each alertsItems as item (item.title)}
-              <Sidebar.MenuSubItem>
-                <Sidebar.MenuSubButton href="/">
-                  <item.icon />
-                  <span>{item.title}</span>
-                  {#if item.badge}
-                    <span class="ms-auto rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
-                      {item.badge}
-                    </span>
-                  {/if}
-                </Sidebar.MenuSubButton>
-              </Sidebar.MenuSubItem>
-            {/each}
-          </Sidebar.MenuSub>
-        {/if}
       </Sidebar.MenuItem>
 
       <Sidebar.MenuItem>

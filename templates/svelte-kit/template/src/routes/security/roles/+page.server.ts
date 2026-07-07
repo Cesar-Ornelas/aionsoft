@@ -8,6 +8,7 @@ import {
   listAccessRoles,
   setRolePermissions
 } from "$lib/entities/access-control";
+import { publishNotification } from "$lib/entities/notifications";
 import { requireCurrentRequestUser } from "$lib/features/authorization-rbac/server/permissions";
 
 function readTrimmedString(formData: FormData, name: string) {
@@ -56,7 +57,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   create: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const name = readTrimmedString(formData, "name");
@@ -76,7 +77,24 @@ export const actions: Actions = {
     }
 
     try {
-      await createAccessRole({ name, description });
+      const role = await createAccessRole({ name, description });
+
+      await publishNotification({
+        recipientScope: "global",
+        type: "success",
+        title: "Role created",
+        message: `Role ${role.key} was created.`,
+        actionHref: "/security/roles"
+      });
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "success",
+        title: "Role created",
+        message: `You created role ${role.key}.`,
+        actionHref: "/security/roles"
+      });
     } catch (error) {
       return fail(500, {
         intent: "create",
@@ -88,7 +106,7 @@ export const actions: Actions = {
     throw redirect(303, "/security/roles?created=1");
   },
   updatePermissions: async (event) => {
-    await requireCurrentRequestUser(event);
+    const currentUser = await requireCurrentRequestUser(event);
 
     const formData = await event.request.formData();
     const roleId = readTrimmedString(formData, "roleId");
@@ -107,6 +125,15 @@ export const actions: Actions = {
 
     try {
       await setRolePermissions(roleId, permissionIds);
+
+      await publishNotification({
+        recipientScope: "user",
+        recipientUserId: currentUser.id,
+        type: "info",
+        title: "Role permissions updated",
+        message: "Permissions were updated for a role.",
+        actionHref: "/security/roles"
+      });
     } catch (error) {
       return fail(500, {
         intent: "updatePermissions",

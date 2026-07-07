@@ -55,6 +55,10 @@ Recommended pattern:
 - compose implementations in route-level server code (`+page.server`, `+layout.server`, `+server`)
 - in tests, swap adapters with in-memory fakes that satisfy the same interfaces
 
+Template note:
+- the SvelteKit template now includes a notifications core entity (`src/lib/entities/notifications`) with a `publishNotification()` API and a global right-side notifications center UI in root layout.
+- feature routes should publish notifications through that entity API instead of embedding direct notification-table writes.
+
 ### Authentication
 
 - All authenticated apps use **Logto** for authentication.
