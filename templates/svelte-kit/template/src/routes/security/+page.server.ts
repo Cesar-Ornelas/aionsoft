@@ -1,6 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import {
+  deleteAccessUser,
   getAccessStoreErrorMessage,
   listAccessRoles,
   listAccessUsers,
@@ -26,6 +27,10 @@ function getNotice(searchParams: URLSearchParams) {
 
   if (searchParams.get("updatedUser") === "1") {
     return "User credentials were updated successfully.";
+  }
+
+  if (searchParams.get("deleted") === "1") {
+    return "User removed successfully.";
   }
 
   return null;
@@ -191,6 +196,54 @@ export const actions: Actions = {
     }
 
     throw redirect(303, "/security?updatedUser=1");
+  },
+  delete: async (event) => {
+    await requireCurrentRequestUser(event);
+
+    const formData = await event.request.formData();
+    const userId = readTrimmedString(formData, "userId");
+    const confirmValue = readTrimmedString(formData, "confirmValue");
+
+    if (!userId) {
+      return fail(400, {
+        intent: "delete",
+        message: "User id is required.",
+        values: { userId, confirmValue }
+      });
+    }
+
+    try {
+      const users = await listAccessUsers();
+      const selectedUser = users.find((user) => user.id === userId);
+
+      if (!selectedUser) {
+        return fail(404, {
+          intent: "delete",
+          message: "The selected user could not be found.",
+          values: { userId, confirmValue }
+        });
+      }
+
+      if (confirmValue !== selectedUser.logtoUserId) {
+        return fail(400, {
+          intent: "delete",
+          errors: {
+            confirmValue: "Type the exact Logto user ID to confirm deletion."
+          },
+          values: { userId, confirmValue }
+        });
+      }
+
+      await deleteAccessUser(userId);
+    } catch (error) {
+      return fail(500, {
+        intent: "delete",
+        message: getAccessStoreErrorMessage(error),
+        values: { userId, confirmValue }
+      });
+    }
+
+    throw redirect(303, "/security?deleted=1");
   }
 };
 

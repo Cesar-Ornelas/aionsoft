@@ -7,6 +7,15 @@ export type AccessRole = {
   updatedAt: Date;
 };
 
+export type AccessGroup = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type AccessPermission = {
   id: string;
   key: string;
@@ -31,5 +40,7 @@ export type CurrentAppUser = {
   id: string;
   logtoUserId: string;
   roleIds: string[];
+  groupIds: string[];
+  groupKeys: string[];
   permissionKeys: PermissionKey[];
 };

@@ -18,6 +18,7 @@
   const tabs = [
     { href: "/security", label: "Users", createHref: "/security?new=1", createLabel: "Add user" },
     { href: "/security/roles", label: "Roles", createHref: "/security/roles?new=1", createLabel: "Add role" },
+    { href: "/security/groups", label: "Groups", createHref: "/security/groups?new=1", createLabel: "Add group" },
     {
       href: "/security/permissions",
       label: "Permissions",
@@ -58,7 +59,7 @@
     const imported = page.url.searchParams.get("imported");
 
     if (imported === "1") {
-      toastSuccess("Security imported", "Users, roles, and permissions were imported.");
+      toastSuccess("Security imported", "Users, roles, groups, and permissions were imported.");
     }
 
     if (imported === "0") {
@@ -111,7 +112,7 @@
       <Dialog.Header>
         <Dialog.Title>Export security JSON</Dialog.Title>
         <Dialog.Description>
-          Download users, roles, permissions, and assignments as a JSON file.
+          Download users, roles, groups, permissions, and assignments as a JSON file.
         </Dialog.Description>
       </Dialog.Header>
 
@@ -133,7 +134,7 @@
       <Dialog.Header>
         <Dialog.Title>Import security JSON</Dialog.Title>
         <Dialog.Description>
-          Upload a security export file to import users, roles, permissions, and assignments.
+          Upload a security export file to import users, roles, groups, permissions, and assignments.
         </Dialog.Description>
       </Dialog.Header>
 

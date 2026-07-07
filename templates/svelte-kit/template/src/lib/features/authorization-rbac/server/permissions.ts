@@ -10,6 +10,14 @@ export function hasAnyPermission(permissionKeys: PermissionKey[], requiredPermis
   return requiredPermissions.some((permission) => permissionKeys.includes(permission));
 }
 
+export function hasGroup(groupKeys: string[], requiredGroupKey: string) {
+  return groupKeys.includes(requiredGroupKey);
+}
+
+export function hasAnyGroup(groupKeys: string[], requiredGroupKeys: string[]) {
+  return requiredGroupKeys.some((groupKey) => groupKeys.includes(groupKey));
+}
+
 export function requirePermission(permissionKeys: PermissionKey[], requiredPermission: PermissionKey) {
   if (!hasPermission(permissionKeys, requiredPermission)) {
     throw error(403, `Missing required permission: ${requiredPermission}`);
@@ -42,6 +50,26 @@ export async function requireAnyUserPermission(event: RequestEvent, requiredPerm
 
   if (!hasAnyPermission(currentAppUser.permissionKeys, requiredPermissions)) {
     throw error(403, `Missing one of required permissions: ${requiredPermissions.join(", ")}`);
+  }
+
+  return currentAppUser;
+}
+
+export async function requireUserInGroup(event: RequestEvent, requiredGroupKey: string) {
+  const currentAppUser = await requireCurrentRequestUser(event);
+
+  if (!hasGroup(currentAppUser.groupKeys, requiredGroupKey)) {
+    throw error(403, `Missing required group: ${requiredGroupKey}`);
+  }
+
+  return currentAppUser;
+}
+
+export async function requireAnyUserGroup(event: RequestEvent, requiredGroupKeys: string[]) {
+  const currentAppUser = await requireCurrentRequestUser(event);
+
+  if (!hasAnyGroup(currentAppUser.groupKeys, requiredGroupKeys)) {
+    throw error(403, `Missing one of required groups: ${requiredGroupKeys.join(", ")}`);
   }
 
   return currentAppUser;

@@ -4,9 +4,12 @@
   import { page } from "$app/state";
   import { Button } from "$lib/components/ui/button";
   import type { ActionData, PageData } from "./$types";
+  import * as Dialog from "$lib/components/ui/dialog";
   import * as Sheet from "$lib/components/ui/sheet";
   import { toastError, toastSuccess } from "$lib/stores/toast";
+  import CopyIcon from "@lucide/svelte/icons/copy";
   import SquarePenIcon from "@lucide/svelte/icons/square-pen";
+  import Trash2Icon from "@lucide/svelte/icons/trash-2";
 
   let { data, form }: { data: PageData; form: ActionData | null | undefined } = $props();
 
@@ -24,6 +27,70 @@
 
   let editRolesOpen = $state(false);
   let editUserOpen = $state(false);
+  let deleteDialogOpen = $state(false);
+  let deleteUserId = $state("");
+
+  function openDeleteDialog(userId: string) {
+    deleteUserId = userId;
+    deleteDialogOpen = true;
+  }
+
+  function selectedDeleteUserId() {
+    if (form?.intent === "delete") {
+      const values = form.values as { userId?: string } | undefined;
+      return values?.userId ?? deleteUserId;
+    }
+
+    return deleteUserId;
+  }
+
+  function selectedDeleteUser() {
+    return data.users.find((user) => user.id === selectedDeleteUserId()) ?? null;
+  }
+
+  function deleteConfirmValue() {
+    return selectedDeleteUser()?.logtoUserId ?? "";
+  }
+
+  function deleteFormValues() {
+    if (form?.intent !== "delete") {
+      return undefined;
+    }
+
+    return form.values as
+      | {
+          userId?: string;
+          confirmValue?: string;
+        }
+      | undefined;
+  }
+
+  function deleteFormErrors() {
+    if (form?.intent !== "delete") {
+      return undefined;
+    }
+
+    return form.errors as
+      | {
+          confirmValue?: string;
+        }
+      | undefined;
+  }
+
+  async function copyDeleteValue() {
+    const value = deleteConfirmValue();
+
+    if (!value) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toastSuccess("Copied", "Confirmation value copied to clipboard.");
+    } catch {
+      toastError("Copy failed", "Clipboard access was blocked.");
+    }
+  }
 
   function drawerHref(open: boolean) {
     const url = new URL(page.url);
@@ -110,6 +177,15 @@
     }
   });
 
+  $effect(() => {
+    if (form?.intent === "delete") {
+      deleteDialogOpen = true;
+
+      const values = form.values as { userId?: string } | undefined;
+      deleteUserId = values?.userId ?? "";
+    }
+  });
+
   function createUserValues() {
     if (form?.intent !== "create") {
       return undefined;
@@ -120,6 +196,18 @@
           logtoUserId?: string;
           displayName?: string;
           email?: string;
+        }
+      | undefined;
+  }
+
+  function createUserErrors() {
+    if (form?.intent !== "create") {
+      return undefined;
+    }
+
+    return form.errors as
+      | {
+          logtoUserId?: string;
         }
       | undefined;
   }
@@ -169,7 +257,7 @@
           <th class="px-4 py-3">Name</th>
           <th class="px-4 py-3">Email</th>
           <th class="px-4 py-3">Logto User ID</th>
-          <th class="px-4 py-3 text-right">Roles</th>
+          <th class="px-4 py-3 text-right">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border">
@@ -194,12 +282,25 @@
                 </div>
               </td>
               <td class="px-4 py-3 text-right">
-                <a href={editRolesHref(user.id)} aria-label="Edit roles" title="Edit roles">
-                  <Button variant="outline" size="icon-sm">
-                    <SquarePenIcon />
-                    <span class="sr-only">Edit roles</span>
+                <div class="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Delete user"
+                    title="Delete user"
+                    onclick={() => openDeleteDialog(user.id)}
+                  >
+                    <Trash2Icon />
+                    <span class="sr-only">Delete user</span>
                   </Button>
-                </a>
+
+                  <a href={editRolesHref(user.id)} aria-label="Edit roles" title="Edit roles">
+                    <Button variant="outline" size="icon-sm">
+                      <SquarePenIcon />
+                      <span class="sr-only">Edit roles</span>
+                    </Button>
+                  </a>
+                </div>
               </td>
             </tr>
           {/each}
@@ -229,8 +330,8 @@
               class="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               placeholder="logto|abc123"
             />
-            {#if form?.errors?.logtoUserId}
-              <p class="mt-1 text-sm text-rose-600">{form.errors.logtoUserId}</p>
+            {#if createUserErrors()?.logtoUserId}
+              <p class="mt-1 text-sm text-rose-600">{createUserErrors()?.logtoUserId}</p>
             {/if}
           </div>
 
@@ -358,4 +459,58 @@
       </div>
     </Sheet.Content>
   </Sheet.Root>
+
+  <Dialog.Root bind:open={deleteDialogOpen}>
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Delete user</Dialog.Title>
+        <Dialog.Description>
+          This removes the local access user and role assignments. To confirm, type the exact Logto user ID.
+        </Dialog.Description>
+      </Dialog.Header>
+
+      {#if form?.intent === "delete" && form?.message}
+        <p class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{form.message}</p>
+      {/if}
+
+      <form method="POST" action="?/delete" class="mt-4 flex flex-col gap-4">
+        <input type="hidden" name="userId" value={selectedDeleteUserId()} />
+
+        <div class="rounded-lg border border-border bg-muted/30 p-3">
+          <p class="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Type this value</p>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <p class="truncate text-sm font-medium">{deleteConfirmValue() || "-"}</p>
+            <Button type="button" variant="outline" size="icon-sm" onclick={copyDeleteValue} aria-label="Copy value">
+              <CopyIcon />
+              <span class="sr-only">Copy value</span>
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium" for="confirm-delete-value">Confirmation value</label>
+          <input
+            id="confirm-delete-value"
+            name="confirmValue"
+            value={deleteFormValues()?.confirmValue ?? ""}
+            class="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            placeholder="Paste the exact value above"
+            required
+          />
+          {#if deleteFormErrors()?.confirmValue}
+            <p class="mt-1 text-sm text-rose-600">{deleteFormErrors()?.confirmValue}</p>
+          {/if}
+        </div>
+
+        <Dialog.Footer>
+          <Dialog.Close>
+            {#snippet child({ props })}
+              <Button variant="outline" {...props}>Cancel</Button>
+            {/snippet}
+          </Dialog.Close>
+          <Button>Delete user</Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
+  </Dialog.Root>
 </section>
