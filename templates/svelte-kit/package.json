@@ -1,6 +1,6 @@
 {
   "name": "@cesar-ornelas/template-svelte-kit",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "private": false,
   "description": "Aionsoft SvelteKit starter template package",
   "type": "module",

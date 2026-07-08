@@ -1,5 +1,6 @@
 import { env } from "$env/dynamic/private";
 import { getUnreadNotificationsCountForUser, listNotificationsForUser } from "$lib/entities/notifications";
+import { getActiveSystemAlert } from "$lib/entities/system-alerts";
 
 function readClaim(record: unknown, key: string) {
   if (!record || typeof record !== "object") {
@@ -29,6 +30,8 @@ export const load = (async ({ locals }: { locals: App.Locals }) => {
     ? await getUnreadNotificationsCountForUser(locals.currentAppUser.id)
     : 0;
 
+  const activeSystemAlert = await getActiveSystemAlert();
+
   return {
     user: {
       name: profileName || fallbackName,
@@ -38,7 +41,8 @@ export const load = (async ({ locals }: { locals: App.Locals }) => {
     hasLogtoManagement: Boolean(env.LOGTO_M2M_APP_ID?.trim()),
     notifications,
     notificationsFilter,
-    unreadNotificationsCount
+    unreadNotificationsCount,
+    activeSystemAlert
   };
 }) satisfies ({ locals }: { locals: App.Locals }) => Promise<{
   user: { name: string; email: string; avatar: string };
@@ -57,4 +61,16 @@ export const load = (async ({ locals }: { locals: App.Locals }) => {
   }>;
   notificationsFilter: "all";
   unreadNotificationsCount: number;
+  activeSystemAlert: {
+    id: string;
+    title: string;
+    message: string;
+    type: "info" | "success" | "warning" | "error";
+    startsAt: Date;
+    endsAt: Date;
+    isActive: boolean;
+    createdByUserId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
 }>;
