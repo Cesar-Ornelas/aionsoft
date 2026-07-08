@@ -1,6 +1,7 @@
 import { and, desc, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { getDb } from "$lib/server/db";
 import { appNotifications } from "$lib/entities/notifications/model/schema";
+import { emitNotificationRealtimeEvent } from "$lib/entities/notifications/server/realtime";
 import type { NotificationType, PublishNotificationInput } from "$lib/entities/notifications/model/types";
 
 const ALLOWED_TYPES: NotificationType[] = ["info", "success", "warning", "error"];
@@ -55,7 +56,16 @@ export async function publishNotification(input: PublishNotificationInput) {
     })
     .returning();
 
-  return mapNotificationRecord(record);
+  const notification = mapNotificationRecord(record);
+
+  await emitNotificationRealtimeEvent({
+    type: "created",
+    notificationId: notification.id,
+    recipientScope: notification.recipientScope,
+    recipientUserId: notification.recipientUserId
+  });
+
+  return notification;
 }
 
 export async function listNotificationsForUser(input: {
@@ -125,7 +135,20 @@ export async function markNotificationReadForUser(notificationId: string, userId
     )
     .returning();
 
-  return record ? mapNotificationRecord(record) : null;
+  if (!record) {
+    return null;
+  }
+
+  const notification = mapNotificationRecord(record);
+
+  await emitNotificationRealtimeEvent({
+    type: "read",
+    notificationId: notification.id,
+    recipientScope: notification.recipientScope,
+    recipientUserId: notification.recipientUserId
+  });
+
+  return notification;
 }
 
 export async function markAllNotificationsReadForUser(userId: string) {
@@ -144,6 +167,14 @@ export async function markAllNotificationsReadForUser(userId: string) {
     )
     .returning({ id: appNotifications.id });
 
+  if (result.length > 0) {
+    await emitNotificationRealtimeEvent({
+      type: "readAll",
+      recipientScope: "user",
+      recipientUserId: userId
+    });
+  }
+
   return result.length;
 }
 
@@ -160,7 +191,22 @@ export async function deleteNotificationForUser(notificationId: string, userId: 
         )
       )
     )
-    .returning({ id: appNotifications.id });
+    .returning({
+      id: appNotifications.id,
+      recipientScope: appNotifications.recipientScope,
+      recipientUserId: appNotifications.recipientUserId
+    });
 
-  return record ?? null;
+  if (!record) {
+    return null;
+  }
+
+  await emitNotificationRealtimeEvent({
+    type: "deleted",
+    notificationId: record.id,
+    recipientScope: record.recipientScope === "user" ? "user" : "global",
+    recipientUserId: record.recipientUserId
+  });
+
+  return { id: record.id };
 }

@@ -116,6 +116,9 @@
               <Sidebar.MenuSubItem>
                 <Sidebar.MenuSubButton href="/security">Security</Sidebar.MenuSubButton>
               </Sidebar.MenuSubItem>
+              <Sidebar.MenuSubItem>
+                <Sidebar.MenuSubButton href="/management/system-alerts">System Alert</Sidebar.MenuSubButton>
+              </Sidebar.MenuSubItem>
             {/if}
             <Sidebar.MenuSubItem>
               <Sidebar.MenuSubButton href="/">Settings</Sidebar.MenuSubButton>
