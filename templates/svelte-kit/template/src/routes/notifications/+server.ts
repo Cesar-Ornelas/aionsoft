@@ -7,6 +7,7 @@ import {
   markAllNotificationsReadForUser,
   markNotificationReadForUser
 } from "$lib/entities/notifications";
+import { getActiveSystemAlert } from "$lib/entities/system-alerts";
 import { requireCurrentRequestUser } from "$lib/features/authorization-rbac/server/permissions";
 
 function readTrimmedString(formData: FormData, name: string) {
@@ -26,13 +27,19 @@ function wantsJson(request: Request) {
 }
 
 async function buildJsonPayload(userId: string) {
-  const [notifications, unreadNotificationsCount] = await Promise.all([
+  const [notifications, unreadNotificationsCount, activeSystemAlert] = await Promise.all([
     listNotificationsForUser({ userId, filter: "all", limit: 30 }),
-    getUnreadNotificationsCountForUser(userId)
+    getUnreadNotificationsCountForUser(userId),
+    getActiveSystemAlert()
   ]);
 
-  return { notifications, unreadNotificationsCount };
+  return { notifications, unreadNotificationsCount, activeSystemAlert };
 }
+
+export const GET = async (event) => {
+  const currentUser = await requireCurrentRequestUser(event);
+  return json({ ok: true, ...(await buildJsonPayload(currentUser.id)) });
+};
 
 export const POST = async (event) => {
   const currentUser = await requireCurrentRequestUser(event);

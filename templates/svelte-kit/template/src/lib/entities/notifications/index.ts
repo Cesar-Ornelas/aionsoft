@@ -8,3 +8,4 @@ export {
   markNotificationReadForUser,
   publishNotification
 } from "$lib/entities/notifications/server/repository";
+export { subscribeToNotificationEventsForUser } from "$lib/entities/notifications/server/realtime";
