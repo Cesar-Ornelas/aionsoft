@@ -7,7 +7,8 @@
   import { env } from "$env/dynamic/public";
   import AppSidebar from "$lib/components/app-sidebar.svelte";
   import { Button } from "$lib/components/ui/button";
-  import { toastError } from "$lib/stores/toast";
+  import PinIcon from "@lucide/svelte/icons/pin";
+  import { toastError, toastSuccess } from "$lib/stores/toast";
   import ToastHost from "$lib/components/toast-host.svelte";
   import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
@@ -29,6 +30,14 @@
       hasLogtoManagement: boolean;
       unreadNotificationsCount: number;
       notificationsFilter: "all";
+      activeSystemAlert: {
+        id: string;
+        title: string;
+        message: string;
+        type: "info" | "success" | "warning" | "error";
+        startsAt: Date | string;
+        endsAt: Date | string;
+      } | null;
       notifications: Array<{
         id: string;
         type: "info" | "success" | "warning" | "error";
@@ -43,8 +52,11 @@
 
   let notificationsOpen = $state(false);
   let notifications = $state<typeof data.notifications>([]);
+  let activeSystemAlert = $state<typeof data.activeSystemAlert>(null);
   let unreadNotificationsCount = $state(0);
   let pendingNotificationActions = $state<string[]>([]);
+  let notificationsRefreshPending = $state(false);
+  let latestSystemAlertId = $state<string | null>(null);
 
   type NotificationActionIntent = "markRead" | "markAllRead" | "delete";
 
@@ -58,8 +70,30 @@
 
   $effect(() => {
     notifications = data.notifications;
+    activeSystemAlert = data.activeSystemAlert;
     unreadNotificationsCount = data.unreadNotificationsCount;
+    latestSystemAlertId = data.activeSystemAlert?.id ?? null;
   });
+
+  function applyNotificationsPayload(
+    payload: {
+      notifications: typeof notifications;
+      activeSystemAlert: typeof activeSystemAlert;
+      unreadNotificationsCount: number;
+    },
+    options?: { toastOnNewSystemAlert?: boolean }
+  ) {
+    const nextSystemAlertId = payload.activeSystemAlert?.id ?? null;
+
+    if (options?.toastOnNewSystemAlert && payload.activeSystemAlert && nextSystemAlertId !== latestSystemAlertId) {
+      toastSuccess("System alert", payload.activeSystemAlert.title);
+    }
+
+    notifications = payload.notifications;
+    activeSystemAlert = payload.activeSystemAlert;
+    unreadNotificationsCount = payload.unreadNotificationsCount;
+    latestSystemAlertId = nextSystemAlertId;
+  }
 
   async function runNotificationAction(intent: NotificationActionIntent, notificationId?: string) {
     const actionKey = getNotificationActionKey(intent, notificationId);
@@ -91,12 +125,35 @@
         return;
       }
 
-      notifications = payload.notifications;
-      unreadNotificationsCount = payload.unreadNotificationsCount;
+      applyNotificationsPayload(payload);
     } catch {
       toastError("Notifications action failed", "Unable to update notifications.");
     } finally {
       pendingNotificationActions = pendingNotificationActions.filter((item) => item !== actionKey);
+    }
+  }
+
+  async function refreshNotificationsFromServer() {
+    if (notificationsRefreshPending) {
+      return;
+    }
+
+    notificationsRefreshPending = true;
+
+    try {
+      const response = await fetch("/notifications", {
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.ok) {
+        return;
+      }
+
+      applyNotificationsPayload(payload, { toastOnNewSystemAlert: true });
+    } finally {
+      notificationsRefreshPending = false;
     }
   }
 
@@ -136,6 +193,22 @@
     return Number.isNaN(date.getTime()) ? "Now" : date.toLocaleString();
   }
 
+  function systemAlertToneClass(type: "info" | "success" | "warning" | "error") {
+    if (type === "success") {
+      return "border-emerald-300/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    }
+
+    if (type === "error") {
+      return "border-rose-300/50 bg-rose-500/10 text-rose-700 dark:text-rose-300";
+    }
+
+    if (type === "info") {
+      return "border-sky-300/50 bg-sky-500/10 text-sky-700 dark:text-sky-300";
+    }
+
+    return "border-amber-300/50 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  }
+
   const visibleNotifications = $derived.by(() => {
     const filter = activeNotificationsFilter();
 
@@ -151,29 +224,45 @@
   });
 
   onMount(() => {
-    if (!swetrixProjectId) return;
+    if (swetrixProjectId) {
+      const script = document.createElement("script");
+      script.src = swetrixScriptUrl;
+      script.defer = true;
+      script.dataset.analytics = "swetrix";
 
-    const script = document.createElement("script");
-    script.src = swetrixScriptUrl;
-    script.defer = true;
-    script.dataset.analytics = "swetrix";
+      script.addEventListener("load", () => {
+        if (!("swetrix" in globalThis)) return;
 
-    script.addEventListener("load", () => {
-      if (!("swetrix" in globalThis)) return;
+        // @ts-expect-error swetrix is injected globally by the analytics script.
+        globalThis.swetrix.init(swetrixProjectId, { apiURL: swetrixApiUrl });
+        // @ts-expect-error swetrix is injected globally by the analytics script.
+        globalThis.swetrix.trackViews();
+      });
 
-      // @ts-expect-error swetrix is injected globally by the analytics script.
-      globalThis.swetrix.init(swetrixProjectId, { apiURL: swetrixApiUrl });
-      // @ts-expect-error swetrix is injected globally by the analytics script.
-      globalThis.swetrix.trackViews();
-    });
-
-    document.head.appendChild(script);
+      document.head.appendChild(script);
+    }
 
     const notificationsError = page.url.searchParams.get("notificationsError");
 
     if (notificationsError) {
       toastError("Notifications action failed", decodeURIComponent(notificationsError));
     }
+
+    if (isSetupRoute() || typeof EventSource === "undefined") {
+      return;
+    }
+
+    const stream = new EventSource("/notifications/stream");
+    const onNotification = () => {
+      void refreshNotificationsFromServer();
+    };
+
+    stream.addEventListener("notification", onNotification);
+
+    return () => {
+      stream.removeEventListener("notification", onNotification);
+      stream.close();
+    };
   });
 
   function isSetupRoute() {
@@ -301,12 +390,33 @@
             </Button>
           </div>
 
-          {#if visibleNotifications.length === 0}
+          {#if visibleNotifications.length === 0 && !activeSystemAlert}
             <p class="rounded-lg border border-border bg-muted/40 px-3 py-4 text-sm text-muted-foreground">
               No notifications yet.
             </p>
           {:else}
             <div class="space-y-3">
+              {#if activeSystemAlert}
+                <article class="rounded-lg border border-border bg-card p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <PinIcon class="size-3.5" />
+                        System Alert
+                      </p>
+                      <p class="mt-1 text-sm font-semibold">{activeSystemAlert.title}</p>
+                      <p class="mt-1 text-sm text-muted-foreground">{activeSystemAlert.message}</p>
+                      <p class="mt-2 text-xs text-muted-foreground">
+                        Active until {formatNotificationDate(activeSystemAlert.endsAt)}
+                      </p>
+                    </div>
+                    <span class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${systemAlertToneClass(activeSystemAlert.type)}`}>
+                      {activeSystemAlert.type}
+                    </span>
+                  </div>
+                </article>
+              {/if}
+
               {#each visibleNotifications as notification}
                 <article class="rounded-lg border border-border bg-card p-3">
                   <div class="flex items-start justify-between gap-2">

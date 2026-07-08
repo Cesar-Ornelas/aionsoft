@@ -89,12 +89,20 @@ Current behavior:
 - opens in a right-side sheet from the root layout
 - loads persisted notifications for the current user context (user-scoped + global)
 - supports list, read-state filter, mark-one-read, mark-all-read, and delete
-- uses standard server actions/endpoints and does not depend on live push updates
+- supports live updates using PostgreSQL LISTEN/NOTIFY + SSE, with route-based JSON refresh as fallback
 
 Ownership and contracts:
 - entity schema and persistence live under `src/lib/entities/notifications/`
 - feature publishers must call `publishNotification()` from the notifications entity barrel instead of writing direct DB queries in route files
 - notifications actions are handled by `src/routes/notifications/+server.ts`
+- realtime stream endpoint is `src/routes/notifications/stream/+server.ts`
+- LISTEN/NOTIFY broker logic lives in `src/lib/entities/notifications/server/realtime.ts`
+
+System alerts:
+- managed from `Management -> System Alert` at `/management/system-alerts`
+- persisted separately under `src/lib/entities/system-alerts/` so end users cannot delete or mark them as read
+- rendered pinned at the top of the notifications panel while current time is within the alert window
+- constrained so only one active window can exist at a time; overlapping active windows are rejected
 
 Publish contract guidance:
 - include clear `title` + `message`
