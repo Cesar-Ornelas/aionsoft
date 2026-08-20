@@ -1,0 +1,18 @@
+services:
+  pocketbase:
+    container_name: ${PROJECT_NAME:-aionsoft}-crm-pocketbase
+    image: ghcr.io/muchobien/pocketbase:latest
+    restart: unless-stopped
+    ports:
+      - "${PB_PORT:-8090}:8090"
+    environment:
+      PB_HOST: 0.0.0.0
+      PB_PORT: 8090
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@aionsoft.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-admin123456}
+    volumes:
+      - crm_pocketbase_data:/pb_data
+    command: serve --http=0.0.0.0:8090 --dir=/pb_data
+
+volumes:
+  crm_pocketbase_data:

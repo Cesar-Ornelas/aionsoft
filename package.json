@@ -17,6 +17,10 @@
     "dev:admin": "bun run --cwd apps/admin dev",
     "build:admin": "bun run --cwd apps/admin build",
     "preview:admin": "bun run --cwd apps/admin preview",
+    "dev:cell": "bun run --cwd apps/cell dev",
+    "build:cell": "bun run --cwd apps/cell build",
+    "preview:cell": "bun run --cwd apps/cell preview",
+    "setup:cell:pb": "bun run --cwd apps/cell setup:pb",
     "infra:portal:config": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml config",
     "infra:portal:up": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml up -d",
     "infra:portal:down": "docker compose --env-file infra/portal/.env -f infra/portal/compose-dev.yaml down",
@@ -26,7 +30,12 @@
     "infra:admin:up": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml up -d",
     "infra:admin:down": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml down",
     "infra:admin:logs": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml logs -f",
-    "infra:admin:ps": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml ps"
+    "infra:admin:ps": "docker compose --env-file infra/admin/.env -f infra/admin/compose-dev.yaml ps",
+    "infra:cell:config": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml config",
+    "infra:cell:up": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml up -d",
+    "infra:cell:down": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml down",
+    "infra:cell:logs": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml logs -f",
+    "infra:cell:ps": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml ps"
   },
   "type": "module"
 }

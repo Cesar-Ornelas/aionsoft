@@ -1,0 +1,47 @@
+services:
+  crm:
+    container_name: aionsoft-crm
+    build:
+      context: ../..
+      dockerfile: docker/crm.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${CRM_APP_PORT:-4100}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      PB_URL: ${PB_URL:-http://pocketbase:8090}
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@aionsoft.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-admin123456}
+      CRM_DEFAULT_ADMIN_EMAIL: ${CRM_DEFAULT_ADMIN_EMAIL:-admin@aionsoft.local}
+      CRM_DEFAULT_ADMIN_PASSWORD: ${CRM_DEFAULT_ADMIN_PASSWORD:-admin123456}
+      CRM_DEFAULT_ADMIN_NAME: ${CRM_DEFAULT_ADMIN_NAME:-Aionsoft Admin}
+    depends_on:
+      - pocketbase
+    networks:
+      - dokploy-network
+
+  pocketbase:
+    container_name: aionsoft-crm-pocketbase
+    image: ghcr.io/muchobien/pocketbase:latest
+    restart: unless-stopped
+    ports:
+      - "${PB_PORT:-8090}:8090"
+    environment:
+      PB_HOST: 0.0.0.0
+      PB_PORT: 8090
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@aionsoft.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-admin123456}
+    volumes:
+      - crm_pocketbase_data:/pb_data
+    command: serve --http=0.0.0.0:8090 --dir=/pb_data
+    networks:
+      - dokploy-network
+
+volumes:
+  crm_pocketbase_data:
+
+networks:
+  dokploy-network:
+    external: true
