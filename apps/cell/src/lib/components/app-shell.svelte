@@ -4,6 +4,7 @@
   import * as Sidebar from '$lib/components/ui/sidebar/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { page } from '$app/state';
+  import { goto } from '$app/navigation';
   import Avatar from '$lib/components/ui/avatar/avatar.svelte';
   import AvatarImage from '$lib/components/ui/avatar/avatar-image.svelte';
   import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
@@ -50,6 +51,12 @@
       { label: 'Tasks', href: '/tasks', icon: BellIcon },
       { label: 'Incidents', href: '/accounts', icon: BriefcaseBusinessIcon },
       { label: 'Clients', href: '/contacts', icon: ContactRoundIcon }
+    ],
+    Management: [
+      { label: 'Users', href: '/management/users', icon: UserRoundIcon },
+      { label: 'Groups', href: '/management/groups', icon: UsersIcon },
+      { label: 'Roles', href: '/management/roles', icon: SettingsIcon },
+      { label: 'Migrations', href: '/management/migrations', icon: BriefcaseBusinessIcon }
     ]
   };
 
@@ -75,10 +82,32 @@
       name: 'Operations',
       plan: 'Tasks',
       logo: BellIcon
+    },
+    {
+      name: 'Management',
+      plan: 'Access control',
+      logo: UserRoundIcon
     }
   ];
 
   let activeTeam = $state(featureTeams[0]);
+
+  function resolveWorkspaceFromPath(pathname) {
+    if (!pathname || pathname === '/') return 'Core';
+    if (pathname.startsWith('/management')) return 'Management';
+    if (pathname.startsWith('/pipeline')) return 'Pipeline';
+    if (pathname.startsWith('/contacts') || pathname.startsWith('/accounts') || pathname.startsWith('/tasks')) return 'Core';
+    return 'Core';
+  }
+
+  $effect(() => {
+    const nextWorkspace = resolveWorkspaceFromPath(page.url.pathname);
+    const nextTeam = featureTeams.find((team) => team.name === nextWorkspace);
+
+    if (nextTeam && activeTeam.name !== nextTeam.name) {
+      activeTeam = nextTeam;
+    }
+  });
 
   const user = {
     name: 'Aionsoft Admin',
@@ -156,6 +185,13 @@
   function selectWorkspace(team) {
     activeTeam = team;
     workspaceMenuOpen = false;
+  }
+
+  async function navigateTo(path) {
+    if (!path) return;
+    await goto(path, { keepFocus: true, noScroll: true, replaceState: false });
+    workspaceMenuOpen = false;
+    userMenuOpen = false;
   }
 </script>
 
@@ -236,16 +272,17 @@
       <Sidebar.Content class="gap-4">
         <div class="space-y-1">
           {#each navigation as item}
-            <a
-              href={item.href}
-              class={`flex items-center rounded-xl py-2 text-sm transition-colors ${sidebarVisible ? 'gap-3 px-3' : 'justify-center px-0'} ${isActive(item.href) ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+            <button
+              type="button"
+              onclick={() => navigateTo(item.href)}
+              class={`flex w-full items-center rounded-xl py-2 text-sm transition-colors ${sidebarVisible ? 'gap-3 px-3' : 'justify-center px-0'} ${isActive(item.href) ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
               title={item.label}
             >
               <item.icon class="h-4 w-4" />
               {#if sidebarVisible}
                 <span>{item.label}</span>
               {/if}
-            </a>
+            </button>
           {/each}
         </div>
 

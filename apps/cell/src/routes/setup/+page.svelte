@@ -8,7 +8,7 @@
     <h1 class="mt-3 text-3xl font-bold tracking-tight">Initialize PocketBase collections</h1>
 
     <p class="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
-      This bootstrap creates the default CRM collections and seeds the first admin user from environment variables if they are configured.
+      This bootstrap creates the default CRM collections, the management feature collections, and seeds the first admin users from environment variables if they are configured.
     </p>
 
     <form method="POST" class="mt-8">

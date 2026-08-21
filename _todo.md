@@ -41,3 +41,5 @@ cornelas:cesar.ornelas@aionsoft.io
 
 # make a page builder in admin
 https://www.shadcnblocks.com/explorer/builder
+
+ bun x skills add huntabyte/shadcn-svelte
