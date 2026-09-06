@@ -43,3 +43,23 @@ cornelas:cesar.ornelas@aionsoft.io
 https://www.shadcnblocks.com/explorer/builder
 
  bun x skills add huntabyte/shadcn-svelte
+
+
+ Administrators
+Active
+
+Core platform access for admin users and service owners.
+
+Members: 4
+Operations
+Active
+
+Operational support and incident workflow visibility.
+
+Members: 6
+Sales
+Pending
+
+Customer-facing team with limited expansion privileges.
+
+Members: 3

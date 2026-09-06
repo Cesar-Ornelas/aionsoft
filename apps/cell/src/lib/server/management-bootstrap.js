@@ -1,96 +1,45 @@
 import { env } from '$env/dynamic/private';
 import { createPocketBaseClient, getAdminPocketBaseClient } from './pocketbase.js';
 import { MANAGEMENT_MIGRATIONS } from './management-migrations.js';
-
-const MANAGEMENT_COLLECTION_DEFINITIONS = [
-  {
-    name: 'management_users',
-    type: 'auth',
-    schema: [
-      { name: 'name', type: 'text', required: true },
-      { name: 'status', type: 'select', options: { values: ['active', 'disabled', 'pending'] }, required: true },
-      { name: 'first_name', type: 'text' },
-      { name: 'last_name', type: 'text' },
-      { name: 'timezone', type: 'text' },
-      { name: 'last_login_at', type: 'date' }
-    ]
-  },
-  {
-    name: 'management_groups',
-    type: 'base',
-    schema: [
-      { name: 'name', type: 'text', required: true },
-      { name: 'slug', type: 'text', required: true },
-      { name: 'description', type: 'text' },
-      { name: 'status', type: 'select', options: { values: ['active', 'archived'] }, required: true }
-    ]
-  },
-  {
-    name: 'management_roles',
-    type: 'base',
-    schema: [
-      { name: 'name', type: 'text', required: true },
-      { name: 'key', type: 'text', required: true },
-      { name: 'description', type: 'text' },
-      { name: 'permissions', type: 'json' }
-    ]
-  },
-  {
-    name: 'management_user_groups',
-    type: 'base',
-    schema: [
-      { name: 'user', type: 'relation', options: { collectionId: 'management_users', cascadeDelete: true }, required: true },
-      { name: 'group', type: 'relation', options: { collectionId: 'management_groups', cascadeDelete: true }, required: true }
-    ]
-  },
-  {
-    name: 'management_group_roles',
-    type: 'base',
-    schema: [
-      { name: 'group', type: 'relation', options: { collectionId: 'management_groups', cascadeDelete: true }, required: true },
-      { name: 'role', type: 'relation', options: { collectionId: 'management_roles', cascadeDelete: true }, required: true }
-    ]
-  },
-  {
-    name: 'management_migrations',
-    type: 'base',
-    schema: [
-      { name: 'name', type: 'text', required: true },
-      { name: 'version', type: 'text', required: true },
-      { name: 'status', type: 'select', options: { values: ['pending', 'applied', 'failed'] }, required: true },
-      { name: 'checksum', type: 'text' },
-      { name: 'applied_at', type: 'date' },
-      { name: 'notes', type: 'text' }
-    ]
-  }
-];
-
-function normalizeSchemaField(field) {
-  return {
-    name: field.name,
-    type: field.type,
-    required: Boolean(field.required),
-    unique: Boolean(field.unique),
-    options: field.options ?? undefined,
-    presentable: Boolean(field.required),
-    hidden: false
-  };
-}
+import {
+  MANAGEMENT_COLLECTION_DEFINITIONS,
+  createNormalizedSchema,
+  getCollectionFields,
+  mergeCollectionSchema
+} from '$lib/management/definitions.js';
 
 export async function ensureManagementCollections(client = createPocketBaseClient()) {
   const existingCollections = await client.collections.getFullList({ batch: 200, sort: 'name' });
   const collectionMap = new Map(existingCollections.map((collection) => [collection.name, collection]));
+  const collectionIdMap = new Map(existingCollections.map((collection) => [collection.name, collection.id]));
 
   for (const definition of MANAGEMENT_COLLECTION_DEFINITIONS) {
-    if (collectionMap.has(definition.name)) {
-      console.log(`Management collection exists: ${definition.name}`);
+    const existingCollection = collectionMap.get(definition.name);
+
+    if (existingCollection) {
+      const mergedSchema = mergeCollectionSchema(existingCollection, definition, collectionIdMap);
+      const existingFields = getCollectionFields(existingCollection, definition);
+      const schemaDiffers = JSON.stringify(existingFields) !== JSON.stringify(mergedSchema);
+
+      if (schemaDiffers) {
+        const updated = await client.collections.update(existingCollection.id, {
+          name: definition.name,
+          type: definition.type,
+          fields: mergedSchema.filter((field) => !field?.system)
+        });
+
+        console.log(`Updated management collection schema: ${updated.name}`);
+      } else {
+        console.log(`Management collection already matches schema: ${definition.name}`);
+      }
+
       continue;
     }
 
     const created = await client.collections.create({
       name: definition.name,
       type: definition.type,
-      schema: definition.schema.map(normalizeSchemaField)
+      fields: createNormalizedSchema(definition, collectionIdMap)
     });
 
     console.log(`Created management collection: ${created.name}`);
@@ -108,7 +57,7 @@ export async function seedManagementDefaultUser(client = createPocketBaseClient(
   }
 
   try {
-    const existing = await client.collection('management_users').getFirstListItem(`email="${email}"`);
+    const existing = await client.collection('users').getFirstListItem(`email="${email}"`);
     if (existing) {
       console.log(`Management default user already exists: ${email}`);
       return { created: false, skipped: true, userId: existing.id };
@@ -117,7 +66,7 @@ export async function seedManagementDefaultUser(client = createPocketBaseClient(
     // user not found
   }
 
-  const created = await client.collection('management_users').create({
+  const created = await client.collection('users').create({
     email,
     password,
     passwordConfirm: password,

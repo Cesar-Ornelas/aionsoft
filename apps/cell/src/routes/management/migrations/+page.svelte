@@ -1,39 +1,49 @@
 <script>
+  import { onMount } from 'svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import { Button } from '$lib/components/ui/button';
 
   let isApplying = $state(false);
   let applyError = $state('');
   let applyResult = $state(null);
-
-  const migrationPreview = {
-    name: 'management-roles-init',
-    version: '002_management_roles',
-    status: 'Pending',
-    payload: {
-      collection: 'management_roles',
-      operation: 'ensure_default_roles',
-      items: [
-        {
-          name: 'Viewer',
-          key: 'viewer',
-          description: 'Read-only access for dashboards and reports.',
-          permissions: ['read:dashboard', 'read:reports']
-        },
-        {
-          name: 'Operations editor',
-          key: 'operations_editor',
-          description: 'Role scoped to operational tasks and incident handling.',
-          permissions: ['read:tasks', 'write:tasks', 'read:incidents', 'write:incidents']
-        }
-      ]
-    }
-  };
-
+  let migrations = $state([]);
+  let selectedMigration = $state(null);
   let showPreview = $state(false);
 
+  function getStatusPill(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+
+    switch (normalized) {
+      case 'applied':
+        return 'bg-emerald-500/15 text-emerald-500';
+      case 'failed':
+        return 'bg-red-500/15 text-red-500';
+      default:
+        return 'bg-amber-500/15 text-amber-500';
+    }
+  }
+
+  async function loadMigrations() {
+    try {
+      const response = await fetch('/management/migrations');
+      const data = await response.json();
+      migrations = Array.isArray(data?.migrations) ? data.migrations : [];
+
+      if (!migrations.length) {
+        selectedMigration = null;
+        return;
+      }
+
+      selectedMigration =
+        migrations.find((migration) => migration.version === selectedMigration?.version) || migrations[0];
+    } catch {
+      migrations = [];
+      selectedMigration = null;
+    }
+  }
+
   async function applyMigration() {
-    if (isApplying) return;
+    if (isApplying || !selectedMigration?.payload) return;
 
     isApplying = true;
     applyError = '';
@@ -45,7 +55,7 @@
         headers: {
           'content-type': 'application/json'
         },
-        body: JSON.stringify({ payload: migrationPreview.payload })
+        body: JSON.stringify({ payload: selectedMigration.payload })
       });
 
       const result = await response.json();
@@ -55,12 +65,17 @@
 
       applyResult = result;
       showPreview = false;
+      await loadMigrations();
     } catch (error) {
       applyError = error?.message || 'Unable to apply migration.';
     } finally {
       isApplying = false;
     }
   }
+
+  onMount(() => {
+    loadMigrations();
+  });
 </script>
 
 <Dialog.Root bind:open={showPreview}>
@@ -89,96 +104,107 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="border-b border-border last:border-b-0">
-            <td class="px-4 py-3 font-medium text-foreground">management-core-seed</td>
-            <td class="px-4 py-3 text-muted-foreground">001_management_core</td>
-            <td class="px-4 py-3"><span class="rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-500">Applied</span></td>
-            <td class="px-4 py-3 text-muted-foreground">Today</td>
-            <td class="px-4 py-3">
-              <Dialog.Trigger>
-                {#snippet child({ props })}
-                  <button type="button" class="text-sm font-medium text-sky-500" {...props}>View</button>
-                {/snippet}
-              </Dialog.Trigger>
-            </td>
-          </tr>
-          <tr class="border-b border-border last:border-b-0">
-            <td class="px-4 py-3 font-medium text-foreground">management-roles-init</td>
-            <td class="px-4 py-3 text-muted-foreground">002_management_roles</td>
-            <td class="px-4 py-3"><span class="rounded-full bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-500">Pending</span></td>
-            <td class="px-4 py-3 text-muted-foreground">—</td>
-            <td class="px-4 py-3">
-              <Dialog.Trigger>
-                {#snippet child({ props })}
-                  <button type="button" class="text-sm font-medium text-sky-500" {...props}>View</button>
-                {/snippet}
-              </Dialog.Trigger>
-            </td>
-          </tr>
+          {#if migrations.length === 0}
+            <tr>
+              <td colspan="5" class="px-4 py-6 text-center text-muted-foreground">No migrations found.</td>
+            </tr>
+          {:else}
+            {#each migrations as migration}
+              <tr class="border-b border-border last:border-b-0">
+                <td class="px-4 py-3 font-medium text-foreground">{migration.name}</td>
+                <td class="px-4 py-3 text-muted-foreground">{migration.version}</td>
+                <td class="px-4 py-3">
+                  <span class={`rounded-full px-2 py-1 text-xs font-medium ${getStatusPill(migration.status)}`}>
+                    {migration.status ? migration.status.charAt(0).toUpperCase() + migration.status.slice(1) : 'Pending'}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">{migration.applied_at ? new Date(migration.applied_at).toLocaleString() : '—'}</td>
+                <td class="px-4 py-3">
+                  <Dialog.Trigger>
+                    {#snippet child({ props })}
+                      <button
+                        type="button"
+                        class="text-sm font-medium text-sky-500"
+                        {...props}
+                        onclick={() => {
+                          selectedMigration = migration;
+                          showPreview = true;
+                        }}
+                      >
+                        View
+                      </button>
+                    {/snippet}
+                  </Dialog.Trigger>
+                </td>
+              </tr>
+            {/each}
+          {/if}
         </tbody>
       </table>
     </div>
   </div>
 
-  <Dialog.Content class="!w-[min(98vw,1440px)] !max-w-[1440px]">
-    <Dialog.Header>
-      <div>
-        <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-500">Migration preview</p>
-        <Dialog.Title class="mt-2">{migrationPreview.name}</Dialog.Title>
-      </div>
-    </Dialog.Header>
-
-    <div class="space-y-4 px-6 pb-6">
-      <Dialog.Description class="sr-only text-muted-foreground">
-        Review the migration payload before applying it.
-      </Dialog.Description>
-
-      <div class="grid gap-4 md:grid-cols-2">
-        <div class="rounded-lg border border-border bg-muted/40 p-5">
-          <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Version</p>
-          <p class="mt-2.5 font-medium text-foreground">{migrationPreview.version}</p>
+  {#if selectedMigration}
+    <Dialog.Content class="!w-[min(98vw,1440px)] !max-w-[1440px]">
+      <Dialog.Header>
+        <div>
+          <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-500">Migration preview</p>
+          <Dialog.Title class="mt-2">{selectedMigration.name}</Dialog.Title>
         </div>
-        <div class="rounded-lg border border-border bg-muted/40 p-5">
-          <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Status</p>
-          <p class="mt-2.5 font-medium text-foreground">{migrationPreview.status}</p>
+      </Dialog.Header>
+
+      <div class="space-y-4 px-6 pb-6">
+        <Dialog.Description class="sr-only text-muted-foreground">
+          Review the migration payload before applying it.
+        </Dialog.Description>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="rounded-lg border border-border bg-muted/40 p-5">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Version</p>
+            <p class="mt-2.5 font-medium text-foreground">{selectedMigration.version}</p>
+          </div>
+          <div class="rounded-lg border border-border bg-muted/40 p-5">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Status</p>
+            <p class="mt-2.5 font-medium text-foreground">{selectedMigration.status ? selectedMigration.status.charAt(0).toUpperCase() + selectedMigration.status.slice(1) : 'Pending'}</p>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-background p-5">
+          <p class="mb-4 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Payload</p>
+          <div class="max-h-[50vh] overflow-auto rounded-md border border-border bg-[#0b1020] p-4" style="overflow-x: auto; scrollbar-gutter: stable both-edges;">
+            <pre class="m-0 min-w-[640px] whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{JSON.stringify(selectedMigration.payload, null, 2)}</pre>
+          </div>
         </div>
       </div>
 
-      <div class="rounded-lg border border-border bg-background p-5">
-        <p class="mb-4 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Payload</p>
-        <div class="max-h-[50vh] overflow-auto rounded-md border border-border bg-[#0b1020] p-4" style="overflow-x: auto; scrollbar-gutter: stable both-edges;">
-          <pre class="m-0 min-w-[640px] whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{JSON.stringify(migrationPreview.payload, null, 2)}</pre>
+      <Dialog.Footer>
+        <Dialog.Close>
+          {#snippet child({ props })}
+            <Button type="button" variant="outline" {...props}>Cancel</Button>
+          {/snippet}
+        </Dialog.Close>
+        <Button type="button" disabled={isApplying} aria-busy={isApplying} onclick={applyMigration}>
+          {#if isApplying}
+            <span class="inline-flex items-center gap-2">
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+              Applying...
+            </span>
+          {:else}
+            Apply migration
+          {/if}
+        </Button>
+      </Dialog.Footer>
+
+      {#if applyError}
+        <p class="px-6 pb-2 text-sm text-destructive">{applyError}</p>
+      {/if}
+
+      {#if applyResult}
+        <div class="px-6 pb-6 text-sm text-muted-foreground">
+          <p class="font-medium text-foreground">Migration complete</p>
+          <p class="mt-1">Created: {applyResult.created} · Updated: {applyResult.updated} · Skipped: {applyResult.skipped}</p>
         </div>
-      </div>
-    </div>
-
-    <Dialog.Footer>
-      <Dialog.Close>
-        {#snippet child({ props })}
-          <Button type="button" variant="outline" {...props}>Cancel</Button>
-        {/snippet}
-      </Dialog.Close>
-      <Button type="button" disabled={isApplying} aria-busy={isApplying} onclick={applyMigration}>
-        {#if isApplying}
-          <span class="inline-flex items-center gap-2">
-            <span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-            Applying...
-          </span>
-        {:else}
-          Apply migration
-        {/if}
-      </Button>
-    </Dialog.Footer>
-
-    {#if applyError}
-      <p class="px-6 pb-2 text-sm text-destructive">{applyError}</p>
-    {/if}
-
-    {#if applyResult}
-      <div class="px-6 pb-6 text-sm text-muted-foreground">
-        <p class="font-medium text-foreground">Migration complete</p>
-        <p class="mt-1">Created: {applyResult.created} · Updated: {applyResult.updated} · Skipped: {applyResult.skipped}</p>
-      </div>
-    {/if}
-  </Dialog.Content>
+      {/if}
+    </Dialog.Content>
+  {/if}
 </Dialog.Root>

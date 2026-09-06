@@ -3,7 +3,7 @@
     <div class="mb-8 flex items-center justify-between gap-4">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-400">Aionsoft Cell</p>
-        <h1 class="mt-3 text-4xl font-bold tracking-tight">Custom operations workspace</h1>
+        <h1 class="mt-3 text-4xl font-bold tracking-tight">Workspace dashboard</h1>
       </div>
       <div class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300">
         PocketBase ready

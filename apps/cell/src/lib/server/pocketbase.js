@@ -11,13 +11,13 @@ export function createPocketBaseClient() {
 
 export async function getAdminPocketBaseClient() {
   const client = createPocketBaseClient();
-  const adminEmail = env.PB_ADMIN_EMAIL || 'admin@aionsoft.local';
-  const adminPassword = env.PB_ADMIN_PASSWORD || 'admin123456';
+  const adminEmail = env.PB_ADMIN_EMAIL || env.PB_EMAIL || 'admin@aionsoft.local';
+  const adminPassword = env.PB_ADMIN_PASSWORD || env.PB_PASSWORD || 'admin123456';
 
   try {
     await client.admins.authWithPassword(adminEmail, adminPassword);
   } catch (error) {
-    console.warn('PocketBase admin auth was not available yet. Bootstrap will retry once the admin is initialized.', error.message || error);
+    throw new Error(`PocketBase admin authentication failed: ${error.message || 'check PB_ADMIN_EMAIL/PB_ADMIN_PASSWORD.'}`);
   }
 
   return client;

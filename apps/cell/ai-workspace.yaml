@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=../../.github/ai-workspace.schema.json
+schema_version: 2
+environment: copilot-vscode
+profiles:
+  - bun
+  - sveltekit
+  - tailwindcss
+  - shadcn-svelte
+  - pocketbase
+  - docker-compose
+  - data-portability
+skills:
+  - bootstrap-ai-workspace
+  - aionsoft-feature-delivery
+  - feature-context
+  - provider-neutral-data-layer
+  - shadcn-svelte
+features:
+  crm:
+    description: Companies, contacts, addresses, relationships, opportunities, activities, and CRM collection setup.
+    context:
+      - ai/features/crm.md
+    owned_paths:
+      - src/lib/crm/
+      - src/lib/server/crm-bootstrap.js
+      - src/routes/crm/
+      - ai/todos/crm.md
+    shared_context:
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:test:crm
+      - bun run cell:build
+  management:
+    description: Cell users, groups, roles, permissions, and management migrations.
+    context:
+      - ai/features/management.md
+    owned_paths:
+      - src/lib/management/
+      - src/lib/server/management-bootstrap.js
+      - src/lib/server/management-migrations.js
+      - src/routes/management/
+    shared_context:
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:build
+  operations:
+    description: Service accounts that group customer companies for operational delivery.
+    context:
+      - ai/features/operations.md
+    owned_paths:
+      - src/lib/operations/
+      - src/routes/operations/accounts/
+      - ai/todos/operations.md
+    shared_context:
+      - src/lib/crm/
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:test:operations
+      - bun run cell:build
+initialize_work_state: true
+validation_commands:
+  - bun run cell:build
+  - bun run cell:infra:config
+variables:
+  app_name: cell
+  app_path: apps/cell
+  infrastructure_path: infra/crm

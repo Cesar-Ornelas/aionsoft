@@ -34,25 +34,22 @@ This document defines the baseline architecture decisions for current and future
 
 ### Data Layer
 
-- All dynamic apps use **PostgreSQL** as the primary relational database.
-- All dynamic apps use **Drizzle ORM** for schema definition, queries, and migrations.
-- Drizzle is the standard ORM for:
-  - application tables
-  - role and permission tables
-  - user linkage tables
-  - app-specific operational data
+- Applications select a data provider according to their operational needs. Cell currently uses PocketBase; Admin uses PostgreSQL; future applications may use either or another approved provider.
+- New and migrated feature data access follows the provider-neutral ports and adapters defined in [Data Access and Provider Portability](data-access.md).
+- PostgreSQL-backed features should use Drizzle ORM for new schema definitions, queries, and migrations when it is established in the owning application.
+- Provider SDKs and schemas are implementation details owned by server-side adapters.
 
-### Shared Data Contracts
+### Feature Data Contracts
 
-- Cross-feature shared data access must use TypeScript interfaces (ports), not direct concrete repository imports.
+- Feature and cross-feature data access must use explicit ports rather than direct concrete repository or provider imports.
 - A feature should depend on contracts defined in its domain-facing layer, then receive concrete adapters at composition time.
 - Keep external-provider details (for example Logto-specific fields) in auth/access implementations, not in feature tables or feature business logic.
 - For relational links between app features, prefer app-local ids from entity tables (for example `app_users.id`) rather than provider ids.
 
 Recommended pattern:
-- define feature-facing interfaces in `model` or `server/contracts`
-- implement adapters in `server/repository` or integration modules
-- compose implementations in route-level server code (`+page.server`, `+layout.server`, `+server`)
+- define feature-facing ports in the owning feature
+- implement provider adapters in the feature's server-only adapter layer
+- compose implementations in a dedicated server-only composition root
 - in tests, swap adapters with in-memory fakes that satisfy the same interfaces
 
 Template note:

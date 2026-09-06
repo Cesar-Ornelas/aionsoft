@@ -11,8 +11,8 @@ export async function load() {
 export const actions = {
   default: async () => {
     try {
-      const crmResult = await bootstrapPocketBase();
       const managementResult = await bootstrapManagement();
+      const crmResult = await bootstrapPocketBase();
 
       return {
         success: true,

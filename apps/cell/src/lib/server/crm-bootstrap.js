@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { createPocketBaseClient, getAdminPocketBaseClient } from './pocketbase.js';
+import { ensureCrmCompanyCollections } from '$lib/crm/server/adapters/pocketbase/schema.js';
 
 const COLLECTION_DEFINITIONS = [
   {
@@ -10,7 +11,7 @@ const COLLECTION_DEFINITIONS = [
       { name: 'email', type: 'email' },
       { name: 'phone', type: 'text' },
       { name: 'company', type: 'text' },
-      { name: 'status', type: 'select', options: { values: ['lead', 'prospect', 'customer', 'inactive'] }, required: true },
+      { name: 'status', type: 'text', required: true },
       { name: 'notes', type: 'text' },
       { name: 'owner', type: 'text' }
     ]
@@ -22,7 +23,7 @@ const COLLECTION_DEFINITIONS = [
       { name: 'title', type: 'text', required: true },
       { name: 'contact', type: 'relation', options: { collectionId: 'contacts', cascadeDelete: false } },
       { name: 'value', type: 'number' },
-      { name: 'stage', type: 'select', options: { values: ['new', 'qualified', 'proposal', 'won', 'lost'] }, required: true },
+      { name: 'stage', type: 'text', required: true },
       { name: 'owner', type: 'text' },
       { name: 'notes', type: 'text' }
     ]
@@ -33,8 +34,8 @@ const COLLECTION_DEFINITIONS = [
     schema: [
       { name: 'title', type: 'text', required: true },
       { name: 'description', type: 'text' },
-      { name: 'status', type: 'select', options: { values: ['todo', 'in_progress', 'done', 'blocked'] }, required: true },
-      { name: 'priority', type: 'select', options: { values: ['low', 'normal', 'high', 'urgent'] }, required: true },
+      { name: 'status', type: 'text', required: true },
+      { name: 'priority', type: 'text', required: true },
       { name: 'assignee', type: 'text' },
       { name: 'due_date', type: 'date' },
       { name: 'deal', type: 'relation', options: { collectionId: 'deals', cascadeDelete: false } }
@@ -65,20 +66,56 @@ function normalizeSchemaField(field) {
   };
 }
 
+function createNormalizedSchema(definition) {
+  return definition.schema.map(normalizeSchemaField);
+}
+
+function mergeCollectionSchema(existingCollection, definition) {
+  const desiredSchema = createNormalizedSchema(definition);
+  const existingFields = (existingCollection?.fields ?? existingCollection?.schema ?? []).filter((field) => !field?.system);
+  const existingMap = new Map(existingFields.map((field) => [field.name, field]));
+  const merged = [...existingFields];
+
+  for (const field of desiredSchema) {
+    if (!existingMap.has(field.name)) {
+      merged.push(field);
+    }
+  }
+
+  return merged;
+}
+
 export async function bootstrapPocketBaseCollections(client = createPocketBaseClient()) {
   const existingCollections = await client.collections.getFullList({ batch: 200, sort: 'name' });
   const collectionMap = new Map(existingCollections.map((collection) => [collection.name, collection]));
 
   for (const definition of COLLECTION_DEFINITIONS) {
-    if (collectionMap.has(definition.name)) {
-      console.log(`Collection already exists: ${definition.name}`);
+    const existingCollection = collectionMap.get(definition.name);
+
+    if (existingCollection) {
+      const mergedSchema = mergeCollectionSchema(existingCollection, definition);
+      const existingFields = (existingCollection?.fields ?? existingCollection?.schema ?? []).filter((field) => !field?.system);
+      const schemaDiffers = JSON.stringify(existingFields) !== JSON.stringify(mergedSchema);
+
+      if (schemaDiffers) {
+        const updated = await client.collections.update(existingCollection.id, {
+          name: definition.name,
+          type: definition.type,
+          fields: mergedSchema
+        });
+
+        console.log(`Updated collection schema: ${updated.name}`);
+      } else {
+        console.log(`Collection already matches schema: ${definition.name}`);
+      }
+
       continue;
     }
 
     const created = await client.collections.create({
       name: definition.name,
       type: definition.type,
-      schema: definition.schema.map(normalizeSchemaField)
+      fields: createNormalizedSchema(definition)
     });
 
     console.log(`Created PocketBase collection: ${created.name}`);
@@ -123,6 +160,7 @@ export async function seedDefaultAdminUser(client = createPocketBaseClient()) {
 export async function bootstrapPocketBase() {
   const adminClient = await getAdminPocketBaseClient();
   await bootstrapPocketBaseCollections(adminClient);
+  await ensureCrmCompanyCollections(adminClient);
   await seedDefaultAdminUser(adminClient);
 
   return {

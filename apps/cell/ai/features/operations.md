@@ -1,0 +1,24 @@
+# Operations
+
+Operations Accounts organize service delivery after Sales companies become customers.
+
+## Vocabulary
+
+- **Company**: CRM-owned legal or operating entity being acquired, qualified, or managed in Sales.
+- **Operations Account**: service and delivery container that can group one or more customer companies.
+- **Link**: optional relationship from one CRM Company to one Operations Account.
+
+## Invariants
+
+- An account requires only a name at creation.
+- One account can contain many companies.
+- A company can belong to at most one account.
+- Only CRM companies with lifecycle `customer` can be linked.
+- Linking never changes CRM lifecycle.
+- Only active accounts accept new links.
+- Archiving preserves links for history and compliance.
+
+## Validation
+
+- Focused tests: `bun run cell:test:operations`
+- App build: `bun run cell:build`

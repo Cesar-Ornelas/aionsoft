@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import PocketBase from 'pocketbase';
+import { ensureCrmCompanyCollections } from '../src/lib/crm/server/adapters/pocketbase/schema.js';
 
 const envFilePath = resolve(process.cwd(), '.env');
 const env = Object.fromEntries(
@@ -28,7 +29,7 @@ const baseDefinitions = [
       { name: 'email', type: 'email' },
       { name: 'phone', type: 'text' },
       { name: 'company', type: 'text' },
-      { name: 'status', type: 'select', options: { values: ['lead', 'prospect', 'customer', 'inactive'] }, required: true },
+      { name: 'status', type: 'text', required: true },
       { name: 'notes', type: 'text' },
       { name: 'owner', type: 'text' }
     ]
@@ -40,7 +41,7 @@ const baseDefinitions = [
       { name: 'title', type: 'text', required: true },
       { name: 'contact', type: 'relation', required: false, options: { collectionId: 'contacts', cascadeDelete: false } },
       { name: 'value', type: 'number' },
-      { name: 'stage', type: 'select', options: { values: ['new', 'qualified', 'proposal', 'won', 'lost'] }, required: true },
+      { name: 'stage', type: 'text', required: true },
       { name: 'owner', type: 'text' },
       { name: 'notes', type: 'text' }
     ]
@@ -51,8 +52,8 @@ const baseDefinitions = [
     schema: [
       { name: 'title', type: 'text', required: true },
       { name: 'description', type: 'text' },
-      { name: 'status', type: 'select', options: { values: ['todo', 'in_progress', 'done', 'blocked'] }, required: true },
-      { name: 'priority', type: 'select', options: { values: ['low', 'normal', 'high', 'urgent'] }, required: true },
+      { name: 'status', type: 'text', required: true },
+      { name: 'priority', type: 'text', required: true },
       { name: 'assignee', type: 'text' },
       { name: 'due_date', type: 'date' },
       { name: 'deal', type: 'relation', required: false, options: { collectionId: 'deals', cascadeDelete: false } }
@@ -182,6 +183,7 @@ async function main() {
   }
 
   await bootstrapCollections(client);
+  await ensureCrmCompanyCollections(client);
   await ensureAdminUser(client);
 
   console.log(`PocketBase bootstrap complete for ${url}`);

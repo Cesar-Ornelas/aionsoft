@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aionsoft.local/schemas/ai-workspace.schema.json",
+  "title": "Aionsoft AI Workspace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "environment", "profiles", "skills"],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "environment": {
+      "enum": ["copilot-vscode"]
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "features": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "context", "owned_paths"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "context": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "owned_paths": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "shared_context": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true,
+            "default": []
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "uniqueItems": true,
+            "default": []
+          },
+          "validation_commands": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true,
+            "default": []
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": ["string", "number", "boolean", "null"]
+            },
+            "default": {}
+          }
+        }
+      },
+      "default": {}
+    },
+    "initialize_work_state": {
+      "type": "boolean",
+      "default": true
+    },
+    "validation_commands": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      },
+      "default": {}
+    }
+  }
+}
