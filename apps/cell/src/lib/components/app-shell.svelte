@@ -22,6 +22,7 @@
   import MenuIcon from '@lucide/svelte/icons/menu';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import SearchIcon from '@lucide/svelte/icons/search';
+  import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import UsersIcon from '@lucide/svelte/icons/users';
 
@@ -54,6 +55,14 @@
       { label: 'Accounts', href: '/operations/accounts', icon: BriefcaseBusinessIcon },
       { label: 'Tasks', href: '/operations/dashboard', icon: BellIcon },
       { label: 'Clients', href: '/operations/dashboard', icon: ContactRoundIcon }
+    ],
+    Management: [
+      { label: 'Dashboard', href: '/management/dashboard', icon: LayoutGridIcon },
+      { label: 'Users', href: '/management/users', icon: UserRoundIcon },
+      { label: 'Groups', href: '/management/groups', icon: UsersIcon },
+      { label: 'Roles', href: '/management/roles', icon: SettingsIcon },
+      { label: 'Permissions', href: '/management/permissions', icon: SettingsIcon },
+      { label: 'Migrations', href: '/management/migrations', icon: SettingsIcon }
     ]
   };
 
@@ -64,7 +73,8 @@
     { name: 'Projects', plan: 'Delivery', logo: LayoutGridIcon, href: '/projects', disabled: true },
     { name: 'Support', plan: 'Customer care', logo: BellIcon, href: '/support', disabled: true },
     { name: 'Marketing', plan: 'Growth', logo: UsersIcon, href: '/marketing', disabled: true },
-    { name: 'Operations', plan: 'Execution', logo: SettingsIcon, href: '/operations/dashboard' }
+    { name: 'Operations', plan: 'Execution', logo: SettingsIcon, href: '/operations/dashboard' },
+    { name: 'Management', plan: 'Administration', logo: ShieldCheckIcon, href: '/management/dashboard' }
   ];
 
   function resolveWorkspaceFromPath(pathname) {
@@ -72,6 +82,7 @@
     if (pathname.startsWith('/crm') || pathname.startsWith('/customers') || pathname.startsWith('/companies')) return 'Sales';
     if (pathname.startsWith('/pipeline')) return 'Sales';
     if (pathname.startsWith('/operations')) return 'Operations';
+    if (pathname.startsWith('/management')) return 'Management';
     if (pathname.startsWith('/projects')) return 'Projects';
     if (pathname.startsWith('/support')) return 'Support';
     if (pathname.startsWith('/marketing')) return 'Marketing';

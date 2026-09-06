@@ -24,6 +24,16 @@ Operations Accounts represent the service and delivery relationship after Sales 
 
 Archiving an Operations Account preserves its company links. This supports historical reporting, compliance review, and future merger or account-split workflows. Archived accounts remain readable but cannot receive new links.
 
+## Account schedule
+
+- Events are persisted in `operations_events` and require an Operations Account relation.
+- Supported event types are extensible; the initial UI offers meetings, reminders, and milestones.
+- Event reads, creates, and updates are scoped to the account in the server-side service and route.
+- The account Schedule view loads a bounded date range and displays events for the selected day.
+- Events can persist internal team representatives and account representatives as event attendees.
+- Team representatives are active Cell users; account representatives are contacts from every CRM Company linked to the Operations Account.
+- Attendee snapshots preserve the displayed name and contact details while participant identity remains tied to the source user or CRM contact.
+
 ## Current implementation
 
 The initial implementation supports account create, list, edit, archive, link company, unlink company, and listing linked companies. Application-level conflict checks enforce the one-company-to-one-account rule. PocketBase does not provide the transaction boundary needed to make concurrent link attempts fully atomic; this is a documented limitation until a stronger persistence capability is introduced.

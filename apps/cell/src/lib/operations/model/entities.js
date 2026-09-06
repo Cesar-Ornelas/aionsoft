@@ -25,4 +25,63 @@
  * @property {OperationsAccountStatus} [status]
  */
 
+/** @typedef {string} OperationsEventType */
+/** @typedef {'scheduled' | 'completed' | 'cancelled'} OperationsEventStatus */
+/** @typedef {'team' | 'account'} OperationsEventAttendeeKind */
+
+/**
+ * @typedef {Object} OperationsEventAttendee
+ * @property {string} id
+ * @property {string} participantId
+ * @property {OperationsEventAttendeeKind} kind
+ * @property {string} name
+ * @property {string} [email]
+ * @property {string} [jobTitle]
+ */
+
+/**
+ * @typedef {Object} OperationsEventAttendeeOptions
+ * @property {OperationsEventAttendee[]} team
+ * @property {OperationsEventAttendee[]} account
+ */
+
+/**
+ * @typedef {Object} OperationsEvent
+ * @property {string} id
+ * @property {string} accountId
+ * @property {OperationsEventType} type
+ * @property {string} title
+ * @property {string} description
+ * @property {string} startsAt
+ * @property {string} [endsAt]
+ * @property {boolean} allDay
+ * @property {string} [url]
+ * @property {OperationsEventStatus} status
+ * @property {OperationsEventAttendee[]} attendees
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
+
+/**
+ * @typedef {Object} OperationsEventFilter
+ * @property {string} [from]
+ * @property {string} [to]
+ * @property {OperationsEventType} [type]
+ * @property {OperationsEventStatus} [status]
+ * @property {string[]} [teamAttendeeIds]
+ * @property {string[]} [accountAttendeeIds]
+ */
+
+/**
+ * @typedef {Object} SaveOperationsEventInput
+ * @property {OperationsEventType} type
+ * @property {string} title
+ * @property {string} [description]
+ * @property {string} startsAt
+ * @property {string} [endsAt]
+ * @property {boolean} [allDay]
+ * @property {string} [url]
+ * @property {OperationsEventStatus} [status]
+ */
+
 export {};

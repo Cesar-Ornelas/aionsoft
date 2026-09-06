@@ -17,8 +17,12 @@ Operations Accounts organize service delivery after Sales companies become custo
 - Linking never changes CRM lifecycle.
 - Only active accounts accept new links.
 - Archiving preserves links for history and compliance.
+- Account schedule events are persisted and account-scoped.
+- Event dates, type, title, description, all-day state, status, and optional links are supported.
+- Event creation uses `Details` and `Attendees` tabs; attendees include active internal users and contacts from linked customer companies.
 
 ## Validation
 
 - Focused tests: `bun run cell:test:operations`
 - App build: `bun run cell:build`
+- PocketBase Compose validation: `bun run cell:infra:config`

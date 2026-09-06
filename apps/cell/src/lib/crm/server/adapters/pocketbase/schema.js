@@ -1,5 +1,7 @@
 const COLLECTIONS = Object.freeze({
   operationsAccounts: 'operations_accounts',
+  operationsEvents: 'operations_events',
+  operationsEventAttendees: 'operations_event_attendees',
   accounts: 'crm_accounts',
   contacts: 'crm_contacts',
   addresses: 'crm_addresses',
@@ -18,6 +20,39 @@ const BASE_DEFINITIONS = [
     indexes: [
       'CREATE INDEX `idx_operations_accounts_name` ON `operations_accounts` (`name`)',
       'CREATE INDEX `idx_operations_accounts_status` ON `operations_accounts` (`status`)'
+    ]
+  },
+  {
+    name: COLLECTIONS.operationsEvents,
+    fields: [
+      textField('type', true),
+      textField('title', true),
+      textField('description'),
+      dateField('starts_at', true),
+      dateField('ends_at'),
+      boolField('all_day'),
+      textField('url'),
+      textField('status', true),
+      ...timestampFields()
+    ],
+    indexes: [
+      'CREATE INDEX `idx_operations_events_account_starts_at` ON `operations_events` (`account`, `starts_at`)',
+      'CREATE INDEX `idx_operations_events_account_status` ON `operations_events` (`account`, `status`)'
+    ]
+  },
+  {
+    name: COLLECTIONS.operationsEventAttendees,
+    fields: [
+      textField('kind', true),
+      textField('participant_id', true),
+      textField('name', true),
+      textField('email'),
+      textField('job_title'),
+      ...timestampFields()
+    ],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_operations_event_attendees_event_participant` ON `operations_event_attendees` (`event`, `kind`, `participant_id`)',
+      'CREATE INDEX `idx_operations_event_attendees_event` ON `operations_event_attendees` (`event`)'
     ]
   },
   {
@@ -85,6 +120,14 @@ function emailField(name) {
   return { name, type: 'email', required: false, presentable: false, hidden: false };
 }
 
+function dateField(name, required = false) {
+  return { name, type: 'date', required, presentable: required, hidden: false };
+}
+
+function boolField(name, required = false) {
+  return { name, type: 'bool', required, presentable: false, hidden: false };
+}
+
 function timestampFields() {
   return [
     { name: 'created', type: 'autodate', onCreate: true, onUpdate: false, presentable: false, hidden: false },
@@ -145,7 +188,8 @@ export async function ensureCrmCompanyCollections(client) {
       name: definition.name,
       type: 'base',
       fields: definition.fields,
-      indexes: definition.indexes,
+      // The events relation is added in the reconciliation pass below.
+      indexes: [COLLECTIONS.operationsEvents, COLLECTIONS.operationsEventAttendees].includes(definition.name) ? [] : definition.indexes,
       listRule: null,
       viewRule: null,
       createRule: null,
@@ -158,6 +202,8 @@ export async function ensureCrmCompanyCollections(client) {
 
   const relationDefinitions = new Map([
     [COLLECTIONS.operationsAccounts, []],
+    [COLLECTIONS.operationsEvents, [relationField('account', collections.get(COLLECTIONS.operationsAccounts).id, true, false)]],
+    [COLLECTIONS.operationsEventAttendees, [relationField('event', collections.get(COLLECTIONS.operationsEvents).id, true, true)]],
     [COLLECTIONS.accounts, [
       relationField('primary_contact', collections.get(COLLECTIONS.contacts).id, false, false),
       relationField('operations_account', collections.get(COLLECTIONS.operationsAccounts).id, false, false)
