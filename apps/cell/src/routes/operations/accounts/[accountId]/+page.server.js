@@ -8,7 +8,7 @@ export async function load({ params }) {
     const currentMonth = new Date();
     const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString();
     const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-    const [account, companies, companyResult, events, attendeeOptions, calls, callContacts] = await Promise.all([
+    const [account, companies, companyResult, events, attendeeOptions, calls, callContacts, agreements] = await Promise.all([
       services.operations.get(params.accountId),
       services.operations.listCompanies(params.accountId),
       services.accounts.list({ page: 1, pageSize: 100, sort: 'name' }),
@@ -35,6 +35,10 @@ export async function load({ params }) {
           return [];
         }
         throw cause;
+      }),
+      services.billing.list({ operationsAccountId: params.accountId }).catch((cause) => {
+        if (cause?.code === 'not_found') return [];
+        throw cause;
       })
     ]);
     return {
@@ -44,6 +48,7 @@ export async function load({ params }) {
       attendeeOptions,
       calls,
       callContacts,
+      agreements,
       customerCompanies: companyResult.items.filter((company) => company.lifecycle === 'customer' && !company.operationsAccountId)
     };
   } catch (cause) {

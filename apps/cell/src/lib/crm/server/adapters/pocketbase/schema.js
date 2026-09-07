@@ -12,6 +12,8 @@ const COLLECTIONS = Object.freeze({
   catalogPriceOffers: 'catalog_price_offers',
   catalogPlans: 'catalog_plans',
   catalogPlanItems: 'catalog_plan_items'
+  ,billingAgreements: 'billing_agreements'
+  ,billingAgreementItems: 'billing_agreement_items'
   ,operationsIssueComments: 'operations_issue_comments'
   ,operationsIssueTags: 'operations_issue_tags'
   ,operationsIssueTagLinks: 'operations_issue_tag_links'
@@ -252,6 +254,46 @@ const BASE_DEFINITIONS = [
       'CREATE UNIQUE INDEX `idx_catalog_plan_items_plan_offer` ON `catalog_plan_items` (`plan`, `price_offer`)',
       'CREATE INDEX `idx_catalog_plan_items_plan` ON `catalog_plan_items` (`plan`)'
     ]
+  },
+  {
+    name: COLLECTIONS.billingAgreements,
+    fields: [
+      textField('agreement_number', true),
+      textField('name', true),
+      textField('status', true),
+      dateField('effective_from'),
+      dateField('effective_to'),
+      textField('renewal_behavior', true),
+      dateField('cancelled_at'),
+      textField('cancellation_reason'),
+      textField('notes'),
+      ...timestampFields()
+    ],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_billing_agreements_number` ON `billing_agreements` (`agreement_number`)',
+      'CREATE INDEX `idx_billing_agreements_account_status` ON `billing_agreements` (`operations_account`, `status`)',
+      'CREATE INDEX `idx_billing_agreements_effective_dates` ON `billing_agreements` (`effective_from`, `effective_to`)'
+    ]
+  },
+  {
+    name: COLLECTIONS.billingAgreementItems,
+    fields: [
+      numberField('quantity', true),
+      textField('billing_basis', true),
+      textField('unit_label', true),
+      numberField('unit_price_cents', true),
+      numberField('bundle_price_cents', true),
+      textField('currency', true),
+      dateField('effective_from'),
+      dateField('effective_to'),
+      textField('status', true),
+      dateField('ended_at'),
+      ...timestampFields()
+    ],
+    indexes: [
+      'CREATE INDEX `idx_billing_agreement_items_agreement` ON `billing_agreement_items` (`agreement`)',
+      'CREATE INDEX `idx_billing_agreement_items_status` ON `billing_agreement_items` (`status`)'
+    ]
   }
 ];
 
@@ -354,7 +396,9 @@ export async function ensureCrmCompanyCollections(client) {
           COLLECTIONS.operationsIssueTagLinks,
           COLLECTIONS.operationsIssueAssignees,
         COLLECTIONS.catalogPriceOffers,
-        COLLECTIONS.catalogPlanItems
+        COLLECTIONS.catalogPlanItems,
+        COLLECTIONS.billingAgreementItems,
+        COLLECTIONS.billingAgreements
       ].includes(definition.name) ? [] : definition.indexes,
       listRule: null,
       viewRule: null,
@@ -405,6 +449,16 @@ export async function ensureCrmCompanyCollections(client) {
       relationField('plan', collections.get(COLLECTIONS.catalogPlans).id, true, true),
       relationField('service', collections.get(COLLECTIONS.catalogServices).id, false, false),
       relationField('price_offer', collections.get(COLLECTIONS.catalogPriceOffers).id, false, false)
+    ]],
+    [COLLECTIONS.billingAgreements, [
+      relationField('operations_account', collections.get(COLLECTIONS.operationsAccounts).id, true, false),
+      relationField('company', collections.get(COLLECTIONS.accounts).id, false, false)
+    ]],
+    [COLLECTIONS.billingAgreementItems, [
+      relationField('agreement', collections.get(COLLECTIONS.billingAgreements).id, true, true),
+      relationField('service', collections.get(COLLECTIONS.catalogServices).id, false, false),
+      relationField('plan', collections.get(COLLECTIONS.catalogPlans).id, false, false),
+      relationField('offer', collections.get(COLLECTIONS.catalogPriceOffers).id, false, false)
     ]]
   ]);
 

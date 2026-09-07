@@ -7,6 +7,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
+  import HandshakeIcon from '@lucide/svelte/icons/handshake';
   import LinkIcon from '@lucide/svelte/icons/link';
   import MessageSquareIcon from '@lucide/svelte/icons/message-square';
   import PhoneCallIcon from '@lucide/svelte/icons/phone-call';
@@ -490,6 +491,10 @@
   </header>
 
   <section class="grid gap-4 md:grid-cols-3">
+    <button class="flex min-h-36 flex-col gap-3 rounded-lg border border-border p-5 text-left transition-colors hover:bg-muted/50" onclick={() => goto(`/operations/accounts/${data.account.id}/agreements`)}>
+      <HandshakeIcon class="text-muted-foreground" />
+      <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold">Agreements</h2><p class="mt-1 text-sm text-muted-foreground">{data.agreements.length ? `${data.agreements.length} commercial agreement${data.agreements.length === 1 ? '' : 's'} for this account.` : 'Add services and plans to this account.'}</p></div><span class="text-sm font-medium text-primary">Open</span></div>
+    </button>
     <div class="flex min-h-36 flex-col gap-3 rounded-lg border border-border p-5"><FileTextIcon class="text-muted-foreground" /><div><h2 class="font-semibold">Invoices</h2><p class="mt-1 text-sm text-muted-foreground">Open invoices and billing activity will appear here.</p></div></div>
     <div class="flex min-h-36 flex-col gap-3 rounded-lg border border-border p-5"><ListTodoIcon class="text-muted-foreground" /><div><h2 class="font-semibold">Important tasks</h2><p class="mt-1 text-sm text-muted-foreground">Account-level tasks and follow-ups will appear here.</p></div></div>
   </section>

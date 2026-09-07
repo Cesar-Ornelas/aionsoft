@@ -91,6 +91,22 @@ features:
     validation_commands:
       - bun run cell:test:issues
       - bun run cell:build
+  billing:
+    description: Customer billing agreements that snapshot catalog prices and manage independent service or plan lifecycle.
+    context:
+      - ai/features/billing.md
+    owned_paths:
+      - src/lib/billing/
+      - src/routes/operations/accounts/
+      - ai/todos/billing.md
+    shared_context:
+      - src/lib/catalog/
+      - src/lib/operations/
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:test:billing
+      - bun run cell:build
 initialize_work_state: true
 validation_commands:
   - bun run cell:build

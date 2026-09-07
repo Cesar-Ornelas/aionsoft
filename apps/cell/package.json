@@ -11,6 +11,7 @@
     "test:issues": "bun test src/lib/issues/server/tests",
     "test:management": "bun test src/lib/management/server/tests",
     "test:operations": "bun test src/lib/operations/server/tests",
+    "test:billing": "bun test src/lib/billing/server/tests",
     "setup:pb": "node ./scripts/setup-pocketbase.js"
   },
   "dependencies": {

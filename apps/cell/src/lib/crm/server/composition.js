@@ -17,6 +17,8 @@ import { createPocketBaseCatalogServiceRepository } from '$lib/catalog/server/ad
 import { createCatalogService } from '$lib/catalog/server/services/catalog-service.js';
 import { createPocketBaseIssuesRepository } from '$lib/issues/server/adapters/pocketbase/repositories.js';
 import { createIssuesService } from '$lib/issues/server/services/issues-service.js';
+import { createPocketBaseBillingAgreementRepository } from '$lib/billing/server/adapters/pocketbase/repositories.js';
+import { createBillingAgreementService } from '$lib/billing/server/services/billing-agreement-service.js';
 
 export async function createCrmServices() {
   const client = await getAdminPocketBaseClient();
@@ -30,7 +32,9 @@ export async function createCrmServices() {
   const operationsEventAttendees = createPocketBaseOperationsEventAttendeeRepository(client);
   const operationsCalls = createPocketBaseOperationsCallRepository(client);
   const catalogServices = createPocketBaseCatalogServiceRepository(client);
+  const catalog = createCatalogService(catalogServices);
   const issues = createPocketBaseIssuesRepository(client);
+  const billingAgreements = createPocketBaseBillingAgreementRepository(client);
 
   return {
     accounts: createCompanyService(accounts),
@@ -40,7 +44,8 @@ export async function createCrmServices() {
     operations: createOperationsAccountService(operationsAccounts, accounts),
     events: createOperationsEventService(operationsAccounts, operationsEvents, operationsEventAttendees),
     calls: createOperationsCallService(operationsAccounts, operationsCalls),
-    catalog: createCatalogService(catalogServices),
-    issues: createIssuesService(issues)
+    catalog,
+    issues: createIssuesService(issues),
+    billing: createBillingAgreementService(billingAgreements, { operationsAccounts, catalog })
   };
 }
