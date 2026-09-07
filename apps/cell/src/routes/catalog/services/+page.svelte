@@ -12,6 +12,8 @@
   import * as Field from '$lib/components/ui/field';
   import * as Sheet from '$lib/components/ui/sheet';
   import * as Table from '$lib/components/ui/table';
+  import * as Tabs from '$lib/components/ui/tabs';
+  import IssueDescriptionEditor from '$lib/components/IssueDescriptionEditor.svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -30,6 +32,7 @@
   let pricingError = $state('');
   let editingOffer = $state(null);
   let offerLoading = $state(false);
+  let serviceTab = $state('details');
   let pricingForm = $state({ name: '', billingBasis: 'fixed', unitLabel: 'project', salePrice: '0.00', internalCost: '0.00' });
   let filters = $state({ search: '', status: '', page: 1, pageSize: 25 });
   let form = $state({ name: '', description: '', code: '', billingBasis: 'fixed', unitLabel: 'project', customerPrice: '0.00', internalCost: '0.00', currency: 'USD', status: 'active' });
@@ -77,6 +80,7 @@
     formError = '';
     editingService = null;
     editingOffer = null;
+    serviceTab = 'details';
   }
 
   function openCreate() {
@@ -104,6 +108,7 @@
       status: 'active'
     };
     formError = '';
+    serviceTab = 'details';
     offerLoading = true;
     dialogOpen = true;
     try {
@@ -139,6 +144,7 @@
       status: service.status
     };
     formError = '';
+    serviceTab = 'details';
     offerLoading = true;
     dialogOpen = true;
     try {
@@ -322,17 +328,30 @@
   {#if data.services.totalPages > 1}<nav class="flex items-center justify-between" aria-label="Service pages"><p class="text-sm text-muted-foreground">Page {data.services.page} of {data.services.totalPages}</p><div class="flex gap-2"><Button variant="outline" disabled={data.services.page <= 1} onclick={() => goto(filterUrl(data.filters, data.services.page - 1))}>Previous</Button><Button variant="outline" disabled={data.services.page >= data.services.totalPages} onclick={() => goto(filterUrl(data.filters, data.services.page + 1))}>Next</Button></div></nav>{/if}
 
   <Dialog.Root bind:open={dialogOpen}>
-    <Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+    <Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <Dialog.Header><Dialog.Title>{editingService ? 'Edit service' : 'New service'}</Dialog.Title><Dialog.Description>Keep customer pricing separate from your internal cost to deliver the service.</Dialog.Description></Dialog.Header>
-      <Field.FieldGroup>
-        <Field.Field><Field.FieldLabel for="service-name">Service name</Field.FieldLabel><Input id="service-name" bind:value={form.name} required /></Field.Field>
-        <Field.Field><Field.FieldLabel for="service-description">Description</Field.FieldLabel><textarea id="service-description" class="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" bind:value={form.description}></textarea></Field.Field>
-        <Field.Field><Field.FieldLabel for="service-code">Code / SKU</Field.FieldLabel><Input id="service-code" bind:value={form.code} placeholder="SERVICE-001" required /><Field.FieldDescription>Use a stable internal code for quotes and future invoices.</Field.FieldDescription></Field.Field>
-        <div class="grid gap-3 sm:grid-cols-2"><Field.Field><Field.FieldLabel for="service-billing-basis">Billing basis</Field.FieldLabel><select id="service-billing-basis" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.billingBasis}><option value="fixed">Fixed</option><option value="hourly">Hourly</option><option value="daily">Daily</option><option value="per_unit">Per unit</option><option value="recurring">Recurring</option></select></Field.Field><Field.Field><Field.FieldLabel for="service-unit-label">Unit label</Field.FieldLabel><Input id="service-unit-label" bind:value={form.unitLabel} placeholder="project, hour, day, item, or month" required /></Field.Field></div>
-        <div class="grid gap-3 sm:grid-cols-2"><Field.Field><Field.FieldLabel for="service-sale-price">Sale amount (USD)</Field.FieldLabel><Input id="service-sale-price" type="number" min="0" step="0.01" bind:value={form.customerPrice} required /><Field.FieldDescription>Charged per {form.unitLabel || 'unit'}.</Field.FieldDescription></Field.Field><Field.Field><Field.FieldLabel for="service-internal-cost">Internal cost (USD)</Field.FieldLabel><Input id="service-internal-cost" type="number" min="0" step="0.01" bind:value={form.internalCost} /><Field.FieldDescription>Optional. Leave blank when delivery cost is not known yet.</Field.FieldDescription></Field.Field></div>
-        <div class="grid gap-3 sm:grid-cols-2"><Field.Field><Field.FieldLabel for="service-currency">Currency</Field.FieldLabel><select id="service-currency" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.currency}><option value="USD">USD</option></select></Field.Field><Field.Field><Field.FieldLabel for="service-status">Status</Field.FieldLabel><select id="service-status" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.status}><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></Field.Field></div>
-        {#if formError}<Field.FieldError>{formError}</Field.FieldError>{/if}
-      </Field.FieldGroup>
+      <Tabs.Root bind:value={serviceTab}>
+        <Tabs.List class="w-full">
+          <Tabs.Trigger value="details" class="flex-1 cursor-pointer">Details</Tabs.Trigger>
+          <Tabs.Trigger value="billing" class="flex-1 cursor-pointer">Billing</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="details" class="pt-6">
+          <Field.FieldGroup>
+            <Field.Field><Field.FieldLabel for="service-name">Service name</Field.FieldLabel><Input id="service-name" bind:value={form.name} required /></Field.Field>
+            <Field.Field><Field.FieldLabel for="service-description">Description</Field.FieldLabel><IssueDescriptionEditor value={form.description} onChange={(value) => (form.description = value)} minHeight="min-h-56" /></Field.Field>
+            <Field.Field><Field.FieldLabel for="service-status">Status</Field.FieldLabel><select id="service-status" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.status}><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></Field.Field>
+          </Field.FieldGroup>
+        </Tabs.Content>
+        <Tabs.Content value="billing" class="pt-6">
+          <Field.FieldGroup>
+            <Field.Field><Field.FieldLabel for="service-code">Code / SKU</Field.FieldLabel><Input id="service-code" bind:value={form.code} placeholder="SERVICE-001" required /><Field.FieldDescription>Use a stable internal code for quotes and future invoices.</Field.FieldDescription></Field.Field>
+            <div class="grid gap-3 sm:grid-cols-2"><Field.Field><Field.FieldLabel for="service-billing-basis">Billing basis</Field.FieldLabel><select id="service-billing-basis" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.billingBasis}><option value="fixed">Fixed</option><option value="hourly">Hourly</option><option value="daily">Daily</option><option value="per_unit">Per unit</option><option value="recurring">Recurring</option></select></Field.Field><Field.Field><Field.FieldLabel for="service-unit-label">Unit label</Field.FieldLabel><Input id="service-unit-label" bind:value={form.unitLabel} placeholder="project, hour, day, item, or month" required /></Field.Field></div>
+            <div class="grid gap-3 sm:grid-cols-2"><Field.Field><Field.FieldLabel for="service-sale-price">Sale amount (USD)</Field.FieldLabel><Input id="service-sale-price" type="number" min="0" step="0.01" bind:value={form.customerPrice} required /><Field.FieldDescription>Charged per {form.unitLabel || 'unit'}.</Field.FieldDescription></Field.Field><Field.Field><Field.FieldLabel for="service-internal-cost">Internal cost (USD)</Field.FieldLabel><Input id="service-internal-cost" type="number" min="0" step="0.01" bind:value={form.internalCost} /><Field.FieldDescription>Optional. Leave blank when delivery cost is not known yet.</Field.FieldDescription></Field.Field></div>
+            <Field.Field><Field.FieldLabel for="service-currency">Currency</Field.FieldLabel><select id="service-currency" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.currency}><option value="USD">USD</option></select></Field.Field>
+          </Field.FieldGroup>
+        </Tabs.Content>
+      </Tabs.Root>
+      {#if formError}<Field.FieldError class="mt-4">{formError}</Field.FieldError>{/if}
       <Dialog.Footer><Button variant="outline" onclick={() => (dialogOpen = false)}>Cancel</Button><Button onclick={saveService} disabled={submitting || offerLoading || !form.name || !form.code}>{offerLoading ? 'Loading pricing...' : submitting ? 'Saving...' : editingService ? 'Save changes' : 'Create service'}</Button></Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
