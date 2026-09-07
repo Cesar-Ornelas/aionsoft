@@ -84,4 +84,46 @@
  * @property {OperationsEventStatus} [status]
  */
 
+/** @typedef {'inbound' | 'outbound'} OperationsCallDirection */
+/** @typedef {'scheduled' | 'completed' | 'no_answer' | 'follow_up'} OperationsCallOutcome */
+
+/**
+ * @typedef {Object} OperationsCallContact
+ * @property {string} id
+ * @property {string} participantId
+ * @property {string} name
+ * @property {string} [email]
+ * @property {string} [jobTitle]
+ */
+
+/**
+ * @typedef {Object} OperationsCall
+ * @property {string} id
+ * @property {string} accountId
+ * @property {string} startsAt
+ * @property {number} durationMinutes
+ * @property {OperationsCallDirection} direction
+ * @property {OperationsCallOutcome} outcome
+ * @property {string} notes
+ * @property {OperationsCallContact} [contact]
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
+
+/**
+ * @typedef {Object} SaveOperationsCallInput
+ * @property {string} startsAt
+ * @property {number} [durationMinutes]
+ * @property {string} [contactId]
+ * @property {OperationsCallDirection} direction
+ * @property {OperationsCallOutcome} outcome
+ * @property {string} [notes]
+ */
+
+/**
+ * @typedef {Object} OperationsCallFilter
+ * @property {string} [from]
+ * @property {string} [to]
+ */
+
 export {};

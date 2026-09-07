@@ -8,6 +8,7 @@
  * @property {(accountId: string, eventId: string) => Promise<OperationsEvent | null>} findForAccount
  * @property {(accountId: string, input: SaveOperationsEventInput) => Promise<OperationsEvent>} create
  * @property {(accountId: string, eventId: string, input: Partial<SaveOperationsEventInput>) => Promise<OperationsEvent>} update
+ * @property {(accountId: string, eventId: string) => Promise<void>} delete
  */
 
 export {};

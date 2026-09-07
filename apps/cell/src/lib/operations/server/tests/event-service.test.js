@@ -37,6 +37,11 @@ function setup() {
       const event = { ...events.get(eventId), ...input };
       events.set(eventId, event);
       return event;
+    },
+    async delete(accountId, eventId) {
+      const event = events.get(eventId);
+      if (event?.accountId !== accountId) throw new Error('event scope mismatch');
+      events.delete(eventId);
     }
   };
   const attendeeRepository = {
@@ -99,5 +104,13 @@ describe('operations event service', () => {
     await expect(context.service.create('account-1', {
       type: 'meeting', title: 'Invalid contact', startsAt: '2026-09-18', accountAttendeeIds: ['other-account-contact']
     })).rejects.toMatchObject({ code: CRM_DATA_ACCESS_ERROR_CODES.INVALID_INPUT });
+  });
+
+  test('deletes only an event owned by the requested account', async () => {
+    const context = setup();
+    const event = await context.service.create('account-1', { type: 'meeting', title: 'Remove me', startsAt: '2026-09-18' });
+    await expect(context.service.delete('account-2', event.id)).rejects.toMatchObject({ code: CRM_DATA_ACCESS_ERROR_CODES.NOT_FOUND });
+    await context.service.delete('account-1', event.id);
+    expect(await context.service.listForAccount('account-1')).toEqual([]);
   });
 });

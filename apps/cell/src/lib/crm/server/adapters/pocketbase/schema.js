@@ -2,6 +2,7 @@ const COLLECTIONS = Object.freeze({
   operationsAccounts: 'operations_accounts',
   operationsEvents: 'operations_events',
   operationsEventAttendees: 'operations_event_attendees',
+  operationsCalls: 'operations_calls',
   accounts: 'crm_accounts',
   contacts: 'crm_contacts',
   addresses: 'crm_addresses',
@@ -53,6 +54,25 @@ const BASE_DEFINITIONS = [
     indexes: [
       'CREATE UNIQUE INDEX `idx_operations_event_attendees_event_participant` ON `operations_event_attendees` (`event`, `kind`, `participant_id`)',
       'CREATE INDEX `idx_operations_event_attendees_event` ON `operations_event_attendees` (`event`)'
+    ]
+  },
+  {
+    name: COLLECTIONS.operationsCalls,
+    fields: [
+      dateField('starts_at', true),
+      textField('duration_minutes', true),
+      textField('contact_id'),
+      textField('contact_name'),
+      emailField('contact_email'),
+      textField('contact_job_title'),
+      textField('direction', true),
+      textField('outcome', true),
+      textField('notes'),
+      ...timestampFields()
+    ],
+    indexes: [
+      'CREATE INDEX `idx_operations_calls_account_starts_at` ON `operations_calls` (`account`, `starts_at`)',
+      'CREATE INDEX `idx_operations_calls_account_contact` ON `operations_calls` (`account`, `contact_id`)'
     ]
   },
   {
@@ -189,7 +209,7 @@ export async function ensureCrmCompanyCollections(client) {
       type: 'base',
       fields: definition.fields,
       // The events relation is added in the reconciliation pass below.
-      indexes: [COLLECTIONS.operationsEvents, COLLECTIONS.operationsEventAttendees].includes(definition.name) ? [] : definition.indexes,
+      indexes: [COLLECTIONS.operationsEvents, COLLECTIONS.operationsEventAttendees, COLLECTIONS.operationsCalls].includes(definition.name) ? [] : definition.indexes,
       listRule: null,
       viewRule: null,
       createRule: null,
@@ -204,6 +224,7 @@ export async function ensureCrmCompanyCollections(client) {
     [COLLECTIONS.operationsAccounts, []],
     [COLLECTIONS.operationsEvents, [relationField('account', collections.get(COLLECTIONS.operationsAccounts).id, true, false)]],
     [COLLECTIONS.operationsEventAttendees, [relationField('event', collections.get(COLLECTIONS.operationsEvents).id, true, true)]],
+    [COLLECTIONS.operationsCalls, [relationField('account', collections.get(COLLECTIONS.operationsAccounts).id, true, false)]],
     [COLLECTIONS.accounts, [
       relationField('primary_contact', collections.get(COLLECTIONS.contacts).id, false, false),
       relationField('operations_account', collections.get(COLLECTIONS.operationsAccounts).id, false, false)

@@ -28,11 +28,20 @@ Archiving an Operations Account preserves its company links. This supports histo
 
 - Events are persisted in `operations_events` and require an Operations Account relation.
 - Supported event types are extensible; the initial UI offers meetings, reminders, and milestones.
-- Event reads, creates, and updates are scoped to the account in the server-side service and route.
+- Event reads, creates, updates, and deletes are scoped to the account in the server-side service and route.
+- Deleting an event requires an exact event-name confirmation in the account Schedule UI and removes its attendee records through the event relationship cascade.
 - The account Schedule view loads a bounded date range and displays events for the selected day.
 - Events can persist internal team representatives and account representatives as event attendees.
 - Team representatives are active Cell users; account representatives are contacts from every CRM Company linked to the Operations Account.
 - Attendee snapshots preserve the displayed name and contact details while participant identity remains tied to the source user or CRM contact.
+
+## Account communications
+
+- Calls are persisted separately from schedule events in `operations_calls` and are scoped to the Operations Account.
+- A call records its date and time, duration, direction, outcome, notes, and an optional customer contact snapshot.
+- Customer contact choices are limited to contacts belonging to CRM Companies linked to the Operations Account.
+- The Communications view displays Calls in a calendar and selected-date list, with activity markers on dates containing calls.
+- Only active Operations Accounts accept call creation, updates, or deletion.
 
 ## Current implementation
 

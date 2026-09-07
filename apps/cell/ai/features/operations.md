@@ -20,6 +20,8 @@ Operations Accounts organize service delivery after Sales companies become custo
 - Account schedule events are persisted and account-scoped.
 - Event dates, type, title, description, all-day state, status, and optional links are supported.
 - Event creation uses `Details` and `Attendees` tabs; attendees include active internal users and contacts from linked customer companies.
+- Account Communications includes an account-scoped Calls view with calendar markers, selected-date call history, and registration for date/time, duration, linked customer contact, direction, outcome, and notes.
+- Calls are persisted separately from schedule events and only offer contacts from CRM companies linked to the current Operations Account.
 
 ## Validation
 

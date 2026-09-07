@@ -8,3 +8,8 @@
 - Add edit and delete controls for account schedule events.
 - Load adjacent months when navigating the account calendar beyond the initial range.
 - Add event editing so persisted attendees can be replaced after creation.
+- Add Calls editing and deletion controls in the Communications view.
+- Load adjacent months when navigating the Calls calendar beyond the initial bounded range.
+- Add a communication channel field so activity can distinguish calls from text messages.
+- Add team-member attribution for the internal user who handled each communication, defaulting to the authenticated user when possible.
+- Apply channel-specific fields and validation: keep duration and call outcomes for calls, while making them unavailable or optional for text messages.

@@ -139,6 +139,14 @@ export function createOperationsEventService(accounts, repository, attendees) {
         await attendees.replaceForEvent(account.id, event.id, selected);
       }
       return { ...event, attendees: attendees ? await attendees.listForEvent(account.id, event.id) : [] };
+    },
+
+    async delete(accountId, eventId) {
+      const account = await accounts.findById(clean(accountId));
+      if (!account) throw new CrmDataAccessError('NOT_FOUND', 'Operations account was not found.');
+      ensureWritable(account);
+      const current = await this.getForAccount(account.id, eventId);
+      await repository.delete(account.id, current.id);
     }
   };
 }

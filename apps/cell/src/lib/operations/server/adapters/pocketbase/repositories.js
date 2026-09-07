@@ -3,6 +3,7 @@ import { CrmDataAccessError } from '$lib/crm/model/data-access-error.js';
 const COLLECTION = 'operations_accounts';
 const EVENTS_COLLECTION = 'operations_events';
 const EVENT_ATTENDEES_COLLECTION = 'operations_event_attendees';
+const CALLS_COLLECTION = 'operations_calls';
 const COMPANIES_COLLECTION = 'crm_accounts';
 const CONTACTS_COLLECTION = 'crm_contacts';
 
@@ -33,6 +34,29 @@ function eventFromRecord(record) {
     allDay: Boolean(record.all_day),
     ...(record.url && { url: record.url }),
     status: record.status,
+    createdAt: record.created || '',
+    updatedAt: record.updated || record.created || ''
+  };
+}
+
+function callFromRecord(record) {
+  return {
+    id: record.id,
+    accountId: record.account,
+    startsAt: record.starts_at || '',
+    durationMinutes: Number(record.duration_minutes || 0),
+    direction: record.direction,
+    outcome: record.outcome,
+    notes: record.notes || '',
+    ...(record.contact_id && {
+      contact: {
+        id: record.contact_id,
+        participantId: record.contact_id,
+        name: record.contact_name || 'Unnamed contact',
+        ...(record.contact_email && { email: record.contact_email }),
+        ...(record.contact_job_title && { jobTitle: record.contact_job_title })
+      }
+    }),
     createdAt: record.created || '',
     updatedAt: record.updated || record.created || ''
   };
@@ -178,6 +202,16 @@ export function createPocketBaseOperationsEventRepository(client) {
       } catch (error) {
         throw translateError(error, 'Unable to update the Operations event.');
       }
+    },
+
+    async delete(accountId, eventId) {
+      try {
+        const current = await this.findForAccount(accountId, eventId);
+        if (!current) throw new CrmDataAccessError('NOT_FOUND', 'Operations event was not found.');
+        await records.delete(current.id);
+      } catch (error) {
+        throw translateError(error, 'Unable to delete the Operations event.');
+      }
     }
   };
 }
@@ -265,6 +299,120 @@ export function createPocketBaseOperationsEventAttendeeRepository(client) {
         return this.listForEvent(accountId, event.id);
       } catch (error) {
         throw translateError(error, 'Unable to save Operations event attendees.');
+      }
+    }
+  };
+}
+
+/** @param {import('pocketbase').default} client */
+export function createPocketBaseOperationsCallRepository(client) {
+  const records = client.collection(CALLS_COLLECTION);
+  const companies = client.collection(COMPANIES_COLLECTION);
+  const contacts = client.collection(CONTACTS_COLLECTION);
+
+  function accountFilter(accountId) {
+    return client.filter('account = {:accountId}', { accountId });
+  }
+
+  async function contactOptions(accountId) {
+    const companyRecords = await companies.getFullList({ filter: accountFilterForCompany(accountId), fields: 'id' });
+    const companyIds = companyRecords.map((company) => company.id);
+    if (!companyIds.length) return [];
+    const filter = companyIds.map((id) => client.filter('account = {:companyId}', { companyId: id })).join(' || ');
+    const contactRecords = await contacts.getFullList({ filter: `(${filter})`, sort: 'last_name,first_name' });
+    return contactRecords.map((contact) => ({
+      id: contact.id,
+      participantId: contact.id,
+      name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed contact',
+      email: contact.email || '',
+      jobTitle: contact.job_title || ''
+    }));
+  }
+
+  function accountFilterForCompany(accountId) {
+    return client.filter('operations_account = {:accountId}', { accountId });
+  }
+
+  return {
+    async listForAccount(accountId, filter = {}) {
+      try {
+        const clauses = [accountFilter(accountId)];
+        if (filter.from) clauses.push(client.filter('starts_at >= {:from}', { from: filter.from }));
+        if (filter.to) clauses.push(client.filter('starts_at <= {:to}', { to: filter.to }));
+        return (await records.getFullList({ filter: clauses.join(' && '), sort: 'starts_at' })).map(callFromRecord);
+      } catch (error) {
+        throw translateError(error, 'Unable to list Operations calls.');
+      }
+    },
+
+    async findForAccount(accountId, callId) {
+      try {
+        return callFromRecord(await records.getFirstListItem([accountFilter(accountId), client.filter('id = {:callId}', { callId })].join(' && ')));
+      } catch (error) {
+        if (Number(error?.status) === 404) return null;
+        throw translateError(error, 'Unable to load the Operations call.');
+      }
+    },
+
+    async create(accountId, input) {
+      try {
+        const contactsForAccount = await contactOptions(accountId);
+        const contact = contactsForAccount.find((option) => option.participantId === input.contactId);
+        return callFromRecord(await records.create({
+          account: accountId,
+          starts_at: input.startsAt,
+          duration_minutes: String(input.durationMinutes || 0),
+          contact_id: contact?.participantId || '',
+          contact_name: contact?.name || '',
+          contact_email: contact?.email || '',
+          contact_job_title: contact?.jobTitle || '',
+          direction: input.direction,
+          outcome: input.outcome,
+          notes: input.notes || ''
+        }));
+      } catch (error) {
+        throw translateError(error, 'Unable to create the Operations call.');
+      }
+    },
+
+    async update(accountId, callId, input) {
+      try {
+        const current = await this.findForAccount(accountId, callId);
+        if (!current) throw new CrmDataAccessError('NOT_FOUND', 'Operations call was not found.');
+        const payload = {};
+        if (input.startsAt !== undefined) payload.starts_at = input.startsAt;
+        if (input.durationMinutes !== undefined) payload.duration_minutes = String(input.durationMinutes);
+        if (input.direction !== undefined) payload.direction = input.direction;
+        if (input.outcome !== undefined) payload.outcome = input.outcome;
+        if (input.notes !== undefined) payload.notes = input.notes;
+        if (input.contactId !== undefined) {
+          const contact = (await contactOptions(accountId)).find((option) => option.participantId === input.contactId);
+          payload.contact_id = contact?.participantId || '';
+          payload.contact_name = contact?.name || '';
+          payload.contact_email = contact?.email || '';
+          payload.contact_job_title = contact?.jobTitle || '';
+        }
+        return callFromRecord(await records.update(current.id, payload));
+      } catch (error) {
+        throw translateError(error, 'Unable to update the Operations call.');
+      }
+    },
+
+    async delete(accountId, callId) {
+      try {
+        const current = await this.findForAccount(accountId, callId);
+        if (!current) throw new CrmDataAccessError('NOT_FOUND', 'Operations call was not found.');
+        await records.delete(current.id);
+      } catch (error) {
+        throw translateError(error, 'Unable to delete the Operations call.');
+      }
+    },
+
+    async listContactsForAccount(accountId) {
+      try {
+        return await contactOptions(accountId);
+      } catch (error) {
+        throw translateError(error, 'Unable to list Operations call contacts.');
       }
     }
   };

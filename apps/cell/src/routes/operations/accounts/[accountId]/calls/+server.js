@@ -2,20 +2,22 @@ import { json } from '@sveltejs/kit';
 import { createCrmServices } from '$lib/crm/server/composition.js';
 import { crmErrorResponse } from '$lib/crm/server/http.js';
 
-export async function PATCH({ params, request }) {
+export async function GET({ params, url }) {
   try {
     const services = await createCrmServices();
-    return json(await services.events.update(params.accountId, params.eventId, await request.json()));
+    return json(await services.calls.listForAccount(params.accountId, {
+      from: url.searchParams.get('from') || undefined,
+      to: url.searchParams.get('to') || undefined
+    }));
   } catch (error) {
     return crmErrorResponse(error);
   }
 }
 
-export async function DELETE({ params }) {
+export async function POST({ params, request }) {
   try {
     const services = await createCrmServices();
-    await services.events.delete(params.accountId, params.eventId);
-    return new Response(null, { status: 204 });
+    return json(await services.calls.create(params.accountId, await request.json()), { status: 201 });
   } catch (error) {
     return crmErrorResponse(error);
   }

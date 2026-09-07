@@ -8,7 +8,7 @@ export async function load({ params }) {
     const currentMonth = new Date();
     const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString();
     const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-    const [account, companies, companyResult, events, attendeeOptions] = await Promise.all([
+    const [account, companies, companyResult, events, attendeeOptions, calls, callContacts] = await Promise.all([
       services.operations.get(params.accountId),
       services.operations.listCompanies(params.accountId),
       services.accounts.list({ page: 1, pageSize: 100, sort: 'name' }),
@@ -23,6 +23,18 @@ export async function load({ params }) {
           return { team: [], account: [] };
         }
         throw cause;
+      }),
+      services.calls.listForAccount(params.accountId, { from, to }).catch((cause) => {
+        if (cause instanceof CrmDataAccessError && cause.code === 'not_found' && cause.message.startsWith('Unable to list Operations calls')) {
+          return [];
+        }
+        throw cause;
+      }),
+      services.calls.listContactOptions(params.accountId).catch((cause) => {
+        if (cause instanceof CrmDataAccessError && cause.code === 'not_found' && cause.message.startsWith('Unable to list Operations call contacts')) {
+          return [];
+        }
+        throw cause;
       })
     ]);
     return {
@@ -30,6 +42,8 @@ export async function load({ params }) {
       companies,
       events,
       attendeeOptions,
+      calls,
+      callContacts,
       customerCompanies: companyResult.items.filter((company) => company.lifecycle === 'customer' && !company.operationsAccountId)
     };
   } catch (cause) {
