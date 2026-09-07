@@ -33,6 +33,8 @@
     "cell:preview": "bun run --cwd apps/cell preview",
     "cell:test:management": "bun run --cwd apps/cell test:management",
     "cell:test:crm": "bun run --cwd apps/cell test:crm",
+    "cell:test:catalog": "bun run --cwd apps/cell test:catalog",
+    "cell:test:issues": "bun run --cwd apps/cell test:issues",
     "cell:setup:pb": "bun run --cwd apps/cell setup:pb",
     "cell:infra:config": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml config",
     "cell:infra:up": "docker compose --env-file infra/crm/.env -f infra/crm/compose-dev.yaml up -d",

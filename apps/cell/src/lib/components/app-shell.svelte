@@ -13,6 +13,7 @@
   import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
   import BellIcon from '@lucide/svelte/icons/bell';
   import BriefcaseBusinessIcon from '@lucide/svelte/icons/briefcase-business';
+  import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import ContactRoundIcon from '@lucide/svelte/icons/contact-round';
@@ -23,6 +24,7 @@
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import SearchIcon from '@lucide/svelte/icons/search';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+  import TagsIcon from '@lucide/svelte/icons/tags';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import UsersIcon from '@lucide/svelte/icons/users';
 
@@ -33,6 +35,8 @@
       { label: 'Dashboard', href: '/pipeline/dashboard', icon: LayoutGridIcon },
       { label: 'Contacts', href: '/crm/contacts', icon: ContactRoundIcon },
       { label: 'Companies', href: '/crm/companies', icon: BriefcaseBusinessIcon },
+      { label: 'Services & Pricing', href: '/catalog/services', icon: TagsIcon },
+      { label: 'Plans & Retainers', href: '/catalog/plans', icon: CalendarDaysIcon },
       { label: 'Deals', href: '/pipeline/dashboard', icon: UsersIcon }
     ],
     Projects: [
@@ -53,6 +57,7 @@
     Operations: [
       { label: 'Dashboard', href: '/operations/dashboard', icon: LayoutGridIcon },
       { label: 'Accounts', href: '/operations/accounts', icon: BriefcaseBusinessIcon },
+      { label: 'Issues', href: '/operations/issues', icon: BellIcon },
       { label: 'Tasks', href: '/operations/dashboard', icon: BellIcon },
       { label: 'Clients', href: '/operations/dashboard', icon: ContactRoundIcon }
     ],
@@ -81,6 +86,7 @@
     if (!pathname || pathname === '/') return 'Sales';
     if (pathname.startsWith('/crm') || pathname.startsWith('/customers') || pathname.startsWith('/companies')) return 'Sales';
     if (pathname.startsWith('/pipeline')) return 'Sales';
+    if (pathname.startsWith('/catalog')) return 'Sales';
     if (pathname.startsWith('/operations')) return 'Operations';
     if (pathname.startsWith('/management')) return 'Management';
     if (pathname.startsWith('/projects')) return 'Projects';
@@ -401,10 +407,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <Button variant="outline" class="gap-2" onclick={openMenuOverlay}>
-            <SearchIcon class="h-4 w-4" />
-            Menu
-          </Button>
           <Button variant="outline" class="gap-2">
             <ArrowUpRightIcon class="h-4 w-4" />
             Quick actions

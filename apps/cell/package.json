@@ -7,6 +7,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test:crm": "bun test src/lib/crm/server/tests",
+    "test:catalog": "bun test src/lib/catalog/server/tests",
+    "test:issues": "bun test src/lib/issues/server/tests",
     "test:management": "bun test src/lib/management/server/tests",
     "test:operations": "bun test src/lib/operations/server/tests",
     "setup:pb": "node ./scripts/setup-pocketbase.js"
@@ -15,7 +17,13 @@
     "@aionsoft/config": "workspace:*",
     "@aionsoft/shared": "workspace:*",
     "@aionsoft/ui": "workspace:*",
-    "pocketbase": "^0.25.2"
+    "@tiptap/core": "^3.22.3",
+    "@tiptap/extensions": "^3.22.3",
+    "@tiptap/markdown": "^3.22.3",
+    "@tiptap/pm": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
+    "pocketbase": "^0.25.2",
+    "svelte-tiptap": "^3.0.1"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.2.8",

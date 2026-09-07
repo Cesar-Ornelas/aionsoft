@@ -60,6 +60,37 @@ features:
     validation_commands:
       - bun run cell:test:operations
       - bun run cell:build
+  catalog:
+    description: Reusable services, customer pricing, internal delivery costs, and service lifecycle management.
+    context:
+      - ai/features/catalog.md
+    owned_paths:
+      - src/lib/catalog/
+      - src/routes/catalog/
+      - ai/todos/catalog.md
+    shared_context:
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:test:catalog
+      - bun run cell:build
+  issues:
+    description: Global Operations issues for customer, provider, and internal work with assignments, labels, comments, and resolution tracking.
+    context:
+      - ai/features/issues.md
+    owned_paths:
+      - src/lib/issues/
+      - src/routes/operations/issues/
+      - ai/todos/issues.md
+    shared_context:
+      - src/lib/crm/
+      - src/lib/operations/
+      - src/lib/management/
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    validation_commands:
+      - bun run cell:test:issues
+      - bun run cell:build
 initialize_work_state: true
 validation_commands:
   - bun run cell:build

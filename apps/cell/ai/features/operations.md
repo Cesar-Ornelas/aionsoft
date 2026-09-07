@@ -22,6 +22,7 @@ Operations Accounts organize service delivery after Sales companies become custo
 - Event creation uses `Details` and `Attendees` tabs; attendees include active internal users and contacts from linked customer companies.
 - Account Communications includes an account-scoped Calls view with calendar markers, selected-date call history, and registration for date/time, duration, linked customer contact, direction, outcome, and notes.
 - Calls are persisted separately from schedule events and only offer contacts from CRM companies linked to the current Operations Account.
+- Issues are a global Operations queue for customer, provider, and internal work. They may optionally reference a CRM company or Operations Account and are retained after resolution or cancellation.
 
 ## Validation
 

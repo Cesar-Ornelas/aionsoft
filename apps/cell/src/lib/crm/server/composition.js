@@ -13,6 +13,10 @@ import { createCompanyContactService } from './services/company-contact-service.
 import { createOperationsAccountService } from '$lib/operations/server/services/account-service.js';
 import { createOperationsEventService } from '$lib/operations/server/services/event-service.js';
 import { createOperationsCallService } from '$lib/operations/server/services/call-service.js';
+import { createPocketBaseCatalogServiceRepository } from '$lib/catalog/server/adapters/pocketbase/repositories.js';
+import { createCatalogService } from '$lib/catalog/server/services/catalog-service.js';
+import { createPocketBaseIssuesRepository } from '$lib/issues/server/adapters/pocketbase/repositories.js';
+import { createIssuesService } from '$lib/issues/server/services/issues-service.js';
 
 export async function createCrmServices() {
   const client = await getAdminPocketBaseClient();
@@ -25,6 +29,8 @@ export async function createCrmServices() {
   const operationsEvents = createPocketBaseOperationsEventRepository(client);
   const operationsEventAttendees = createPocketBaseOperationsEventAttendeeRepository(client);
   const operationsCalls = createPocketBaseOperationsCallRepository(client);
+  const catalogServices = createPocketBaseCatalogServiceRepository(client);
+  const issues = createPocketBaseIssuesRepository(client);
 
   return {
     accounts: createCompanyService(accounts),
@@ -33,6 +39,8 @@ export async function createCrmServices() {
     relationships: createAccountRelationshipService(relationships, accounts),
     operations: createOperationsAccountService(operationsAccounts, accounts),
     events: createOperationsEventService(operationsAccounts, operationsEvents, operationsEventAttendees),
-    calls: createOperationsCallService(operationsAccounts, operationsCalls)
+    calls: createOperationsCallService(operationsAccounts, operationsCalls),
+    catalog: createCatalogService(catalogServices),
+    issues: createIssuesService(issues)
   };
 }
