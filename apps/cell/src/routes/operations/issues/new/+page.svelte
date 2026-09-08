@@ -33,7 +33,7 @@
 <svelte:head><title>New issue | Aionsoft Operations</title></svelte:head>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-  <header class="flex items-center justify-between border-b border-border pb-5">
+  <header class="flex items-center justify-between">
     <div class="flex items-start gap-3">
       <Button variant="ghost" size="icon" aria-label="Back to issues" title="Back to issues" onclick={() => goto('/operations/issues')}><ArrowLeftIcon /></Button>
       <div><p class="text-sm font-medium text-muted-foreground">Operations issue</p><h1 class="text-2xl font-semibold text-foreground">New issue</h1><p class="mt-1 text-sm text-muted-foreground">Describe the problem and set its initial ownership details.</p></div>

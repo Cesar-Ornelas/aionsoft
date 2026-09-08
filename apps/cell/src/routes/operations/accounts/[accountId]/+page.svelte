@@ -227,7 +227,7 @@
 <svelte:head><title>{data.account.name} | Operations Accounts</title></svelte:head>
 
 <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="flex flex-col gap-3"><Button variant="ghost" size="sm" class="w-fit" onclick={() => goto('/operations/accounts')}><ArrowLeftIcon data-icon="inline-start" />Accounts</Button><div class="flex flex-wrap items-center gap-2"><h1 class="text-2xl font-semibold">{data.account.name}</h1><Badge variant={data.account.status === 'active' ? 'secondary' : 'outline'}>{data.account.status}</Badge></div>{#if data.account.description}<p class="max-w-2xl text-sm text-muted-foreground">{data.account.description}</p>{/if}</div>
     <div class="flex items-center gap-2">
     <Sheet.Root bind:open={communicationsOpen}>

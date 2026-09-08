@@ -1,7 +1,7 @@
 <svelte:head><title>Operations Dashboard | Aionsoft Cell</title></svelte:head>
 
 <div class="flex flex-col gap-8">
-  <header class="border-b border-border pb-6">
+  <header>
     <p class="text-sm font-medium text-muted-foreground">Operations</p>
     <h1 class="mt-1 text-3xl font-semibold text-foreground">Dashboard</h1>
   </header>

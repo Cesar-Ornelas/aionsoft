@@ -253,7 +253,7 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+  <div class="flex items-center justify-between gap-4">
     <div>
       <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">Management</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground">Users</h1>

@@ -37,7 +37,7 @@
 <svelte:head><title>{issue.title} | Issues | Aionsoft</title></svelte:head>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="flex min-w-0 items-start gap-3"><Button variant="ghost" size="icon" aria-label="Back to issues" title="Back to issues" onclick={() => goto('/operations/issues')}><ArrowLeftIcon /></Button><div class="min-w-0"><p class="text-sm font-medium text-muted-foreground">Operations issue</p><Input aria-label="Issue title" class="h-auto border-0 px-0 text-2xl font-semibold shadow-none focus-visible:ring-0" bind:value={form.title} /><div class="mt-2 flex flex-wrap gap-2"><Badge variant={issue.status === 'open' ? 'secondary' : 'outline'}>{issue.status.replace('_', ' ')}</Badge><Badge variant={issue.priority === 'urgent' ? 'destructive' : 'outline'}>{issue.priority}</Badge><Badge variant="outline">{issue.type}</Badge></div></div></div>
     <Button onclick={saveIssue} disabled={saving}><SaveIcon data-icon="inline-start" />{saving ? 'Saving...' : 'Save changes'}</Button>
   </header>

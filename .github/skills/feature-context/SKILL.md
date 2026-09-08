@@ -20,6 +20,13 @@ Use this workflow to keep feature work focused within a large application.
 7. Use feature `variables` to interpret feature-specific names or boundaries.
 8. Run feature `validation_commands` first, followed by app-level validation when required.
 
+## Maintaining Context
+
+- Every manifest feature must have one concise document at `ai/features/<feature>.md`.
+- Create the document and manifest entry before implementing a new feature.
+- Update the document in the same change when purpose, vocabulary, ownership, boundaries, invariants, routes, data contracts, or validation changes.
+- Keep context stable and factual; do not turn it into a task log or copy routine implementation details.
+
 ## When No Feature Matches
 
 - Ask for the intended feature when two or more are plausible and the choice changes ownership.

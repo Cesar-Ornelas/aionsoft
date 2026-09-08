@@ -82,6 +82,65 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
       { name: 'applied_at', type: 'date' },
       { name: 'notes', type: 'text' }
     ]
+  },
+  {
+    name: 'management_forms',
+    type: 'base',
+    schema: [
+      { name: 'name', type: 'text', required: true },
+      { name: 'description', type: 'text' },
+      { name: 'category', type: 'text' },
+      { name: 'status', type: 'text', required: true }
+    ]
+  },
+  {
+    name: 'management_form_versions',
+    type: 'base',
+    schema: [
+      { name: 'form', type: 'relation', options: { collectionId: 'management_forms', cascadeDelete: true }, required: true },
+      { name: 'version_number', type: 'number', required: true },
+      { name: 'schema', type: 'json', required: true },
+      { name: 'is_published', type: 'bool' },
+      { name: 'status', type: 'text', required: true },
+      { name: 'created_at', type: 'date', required: true }
+    ]
+  },
+  {
+    name: 'documents_templates',
+    type: 'base',
+    schema: [
+      { name: 'name', type: 'text', required: true },
+      { name: 'description', type: 'text' },
+      { name: 'form_id', type: 'relation', options: { collectionId: 'management_forms', cascadeDelete: false } },
+      { name: 'status', type: 'text', required: true }
+    ]
+  },
+  {
+    name: 'documents_template_versions',
+    type: 'base',
+    schema: [
+      { name: 'template', type: 'relation', options: { collectionId: 'documents_templates', cascadeDelete: true }, required: true },
+      { name: 'version_number', type: 'number', required: true },
+      { name: 'content', type: 'json', required: true },
+      { name: 'sample_data', type: 'json' },
+      { name: 'form_version', type: 'relation', options: { collectionId: 'management_form_versions', cascadeDelete: false } },
+      { name: 'is_published', type: 'bool' },
+      { name: 'status', type: 'text', required: true },
+      { name: 'created_at', type: 'date', required: true }
+    ]
+  },
+  {
+    name: 'documents',
+    type: 'base',
+    schema: [
+      { name: 'operations_account', type: 'relation', options: { collectionId: 'operations_accounts', cascadeDelete: false } },
+      { name: 'template_version', type: 'relation', options: { collectionId: 'documents_template_versions', cascadeDelete: false }, required: true },
+      { name: 'form_version', type: 'relation', options: { collectionId: 'management_form_versions', cascadeDelete: false } },
+      { name: 'status', type: 'text', required: true },
+      { name: 'data_snapshot', type: 'json', required: true },
+      { name: 'rendered_html', type: 'text', required: true },
+      { name: 'created_at', type: 'date', required: true }
+    ]
   }
 ];
 
@@ -108,7 +167,14 @@ export function normalizeSchemaField(field, collectionIdMap = new Map()) {
     type: safeType,
     required: Boolean(field.required),
     unique: Boolean(field.unique),
-    options: normalizedOptions ?? undefined,
+    ...(isRelationField && normalizedOptions?.collectionId
+      ? {
+          collectionId: normalizedOptions.collectionId,
+          cascadeDelete: Boolean(normalizedOptions.cascadeDelete),
+          maxSelect: normalizedOptions.maxSelect ?? 1,
+          minSelect: normalizedOptions.minSelect ?? 0
+        }
+      : { options: normalizedOptions ?? undefined }),
     presentable: Boolean(field.required),
     hidden: false
   };
@@ -130,8 +196,15 @@ export function mergeCollectionSchema(existingCollection, definition, collection
   const merged = [...existingFields];
 
   for (const field of desiredSchema) {
-    if (!existingMap.has(field.name)) {
+    const existingField = existingMap.get(field.name);
+    if (!existingField) {
       merged.push(field);
+      continue;
+    }
+
+    if (existingField.required !== field.required) {
+      const existingIndex = merged.findIndex((candidate) => candidate.name === field.name);
+      merged[existingIndex] = { ...existingField, required: field.required };
     }
   }
 

@@ -10,8 +10,10 @@
     "test:catalog": "bun test src/lib/catalog/server/tests",
     "test:issues": "bun test src/lib/issues/server/tests",
     "test:management": "bun test src/lib/management/server/tests",
+    "test:forms": "bun test src/lib/management/server/tests/form-*.test.js",
     "test:operations": "bun test src/lib/operations/server/tests",
     "test:billing": "bun test src/lib/billing/server/tests",
+    "test:documents": "bun test src/lib/documents/server/tests",
     "setup:pb": "node ./scripts/setup-pocketbase.js"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "@aionsoft/shared": "workspace:*",
     "@aionsoft/ui": "workspace:*",
     "@tiptap/core": "^3.22.3",
+    "@tiptap/extension-table": "^3.31.3",
     "@tiptap/extensions": "^3.22.3",
     "@tiptap/markdown": "^3.22.3",
     "@tiptap/pm": "^3.22.3",

@@ -45,6 +45,47 @@ features:
       - src/routes/setup/
     validation_commands:
       - bun run cell:build
+  form-builder:
+    description: Management-owned versioned forms with normalized schemas, conditional fields, calculations, validation, and future rendering or document workflows.
+    context:
+      - ai/features/form-builder.md
+    owned_paths:
+      - src/lib/management/model/form-*.js
+      - src/lib/management/server/ports/form-repository.js
+      - src/lib/management/server/services/form-service.js
+      - src/lib/management/server/adapters/pocketbase/repositories.js
+      - src/lib/management/server/tests/form-*.test.js
+      - src/lib/management/definitions.js
+      - src/lib/server/management-bootstrap.js
+    shared_context:
+      - src/lib/management/
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    depends_on:
+      - management
+    validation_commands:
+      - bun run cell:test:forms
+      - bun run cell:build
+  documents:
+    description: Reusable rich-text document templates and immutable HTML instances generated from published forms.
+    context:
+      - ai/features/documents.md
+    owned_paths:
+      - src/lib/documents/
+      - src/routes/management/documents/
+      - src/routes/operations/documents/
+      - src/routes/operations/accounts/*/documents/
+    shared_context:
+      - src/lib/management/
+      - src/lib/operations/
+      - src/lib/server/pocketbase.js
+      - src/routes/setup/
+    depends_on:
+      - form-builder
+      - operations
+    validation_commands:
+      - bun run cell:test:documents
+      - bun run cell:build
   operations:
     description: Service accounts that group customer companies for operational delivery.
     context:

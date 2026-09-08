@@ -17,6 +17,8 @@
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import ContactRoundIcon from '@lucide/svelte/icons/contact-round';
+  import FilePenLineIcon from '@lucide/svelte/icons/file-pen-line';
+  import FileTextIcon from '@lucide/svelte/icons/file-text';
   import HomeIcon from '@lucide/svelte/icons/home';
   import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -58,11 +60,14 @@
       { label: 'Dashboard', href: '/operations/dashboard', icon: LayoutGridIcon },
       { label: 'Accounts', href: '/operations/accounts', icon: BriefcaseBusinessIcon },
       { label: 'Issues', href: '/operations/issues', icon: BellIcon },
+      { label: 'Documents', href: '/operations/documents', icon: FileTextIcon },
       { label: 'Tasks', href: '/operations/dashboard', icon: BellIcon },
       { label: 'Clients', href: '/operations/dashboard', icon: ContactRoundIcon }
     ],
     Management: [
       { label: 'Dashboard', href: '/management/dashboard', icon: LayoutGridIcon },
+      { label: 'Form Builder', href: '/management/forms', icon: FilePenLineIcon },
+      { label: 'Documents', href: '/management/documents', icon: FileTextIcon },
       { label: 'Users', href: '/management/users', icon: UserRoundIcon },
       { label: 'Groups', href: '/management/groups', icon: UsersIcon },
       { label: 'Roles', href: '/management/roles', icon: SettingsIcon },

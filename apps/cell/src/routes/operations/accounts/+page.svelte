@@ -46,7 +46,7 @@
 <svelte:head><title>Accounts | Aionsoft Operations</title></svelte:head>
 
 <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="flex flex-col gap-1"><p class="text-sm font-medium text-muted-foreground">Operations</p><h1 class="text-2xl font-semibold text-foreground">Accounts</h1><p class="text-sm text-muted-foreground">Service accounts grouping customer companies for delivery.</p></div>
     <Dialog.Root bind:open={createOpen} onOpenChange={(open) => { if (open) resetForm(); }}>
       <Dialog.Trigger>{#snippet child({ props })}<Button {...props}><PlusIcon data-icon="inline-start" />New account</Button>{/snippet}</Dialog.Trigger>

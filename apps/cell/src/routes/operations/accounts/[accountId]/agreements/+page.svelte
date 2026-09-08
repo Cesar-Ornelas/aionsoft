@@ -47,7 +47,7 @@
 <svelte:head><title>Agreements · {data.account.name}</title></svelte:head>
 
 <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="flex flex-col gap-3">
       <Button variant="ghost" size="sm" class="w-fit" onclick={() => goto(`/operations/accounts/${data.account.id}`)}><ArrowLeftIcon data-icon="inline-start" />{data.account.name}</Button>
       <div class="flex items-center gap-3"><HandshakeIcon class="text-muted-foreground" /><h1 class="text-2xl font-semibold">Agreements</h1></div>

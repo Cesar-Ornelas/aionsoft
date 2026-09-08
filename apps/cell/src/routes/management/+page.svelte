@@ -1,5 +1,5 @@
 <div class="space-y-6">
-  <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+  <div>
     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">Management</p>
     <h1 class="mt-3 text-3xl font-semibold tracking-tight text-foreground">Access control</h1>
     <p class="mt-3 max-w-2xl text-sm text-muted-foreground">

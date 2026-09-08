@@ -93,7 +93,7 @@
 <svelte:head><title>{data.agreement.name} · Agreements</title></svelte:head>
 
 <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="flex flex-col gap-3"><Button variant="ghost" size="sm" class="w-fit" onclick={() => goto(`/operations/accounts/${data.account.id}/agreements`)}><ArrowLeftIcon data-icon="inline-start" />Agreements</Button><div class="flex flex-wrap items-center gap-2"><h1 class="text-2xl font-semibold">{data.agreement.name}</h1><Badge variant={data.agreement.status === 'active' ? 'secondary' : 'outline'}>{data.agreement.status}</Badge></div><p class="text-sm text-muted-foreground">{data.agreement.agreementNumber} · {data.account.name}</p></div>
     <div class="flex flex-wrap gap-2">{#if data.agreement.status === 'draft'}<Button onclick={() => transition('active')} disabled={transitioning}><CheckIcon data-icon="inline-start" />Activate</Button>{:else if data.agreement.status === 'active'}<Button variant="outline" onclick={() => transition('paused')} disabled={transitioning}><PauseIcon data-icon="inline-start" />Pause</Button>{:else if data.agreement.status === 'paused'}<Button onclick={() => transition('active')} disabled={transitioning}><CheckIcon data-icon="inline-start" />Resume</Button>{/if}{#if !['cancelled', 'expired'].includes(data.agreement.status)}<Button variant="outline" onclick={() => transition('cancelled')} disabled={transitioning}><XIcon data-icon="inline-start" />Cancel</Button>{/if}</div>
   </header>

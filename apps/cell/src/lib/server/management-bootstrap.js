@@ -8,12 +8,12 @@ import {
   mergeCollectionSchema
 } from '$lib/management/definitions.js';
 
-export async function ensureManagementCollections(client = createPocketBaseClient()) {
+export async function ensureManagementCollections(client = createPocketBaseClient(), definitions = MANAGEMENT_COLLECTION_DEFINITIONS) {
   const existingCollections = await client.collections.getFullList({ batch: 200, sort: 'name' });
   const collectionMap = new Map(existingCollections.map((collection) => [collection.name, collection]));
   const collectionIdMap = new Map(existingCollections.map((collection) => [collection.name, collection.id]));
 
-  for (const definition of MANAGEMENT_COLLECTION_DEFINITIONS) {
+  for (const definition of definitions) {
     const existingCollection = collectionMap.get(definition.name);
 
     if (existingCollection) {
@@ -36,13 +36,84 @@ export async function ensureManagementCollections(client = createPocketBaseClien
       continue;
     }
 
-    const created = await client.collections.create({
-      name: definition.name,
-      type: definition.type,
-      fields: createNormalizedSchema(definition, collectionIdMap)
-    });
+    let created;
+    try {
+      created = await client.collections.create({
+        name: definition.name,
+        type: definition.type,
+        fields: createNormalizedSchema(definition, collectionIdMap)
+      });
+    } catch (error) {
+      const details = error?.response?.data || error?.data;
+      const detailMessage = details && typeof details === 'object'
+        ? Object.entries(details).map(([field, value]) => `${field}: ${value?.message || JSON.stringify(value)}`).join('; ')
+        : error?.message;
+      throw new Error(`Unable to create management collection ${definition.name}: ${detailMessage || 'unknown PocketBase error.'}`, { cause: error });
+    }
+
+    collectionMap.set(definition.name, created);
+    collectionIdMap.set(definition.name, created.id);
 
     console.log(`Created management collection: ${created.name}`);
+  }
+}
+
+export async function ensureManagementFormCollections(client = createPocketBaseClient()) {
+  const formDefinitions = MANAGEMENT_COLLECTION_DEFINITIONS.filter((definition) => (
+    definition.name === 'management_forms' || definition.name === 'management_form_versions'
+  ));
+  await ensureManagementCollections(client, formDefinitions.filter((definition) => definition.name === 'management_forms'));
+  return ensureManagementCollections(client, formDefinitions.filter((definition) => definition.name === 'management_form_versions'));
+}
+
+export async function ensureDocumentCollections(client = createPocketBaseClient()) {
+  const documentDefinitions = MANAGEMENT_COLLECTION_DEFINITIONS.filter((definition) => definition.name.startsWith('documents'));
+  await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_templates'));
+  await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_template_versions'));
+  await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents'));
+  return backfillDocumentOwnedForms(client);
+}
+
+async function backfillDocumentOwnedForms(client) {
+  const templates = client.collection('documents_templates');
+  const forms = client.collection('management_forms');
+  const formVersions = client.collection('management_form_versions');
+  const versions = client.collection('documents_template_versions');
+  const records = await templates.getFullList({ sort: 'name' });
+
+  for (const template of records) {
+    if (template.form_id) continue;
+    const latestVersion = (await versions.getFullList({
+      filter: client.filter('template = {:template}', { template: template.id }),
+      sort: '-version_number',
+      perPage: 1
+    }))[0];
+    let schema = { fields: [] };
+    if (latestVersion?.form_version) {
+      try {
+        const source = await formVersions.getOne(latestVersion.form_version);
+        schema = typeof source.schema === 'string' ? JSON.parse(source.schema) : source.schema || schema;
+      } catch {
+        schema = { fields: [] };
+      }
+    }
+
+    const form = await forms.create({
+      name: `${template.name} fields`,
+      description: template.description || '',
+      category: 'document',
+      status: 'draft'
+    });
+    await formVersions.create({
+      form: form.id,
+      version_number: 1,
+      schema,
+      is_published: false,
+      status: 'draft',
+      created_at: new Date().toISOString()
+    });
+    await templates.update(template.id, { form_id: form.id });
+    console.log(`Backfilled owned form for document template: ${template.name}`);
   }
 }
 

@@ -26,7 +26,7 @@
 <svelte:head><title>Issues | Aionsoft Operations</title></svelte:head>
 
 <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div><p class="text-sm font-medium text-muted-foreground">Operations</p><h1 class="text-2xl font-semibold text-foreground">Issues</h1><p class="text-sm text-muted-foreground">Track customer, provider, and internal issues through resolution.</p></div>
     <Button onclick={() => goto('/operations/issues/new')}><PlusIcon data-icon="inline-start" />New issue</Button>
   </header>
