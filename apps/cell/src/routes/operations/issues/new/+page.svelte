@@ -4,19 +4,21 @@
   import SaveIcon from '@lucide/svelte/icons/save';
   import * as Field from '$lib/components/ui/field';
   import IssueDescriptionEditor from '$lib/components/IssueDescriptionEditor.svelte';
+  import IssueTagInput from '$lib/components/IssueTagInput.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { toast } from '$lib/stores/toast.js';
 
   let submitting = $state(false);
   let formError = $state('');
+  let tags = $state([]);
   let form = $state({ title: '', descriptionMarkdown: '', type: 'internal', priority: 'medium', dueDate: '' });
 
   async function createIssue() {
     submitting = true;
     formError = '';
     try {
-      const response = await fetch('/operations/issues', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(form) });
+      const response = await fetch('/operations/issues', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...form, tags }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to create issue.');
       toast.success('Issue created.');
@@ -58,7 +60,8 @@
       <Field.Field><Field.FieldLabel for="new-issue-type">Type</Field.FieldLabel><select id="new-issue-type" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.type}><option value="customer">Customer</option><option value="provider">Provider</option><option value="internal">Internal</option></select></Field.Field>
       <Field.Field><Field.FieldLabel for="new-issue-priority">Priority</Field.FieldLabel><select id="new-issue-priority" class="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" bind:value={form.priority}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></Field.Field>
       <Field.Field><Field.FieldLabel for="new-issue-due-date">Due date <span class="text-muted-foreground">(optional)</span></Field.FieldLabel><Input id="new-issue-due-date" type="date" bind:value={form.dueDate} /></Field.Field>
-      <div class="border-t border-border pt-4 text-sm text-muted-foreground">Tags, assignees, and company relationships can be added from the issue detail.</div>
+      <Field.Field><Field.FieldLabel for="new-issue-tags">Tags</Field.FieldLabel><IssueTagInput id="new-issue-tags" bind:value={tags} placeholder="Type a tag and press Enter" /><Field.FieldDescription>Press Enter to add a tag.</Field.FieldDescription></Field.Field>
+      <div class="border-t border-border pt-4 text-sm text-muted-foreground">Assignees and company relationships can be added from the issue detail.</div>
     </aside>
   </div>
 </div>

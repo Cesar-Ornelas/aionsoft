@@ -71,6 +71,7 @@ export async function ensureDocumentCollections(client = createPocketBaseClient(
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_templates'));
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_template_versions'));
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents'));
+  await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_review_comments'));
   return backfillDocumentOwnedForms(client);
 }
 

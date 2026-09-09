@@ -3,9 +3,34 @@ import { IssuesDataAccessError } from '../../model/data-access-error.js';
 const TYPES = new Set(['customer', 'provider', 'internal']);
 const PRIORITIES = new Set(['low', 'medium', 'high', 'urgent']);
 const STATUSES = new Set(['open', 'in_progress', 'resolved', 'closed', 'cancelled']);
+const MAX_COMMENT_LENGTH = 10000;
+const MAX_COMMENT_DEPTH = 3;
+const MAX_TAGS = 12;
+const MAX_TAG_LENGTH = 40;
 
 function clean(value) {
   return String(value ?? '').trim();
+}
+
+function normalizeTags(value) {
+  const values = Array.isArray(value) ? value : clean(value).split(',');
+  const tags = [...new Set(values.map((tag) => clean(typeof tag === 'object' ? tag.name : tag).toLowerCase()).filter(Boolean))];
+  if (tags.length > MAX_TAGS) throw new IssuesDataAccessError('INVALID_INPUT', `Issues can have ${MAX_TAGS} tags or fewer.`);
+  if (tags.some((tag) => tag.length > MAX_TAG_LENGTH)) throw new IssuesDataAccessError('INVALID_INPUT', `Issue tags must be ${MAX_TAG_LENGTH} characters or fewer.`);
+  return tags;
+}
+
+function actorId(actor) {
+  const id = clean(actor?.id);
+  if (!id) throw new IssuesDataAccessError('UNAUTHORIZED', 'An authenticated user is required to manage issue comments.');
+  return id;
+}
+
+function commentBody(input) {
+  const bodyMarkdown = clean(input?.bodyMarkdown);
+  if (!bodyMarkdown) throw new IssuesDataAccessError('INVALID_INPUT', 'Comment text is required.');
+  if (bodyMarkdown.length > MAX_COMMENT_LENGTH) throw new IssuesDataAccessError('INVALID_INPUT', `Comment text must be ${MAX_COMMENT_LENGTH} characters or fewer.`);
+  return bodyMarkdown;
 }
 
 function normalize(input) {
@@ -18,7 +43,8 @@ function normalize(input) {
     companyId: clean(input.companyId),
     operationsAccountId: clean(input.operationsAccountId),
     dueDate: clean(input.dueDate),
-    createdBy: clean(input.createdBy)
+    createdBy: clean(input.createdBy),
+    tags: normalizeTags(input.tags)
   };
 }
 
@@ -34,7 +60,10 @@ function validate(input) {
 export function createIssuesService(repository) {
   return {
     async list(filter = {}) {
-      return repository.list({ search: clean(filter.search), status: clean(filter.status), priority: clean(filter.priority), type: clean(filter.type) });
+      return repository.list({ search: clean(filter.search), status: clean(filter.status), priority: clean(filter.priority), type: clean(filter.type), tag: clean(filter.tag).toLowerCase() });
+    },
+    async listTags() {
+      return repository.listTags();
     },
     async get(id) {
       const issue = await repository.findById(clean(id));
@@ -54,8 +83,53 @@ export function createIssuesService(repository) {
         throw new IssuesDataAccessError('CONFLICT', 'Closed or cancelled issues cannot be changed in this release.');
       }
       return repository.update(existing.id, normalized);
+    },
+    async delete(id) {
+      const existing = await this.get(id);
+      await repository.delete(existing.id);
+    },
+    async listComments(issueId) {
+      const issue = await this.get(issueId);
+      return repository.listComments(issue.id);
+    },
+    async getComment(commentId) {
+      const comment = await repository.findCommentById(clean(commentId));
+      if (!comment) throw new IssuesDataAccessError('NOT_FOUND', 'Issue comment was not found.');
+      return comment;
+    },
+    async createComment(issueId, input = {}, actor) {
+      const issue = await this.get(issueId);
+      const authorId = actorId(actor);
+      const parentId = clean(input.parentId) || null;
+      let depth = 0;
+      if (parentId) {
+        const parent = await repository.findCommentById(parentId);
+        if (!parent || parent.issueId !== issue.id) throw new IssuesDataAccessError('INVALID_INPUT', 'Reply must belong to the same issue.');
+        depth = 1;
+        let ancestorId = parent.parentId;
+        while (ancestorId) {
+          depth += 1;
+          const ancestor = await repository.findCommentById(ancestorId);
+          ancestorId = ancestor?.parentId || null;
+        }
+      }
+      if (depth >= MAX_COMMENT_DEPTH) throw new IssuesDataAccessError('INVALID_INPUT', 'Comment threads cannot be nested more deeply.');
+      const now = new Date().toISOString();
+      return repository.createComment({ issueId: issue.id, parentId, bodyMarkdown: commentBody(input), authorId, authorName: clean(actor.name) || clean(actor.email) || authorId, createdAt: now, updatedAt: now, edited: false });
+    },
+    async updateComment(commentId, input = {}, actor) {
+      const authorId = actorId(actor);
+      const comment = await this.getComment(commentId);
+      if (comment.authorId !== authorId) throw new IssuesDataAccessError('FORBIDDEN', 'Only the comment author can edit this comment.');
+      return repository.updateComment(comment.id, { bodyMarkdown: commentBody(input), updatedAt: new Date().toISOString(), edited: true });
+    },
+    async deleteComment(commentId, actor) {
+      const authorId = actorId(actor);
+      const comment = await this.getComment(commentId);
+      if (comment.authorId !== authorId) throw new IssuesDataAccessError('FORBIDDEN', 'Only the comment author can delete this comment.');
+      await repository.deleteComment(comment.id);
     }
   };
 }
 
-export { TYPES, PRIORITIES, STATUSES };
+export { TYPES, PRIORITIES, STATUSES, MAX_COMMENT_LENGTH, MAX_COMMENT_DEPTH, MAX_TAGS, MAX_TAG_LENGTH };

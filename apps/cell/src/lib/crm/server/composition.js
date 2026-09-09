@@ -25,6 +25,7 @@ import { ensureDocumentCollections, ensureManagementFormCollections } from '$lib
 import { createPocketBaseDocumentRepository } from '$lib/documents/server/adapters/pocketbase/repositories.js';
 import { createDocumentTemplateService } from '$lib/documents/server/services/document-template-service.js';
 import { createDocumentService } from '$lib/documents/server/services/document-service.js';
+import { createDocumentReviewService } from '$lib/documents/server/services/document-review-service.js';
 
 export async function createCrmServices({ ensureManagement = false } = {}) {
   const client = await getAdminPocketBaseClient();
@@ -62,6 +63,7 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     getFormVersion: (id) => formService.getVersion(id),
     findAccount: async (id) => operationsAccounts.findById(id)
   });
+  const documentReview = createDocumentReviewService(documentRepository);
 
   return {
     accounts: createCompanyService(accounts),
@@ -75,6 +77,6 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     issues: createIssuesService(issues),
     billing: createBillingAgreementService(billingAgreements, { operationsAccounts, catalog }),
     forms: formService,
-    documents: { templates: documentTemplates, instances: documents }
+    documents: { templates: documentTemplates, instances: documents, review: documentReview }
   };
 }

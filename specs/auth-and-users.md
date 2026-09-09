@@ -25,6 +25,13 @@ This separation is intentional because Aionsoft apps are separate operational do
 
 ## Current Auth Pattern
 
+Cell is an explicit PocketBase-backed exception to the Logto pattern used by the current `portal` and `admin` apps:
+
+- Cell authenticates credentials against its PocketBase `users` auth collection.
+- Cell stores only the PocketBase auth token in the `cell_session` HTTP-only cookie.
+- Cell resolves the authenticated record on each request into `locals.user` and protects pages and server endpoints by default.
+- Cell exposes `/login` for sign-in and `/setup` for first-time PocketBase bootstrap; all other routes require authentication.
+
 Generator direction for new template-based apps:
 
 - auth should be selected with an explicit generator axis such as `--auth logto`

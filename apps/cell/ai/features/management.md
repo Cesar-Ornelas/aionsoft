@@ -37,4 +37,5 @@ Management owns Cell users, groups, roles, permissions, authorization relationsh
 - Inactive or archived records cannot receive new assignments; existing relationships remain available for history.
 - Role permissions are normalized through `management_role_permissions`; the legacy role JSON field is migration input only.
 - The first implementation adds provider-neutral services and tests before switching every Management route to the new composition boundary.
-- Request-time identity resolution and permission enforcement remain deferred until the Cell authentication architecture is finalized. UI visibility is not an authorization boundary.
+- Cell authenticates against the PocketBase `users` auth collection. The session token is stored in the `cell_session` HTTP-only cookie, and request-time identity is resolved into `locals.user` through `authRefresh`.
+- Protected Cell pages and server endpoints require an authenticated session; `/login` and `/setup` remain public bootstrap routes. UI visibility is not an authorization boundary.

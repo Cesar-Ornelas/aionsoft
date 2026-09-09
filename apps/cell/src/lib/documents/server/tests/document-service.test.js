@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createDocumentTemplateService } from '../services/document-template-service.js';
 import { createDocumentService } from '../services/document-service.js';
-import { renderDocumentHtml, extractFieldReferences } from '../../model/content.js';
+import { renderAuthoredDocumentHtml, renderDocumentHtml, extractFieldReferences } from '../../model/content.js';
 
 function createRepository() {
   const templates = [];
@@ -70,6 +70,13 @@ describe('document content', () => {
     expect(rendered).toContain('data-page-break="true"');
     expect(rendered).toContain('break-before:page');
     expect(rendered).toContain('Page two');
+  });
+
+  test('renders authored review content without replacing field tokens', () => {
+    const authored = renderAuthoredDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Customer: ' }, { type: 'document_field', attrs: { fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name' } }] }] });
+    expect(authored).toContain('Customer: ');
+    expect(authored).toContain('@Customer name');
+    expect(authored).not.toContain('Acme');
   });
 });
 

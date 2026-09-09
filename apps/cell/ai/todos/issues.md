@@ -3,13 +3,19 @@
 - [x] Register the Issues feature and Operations navigation entry.
 - [x] Add provider-neutral issue model, service, repository port, and PocketBase collection.
 - [x] Add global issue list and create workflow.
-- [ ] Add issue detail view with TipTap description editing.
-- [ ] Add comments with Markdown content.
-- [ ] Add tags and tag filtering.
+- [x] Add issue detail view with TipTap description editing.
+- [x] Add authenticated comments with Markdown content and author-owned edit/delete actions.
+- [ ] Decide whether to remove the deferred threaded comment model if the flat conversation remains the product direction.
+- [ ] Add adapter and route integration tests for comment ordering, author mapping, ownership, and same-Issue reply validation.
+- [ ] Browser-test authenticated flat comment creation, Markdown rendering, editing, deletion, and reload persistence.
+- [ ] Verify PocketBase collection rules, author relation behavior, and recursive comment deletion in a seeded environment.
+- [ ] Harden the Cell identity boundary beyond the initial session cookie resolver, including provider-neutral identity composition and management-admin override rules.
+- [x] Add tags and tag filtering.
+- [ ] Add tag administration for renaming, colors, and unused-tag cleanup.
 - [ ] Add multiple team-member assignments.
 - [ ] Add resolution and cancellation transitions driven by conversation activity.
 - [ ] Add related task references from issues to tasks and task backlinks to issue conversations.
 - [ ] Define guarded two-way task/issue status hooks, including close propagation, loop prevention, permissions, and conflict handling.
 - [ ] Add CRM company and Operations Account selectors.
-- [ ] Add provider integration and browser smoke tests.
-- [ ] Defer notifications, attachments, SLA automation, email ingestion, and customer portal visibility.
+- [ ] Add provider integration and broader Operations browser smoke tests.
+- [ ] Defer notifications, attachments, SLA automation, email ingestion, customer portal visibility, mentions, reactions, moderation, realtime updates, and comment permalinks.

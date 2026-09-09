@@ -30,7 +30,7 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import UsersIcon from '@lucide/svelte/icons/users';
 
-  let { children } = $props();
+  let { children, user } = $props();
 
   const appNavigation = {
     Sales: [
@@ -112,12 +112,6 @@
       activeTeam = nextTeam;
     }
   });
-
-  const user = {
-    name: 'Aionsoft Admin',
-    email: 'admin@aionsoft.local',
-    avatar: ''
-  };
 
   const breadcrumbs = $derived(() => {
     const pathParts = page.url.pathname.split('/').filter(Boolean);
@@ -226,6 +220,11 @@
   async function selectWorkspace(team) {
     if (team.disabled) return;
     await navigateTo(team.href);
+  }
+
+  async function signOut() {
+    await fetch('/login', { method: 'DELETE' });
+    await goto('/login');
   }
 </script>
 
@@ -375,7 +374,7 @@
                 Settings
               </button>
               <div class="my-1 h-px bg-border"></div>
-              <button type="button" class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10">
+              <button type="button" class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10" onclick={signOut}>
                 <LogOutIcon class="h-4 w-4" />
                 Log out
               </button>

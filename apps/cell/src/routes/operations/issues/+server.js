@@ -8,7 +8,8 @@ export async function GET({ url }) {
       search: url.searchParams.get('search') ?? '',
       status: url.searchParams.get('status') ?? '',
       priority: url.searchParams.get('priority') ?? '',
-      type: url.searchParams.get('type') ?? ''
+      type: url.searchParams.get('type') ?? '',
+      tag: url.searchParams.get('tag') ?? ''
     }));
   } catch (error) {
     return issuesErrorResponse(error);

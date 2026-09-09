@@ -9,7 +9,11 @@ Operations Issues is a global employee-facing queue for problems involving custo
 - Statuses: `open`, `in_progress`, `resolved`, `closed`, `cancelled`.
 - Titles are required and descriptions are Markdown-compatible text.
 - Due dates, company links, and account links are optional.
+- Issues support normalized lowercase tags that can be filtered from the global issue queue.
 - The conversation is the issue's source of resolution context; resolving or closing an issue does not require a separate summary field.
+- Issue comments support Markdown content, chronological ordering, and authenticated authorship in the initial flat conversation UI.
+- Threaded replies remain an optional persistence capability pending product validation.
+- Only the comment author may edit or delete a comment; requests without a resolved user identity cannot mutate comments.
 - Closed and cancelled issues are retained for history and cannot be reopened in the first release.
 
 ## Architecture
@@ -20,4 +24,4 @@ PocketBase schema setup is additive and idempotent. The first slice creates the 
 
 ## Deferred
 
-Comments, tags, assignments, company/account selectors, notifications, attachments, SLA timers, automation, email ingestion, webhooks, customer portal visibility, and advanced request-time authorization are staged follow-up work. Related tasks should be linkable from an issue and link back to the issue conversation. Any two-way task/issue status synchronization, including closing an issue updating related tasks, must be designed with explicit ownership, permissions, loop prevention, and conflict handling before implementation.
+Tag administration, assignments, company/account selectors, notifications, attachments, SLA timers, automation, email ingestion, webhooks, customer portal visibility, realtime collaboration, and advanced moderation are staged follow-up work. Related tasks should be linkable from an issue and link back to the issue conversation. Any two-way task/issue status synchronization, including closing an issue updating related tasks, must be designed with explicit ownership, permissions, loop prevention, and conflict handling before implementation.

@@ -141,6 +141,18 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
       { name: 'rendered_html', type: 'text', required: true },
       { name: 'created_at', type: 'date', required: true }
     ]
+  },
+  {
+    name: 'documents_review_comments',
+    type: 'base',
+    schema: [
+      { name: 'template_version', type: 'relation', options: { collectionId: 'documents_template_versions', cascadeDelete: true }, required: true },
+      { name: 'body', type: 'text', required: true },
+      { name: 'excerpt', type: 'text' },
+      { name: 'anchor', type: 'json', required: true },
+      { name: 'issue_id', type: 'text' },
+      { name: 'created_at', type: 'date', required: true }
+    ]
   }
 ];
 

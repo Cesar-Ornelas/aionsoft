@@ -3,6 +3,7 @@ import { DocumentDataAccessError } from '../../../model/data-access-error.js';
 const TEMPLATES = 'documents_templates';
 const VERSIONS = 'documents_template_versions';
 const DOCUMENTS = 'documents';
+const REVIEW_COMMENTS = 'documents_review_comments';
 
 function parseJson(value, fallback) {
   if (typeof value !== 'string') return value ?? fallback;
@@ -21,6 +22,10 @@ function documentFromRecord(record) {
   return { id: record.id, operationsAccountId: record.operations_account || null, templateVersionId: record.template_version, formVersionId: record.form_version || null, status: record.status, dataSnapshot: parseJson(record.data_snapshot, {}), renderedHtml: record.rendered_html || '', createdAt: record.created_at || record.created || '' };
 }
 
+function reviewCommentFromRecord(record) {
+  return { id: record.id, templateVersionId: record.template_version, body: record.body || '', excerpt: record.excerpt || '', anchor: parseJson(record.anchor, { start: 0, end: 0, text: '' }), issueId: record.issue_id || null, createdAt: record.created_at || record.created || '', updatedAt: record.updated || record.created_at || record.created || '' };
+}
+
 function translateError(error, message) {
   if (error instanceof DocumentDataAccessError) return error;
   const status = Number(error?.status ?? error?.response?.status);
@@ -32,6 +37,7 @@ export function createPocketBaseDocumentRepository(client) {
   const templates = client.collection(TEMPLATES);
   const versions = client.collection(VERSIONS);
   const documents = client.collection(DOCUMENTS);
+  const reviewComments = client.collection(REVIEW_COMMENTS);
   return {
     async listTemplates() { try { return (await templates.getFullList({ sort: 'name' })).map(templateFromRecord); } catch (error) { throw translateError(error, 'Unable to list document templates.'); } },
     async findTemplateById(id) { try { return templateFromRecord(await templates.getOne(id)); } catch (error) { if (Number(error?.status) === 404) return null; throw translateError(error, 'Unable to load the document template.'); } },
@@ -43,5 +49,10 @@ export function createPocketBaseDocumentRepository(client) {
     async updateTemplateVersion(id, input) { try { return versionFromRecord(await versions.update(id, { ...(input.isPublished !== undefined && { is_published: Boolean(input.isPublished) }), ...(input.status !== undefined && { status: input.status }) })); } catch (error) { throw translateError(error, 'Unable to update the document template version.'); } },
     async createDocument(input) { try { return documentFromRecord(await documents.create({ operations_account: input.operationsAccountId || '', template_version: input.templateVersionId, form_version: input.formVersionId || '', status: input.status, data_snapshot: input.dataSnapshot, rendered_html: input.renderedHtml, created_at: input.createdAt })); } catch (error) { throw translateError(error, 'Unable to create the document.'); } },
     async listDocuments() { try { return (await documents.getFullList({ sort: '-created_at' })).map(documentFromRecord); } catch (error) { throw translateError(error, 'Unable to list documents.'); } }
+    ,async listReviewComments(templateVersionId) { try { return (await reviewComments.getFullList({ filter: client.filter('template_version = {:templateVersionId}', { templateVersionId }) })).map(reviewCommentFromRecord); } catch (error) { throw translateError(error, `Unable to list document review comments: ${error?.message || 'provider query failed'}`); } }
+    ,async createReviewComment(input) { try { return reviewCommentFromRecord(await reviewComments.create({ template_version: input.templateVersionId, body: input.body, excerpt: input.excerpt || '', anchor: input.anchor, issue_id: input.issueId || '', created_at: input.createdAt })); } catch (error) { throw translateError(error, 'Unable to create document review comment.'); } }
+    ,async findReviewCommentById(id) { try { return reviewCommentFromRecord(await reviewComments.getOne(id)); } catch (error) { if (Number(error?.status) === 404) return null; throw translateError(error, 'Unable to load document review comment.'); } }
+    ,async updateReviewComment(id, input) { try { return reviewCommentFromRecord(await reviewComments.update(id, { ...(input.issueId !== undefined && { issue_id: input.issueId || '' }) })); } catch (error) { throw translateError(error, 'Unable to update document review comment.'); } }
+    ,async deleteReviewComment(id) { try { await reviewComments.delete(id); } catch (error) { throw translateError(error, 'Unable to delete document review comment.'); } }
   };
 }

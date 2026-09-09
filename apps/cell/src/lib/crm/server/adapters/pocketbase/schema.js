@@ -108,8 +108,12 @@ const BASE_DEFINITIONS = [
   },
   {
     name: COLLECTIONS.operationsIssueComments,
-    fields: [textField('body_markdown', true), textField('author_id', true), ...timestampFields()],
-    indexes: ['CREATE INDEX `idx_operations_issue_comments_issue` ON `operations_issue_comments` (`issue`)']
+    fields: [textField('body_markdown', true), textField('author_id', true), textField('author_name'), boolField('edited'), ...timestampFields()],
+    indexes: [
+      'CREATE INDEX `idx_operations_issue_comments_issue` ON `operations_issue_comments` (`issue`)',
+      'CREATE INDEX `idx_operations_issue_comments_parent` ON `operations_issue_comments` (`parent`)',
+      'CREATE INDEX `idx_operations_issue_comments_created` ON `operations_issue_comments` (`created`)'
+    ]
   },
   {
     name: COLLECTIONS.operationsIssueTags,
@@ -421,7 +425,8 @@ export async function ensureCrmCompanyCollections(client) {
     ]],
     [COLLECTIONS.operationsIssueComments, [
       relationField('issue', collections.get(COLLECTIONS.operationsIssues).id, true, true),
-      relationField('author', collections.get('users').id, true, false)
+      relationField('author', collections.get('users').id, true, false),
+      relationField('parent', collections.get(COLLECTIONS.operationsIssueComments).id, false, true)
     ]],
     [COLLECTIONS.operationsIssueTags, []],
     [COLLECTIONS.operationsIssueTagLinks, [

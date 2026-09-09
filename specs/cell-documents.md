@@ -23,6 +23,8 @@ Existing documents never resolve the current form or template dynamically. Editi
 - HTML preview and persisted HTML generation.
 - Inline Sample data authoring stores an optional JSON fixture on the draft template revision; the Document preview tab renders the current rich-text document as HTML and substitutes available fixture values.
 - Authors can insert an explicit `page_break` marker from the editor toolbar or by typing `@Page`. The marker is authoring metadata, not a form field or submission value.
+- Review shows the authored template without replacing field references and provides flat comments anchored to selected text on the latest saved template version.
+- Review comment links use `?tab=review&comment=<commentId>` and fall back to the stored excerpt when the text-range anchor no longer matches.
 - Reusable templates usable across many accounts or internal workflows.
 - Optional Operations Account context for generated instances.
 - Server-authoritative form validation and deterministic rendering.
@@ -41,6 +43,9 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - User-provided values are escaped before HTML rendering.
 - Sample data is authoring-only test data and is not used as generated-document submission data.
 - Explicit page breaks are preserved in normalized content and rendered with `break-before: page` and `page-break-before: always` hints for future PDF/export renderers.
+- Flagging a review comment as an issue is explicit and optional; the Issue contains the excerpt, original comment, document identifiers, and a Review backlink.
+- Deleting a review comment is explicit; when it has a linked Issue, the Issue is deleted with the comment.
+- Review comments are anonymous until Cell request identity/session wiring is available.
 - Arbitrary HTML, scripts, network fetches, and executable template expressions are rejected.
 - Operations Account association is optional; an invalid supplied account must be rejected.
 

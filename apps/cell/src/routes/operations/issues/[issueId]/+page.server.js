@@ -1,9 +1,11 @@
 import { error } from '@sveltejs/kit';
 import { createCrmServices } from '$lib/crm/server/composition.js';
 
-export async function load({ params }) {
+export async function load({ params, locals }) {
   try {
-    return { issue: await (await createCrmServices()).issues.get(params.issueId) };
+    const services = await createCrmServices();
+    const issue = await services.issues.get(params.issueId);
+    return { issue, comments: await services.issues.listComments(issue.id), user: locals.user };
   } catch (cause) {
     throw error(cause.code === 'NOT_FOUND' ? 404 : 500, cause.message);
   }

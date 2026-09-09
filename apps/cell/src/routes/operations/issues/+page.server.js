@@ -7,5 +7,7 @@ export async function load({ url }) {
     priority: url.searchParams.get('priority') ?? '',
     type: url.searchParams.get('type') ?? ''
   };
-  return { filters, issues: await (await createCrmServices()).issues.list(filters) };
+  const services = await createCrmServices();
+  const [issues, tags] = await Promise.all([services.issues.list(filters), services.issues.listTags()]);
+  return { filters, issues, tags };
 }

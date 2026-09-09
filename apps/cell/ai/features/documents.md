@@ -12,6 +12,9 @@ Documents owns reusable document templates, paired document-owned form packages,
 - A field reference points to a stable field ID/key from the pinned form version.
 - Sample data is an optional JSON fixture saved on a draft template revision for testing document rendering without a submission collection.
 - Authors can insert an explicit `page_break` marker from the editor toolbar or by typing `@Page`; it is not a form field or generated value.
+- Review shows authored template content without data substitution and supports flat comments anchored to selected text on a saved template version.
+- Review comments may be explicitly handed off to Operations Issues; linked comments retain a direct Issue link and a Review deep link.
+- Deleting a review comment also deletes its explicitly linked Operations Issue.
 - A document is a generated instance that snapshots template version, form version, validated data, and rendered HTML.
 
 ## Ownership
@@ -26,6 +29,7 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Form Builder owns form definitions, schemas, validation, calculations, and published form versions. Documents composes those services for owned package workflows.
 - Operations owns account context and operational entry points, not reusable templates.
 - PDF, files, signing, approvals, sharing, and advanced authorization are deferred capabilities.
+- Cell currently has no request-level authenticated identity in document routes, so the first review-comment slice is anonymous; stable author ownership and authorization remain deferred until identity/session wiring exists.
 - Provider SDKs remain in server-only adapters and composition roots.
 
 ## Invariants
@@ -38,6 +42,9 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Explicit page-break markers are preserved in document content and rendered with print-oriented `break-before: page` hints for future PDF/export adapters; normal HTML preview remains valid.
 - Account context is optional for generated documents.
 - Sample data is draft-only authoring data and is never used as generated-document submission data.
+- Review comments are scoped to a saved template version, flat rather than threaded, and use text-range anchors with excerpt fallback when content changes.
+- Issue creation is explicit and optional; ordinary comments do not create Issues.
+- Comment deletion is explicit and removes the linked Issue before removing the comment.
 
 ## Validation
 

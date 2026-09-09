@@ -1,8 +1,9 @@
 <script>
 	import '../app.css';
 	import AppShell from '$lib/components/app-shell.svelte';
+	import { page } from '$app/state';
 	import { toastStore, dismissToast } from '$lib/stores/toast.js';
-	let { children } = $props();
+	let { children, data } = $props();
 
 	let toasts = $state([]);
 	toastStore.subscribe((items) => {
@@ -32,6 +33,10 @@
 	{/each}
 </div>
 
-<AppShell>
+{#if page.url.pathname === '/login' || page.url.pathname.startsWith('/setup')}
 	{@render children()}
-</AppShell>
+{:else}
+	<AppShell user={data.user}>
+		{@render children()}
+	</AppShell>
+{/if}

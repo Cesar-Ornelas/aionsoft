@@ -140,6 +140,35 @@ function renderNode(node, values, fields) {
   return '';
 }
 
+function renderAuthoredInline(nodes) {
+  return (nodes ?? []).map((node) => {
+    if (node.type === 'text') {
+      let html = escapeHtml(node.text);
+      for (const mark of node.marks ?? []) if (mark.type === 'bold') html = `<strong>${html}</strong>`; else if (mark.type === 'italic') html = `<em>${html}</em>`; else if (mark.type === 'code') html = `<code>${html}</code>`;
+      return html;
+    }
+    if (node.type === 'hardBreak') return '<br />';
+    if (node.type === 'document_field') return `<span class="document-authored-field" data-document-field="${escapeHtml(node.attrs.fieldKey || node.attrs.fieldId)}">@${escapeHtml(node.attrs.label || node.attrs.fieldKey || node.attrs.fieldId)}</span>`;
+    return '';
+  }).join('');
+}
+
+function renderAuthoredNode(node) {
+  if (node.type === 'paragraph') return `<p>${renderAuthoredInline(node.content)}</p>`;
+  if (node.type === 'heading') return `<h${node.attrs.level}>${renderAuthoredInline(node.content)}</h${node.attrs.level}>`;
+  if (node.type === 'blockquote') return `<blockquote>${(node.content ?? []).map(renderAuthoredNode).join('')}</blockquote>`;
+  if (node.type === 'bulletList') return `<ul>${(node.content ?? []).map(renderAuthoredNode).join('')}</ul>`;
+  if (node.type === 'orderedList') return `<ol>${(node.content ?? []).map(renderAuthoredNode).join('')}</ol>`;
+  if (node.type === 'listItem') return `<li>${(node.content ?? []).map((child) => child.type === 'paragraph' ? renderAuthoredInline(child.content) : renderAuthoredNode(child)).join('')}</li>`;
+  if (node.type === 'horizontalRule') return '<hr />';
+  if (node.type === 'page_break') return '<div class="document-page-break" data-page-break="true" aria-label="Page break"></div>';
+  if (node.type === 'table') return `<table class="document-table"><tbody>${(node.content ?? []).map(renderAuthoredNode).join('')}</tbody></table>`;
+  if (node.type === 'tableRow') return `<tr>${(node.content ?? []).map(renderAuthoredNode).join('')}</tr>`;
+  if (node.type === 'tableHeader') return `<th${cellAttributes(node)}>${(node.content ?? []).map(renderAuthoredNode).join('')}</th>`;
+  if (node.type === 'tableCell') return `<td${cellAttributes(node)}>${(node.content ?? []).map(renderAuthoredNode).join('')}</td>`;
+  return '';
+}
+
 function cellAttributes(node) {
   const colspan = Number(node.attrs?.colspan ?? 1);
   const rowspan = Number(node.attrs?.rowspan ?? 1);
@@ -153,4 +182,9 @@ export function renderDocumentHtml(content, values = {}, formSchema = { fields: 
   const collect = (items) => (items ?? []).forEach((field) => { fields.push(field); collect(field.fields); });
   collect(formSchema.fields);
   return normalized.content.map((node) => renderNode(node, values, fields)).join('');
+}
+
+export function renderAuthoredDocumentHtml(content) {
+  const normalized = normalizeDocumentContent(content);
+  return normalized.content.map(renderAuthoredNode).join('');
 }
