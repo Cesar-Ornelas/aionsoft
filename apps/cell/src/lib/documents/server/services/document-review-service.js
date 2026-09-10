@@ -2,6 +2,15 @@ import { DocumentDataAccessError } from '../../model/data-access-error.js';
 
 const clean = (value) => String(value ?? '').trim();
 
+function voteSummary(votes, actor) {
+  const voterId = clean(actor?.id);
+  return { count: votes.length, votedByMe: Boolean(voterId && votes.some((vote) => vote.voterId === voterId)), voterNames: votes.map((vote) => vote.voterName).filter(Boolean) };
+}
+
+async function withVotes(repository, comment, actor) {
+  return { ...comment, votes: voteSummary(await repository.listReviewCommentVotes(comment.id), actor) };
+}
+
 function normalizeAnchor(value) {
   const start = Number(value?.start);
   const end = Number(value?.end);
@@ -20,9 +29,9 @@ export function createDocumentReviewService(repository) {
   }
 
   return {
-    async list(templateVersionId) {
+    async list(templateVersionId, actor) {
       await ensureVersion(templateVersionId);
-      return repository.listReviewComments(templateVersionId);
+      return Promise.all((await repository.listReviewComments(templateVersionId)).map((comment) => withVotes(repository, comment, actor)));
     },
     async get(commentId) {
       const id = clean(commentId);
@@ -36,7 +45,8 @@ export function createDocumentReviewService(repository) {
       if (!body) throw new DocumentDataAccessError('INVALID_INPUT', 'Comment text is required.');
       if (body.length > 4000) throw new DocumentDataAccessError('INVALID_INPUT', 'Comment text must be 4000 characters or fewer.');
       const anchor = normalizeAnchor(input.anchor);
-      return repository.createReviewComment({ templateVersionId: version.id, body, excerpt: anchor.text, anchor, issueId: null, createdAt: new Date().toISOString() });
+      const author = { id: clean(input.authorId), name: clean(input.authorName) };
+      return withVotes(repository, await repository.createReviewComment({ templateVersionId: version.id, body, excerpt: anchor.text, anchor, issueId: clean(input.issueId) || null, authorId: author.id || null, authorName: author.name || null, createdAt: new Date().toISOString() }), author);
     },
     async linkIssue(commentId, issueId) {
       const id = clean(commentId);
@@ -47,6 +57,16 @@ export function createDocumentReviewService(repository) {
       const comment = await this.get(commentId);
       await repository.deleteReviewComment(comment.id);
       return comment;
+    },
+    async toggleCommentVote(commentId, actor) {
+      const voterId = clean(actor?.id);
+      if (!voterId) throw new DocumentDataAccessError('UNAUTHORIZED', 'An authenticated user is required to vote on review comments.');
+      const comment = await this.get(commentId);
+      if (comment.authorId === voterId) throw new DocumentDataAccessError('FORBIDDEN', 'You cannot vote on your own comment.');
+      const existing = await repository.findReviewCommentVote(comment.id, voterId);
+      if (existing) await repository.deleteReviewCommentVote(existing.id);
+      else await repository.createReviewCommentVote({ commentId: comment.id, voterId, voterName: clean(actor.name) || clean(actor.email) || voterId, createdAt: new Date().toISOString() });
+      return voteSummary(await repository.listReviewCommentVotes(comment.id), actor);
     }
   };
 }

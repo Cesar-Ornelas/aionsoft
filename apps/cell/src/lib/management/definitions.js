@@ -151,9 +151,25 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
       { name: 'excerpt', type: 'text' },
       { name: 'anchor', type: 'json', required: true },
       { name: 'issue_id', type: 'text' },
+      { name: 'author_id', type: 'text' },
+      { name: 'author_name', type: 'text' },
       { name: 'created_at', type: 'date', required: true }
     ]
-  }
+  },
+  {
+    name: 'documents_review_comment_votes',
+    type: 'base',
+    schema: [
+      { name: 'review_comment', type: 'relation', options: { collectionId: 'documents_review_comments', cascadeDelete: true }, required: true },
+      { name: 'voter', type: 'relation', options: { collectionId: 'users', cascadeDelete: false }, required: true },
+      { name: 'voter_name', type: 'text' },
+      { name: 'created_at', type: 'date', required: true }
+    ],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_documents_review_comment_votes_comment_voter` ON `documents_review_comment_votes` (`review_comment`, `voter`)',
+      'CREATE INDEX `idx_documents_review_comment_votes_comment` ON `documents_review_comment_votes` (`review_comment`)'
+    ]
+  },
 ];
 
 export function resolveCollectionIdName(collectionIdOrName, collectionIdMap = new Map()) {

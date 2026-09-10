@@ -16,6 +16,7 @@ import { createOperationsCallService } from '$lib/operations/server/services/cal
 import { createPocketBaseCatalogServiceRepository } from '$lib/catalog/server/adapters/pocketbase/repositories.js';
 import { createCatalogService } from '$lib/catalog/server/services/catalog-service.js';
 import { createPocketBaseIssuesRepository } from '$lib/issues/server/adapters/pocketbase/repositories.js';
+import { ensureCrmCompanyCollections } from '$lib/crm/server/adapters/pocketbase/schema.js';
 import { createIssuesService } from '$lib/issues/server/services/issues-service.js';
 import { createPocketBaseBillingAgreementRepository } from '$lib/billing/server/adapters/pocketbase/repositories.js';
 import { createBillingAgreementService } from '$lib/billing/server/services/billing-agreement-service.js';
@@ -30,6 +31,7 @@ import { createDocumentReviewService } from '$lib/documents/server/services/docu
 export async function createCrmServices({ ensureManagement = false } = {}) {
   const client = await getAdminPocketBaseClient();
   client.autoCancellation(false);
+  await ensureCrmCompanyCollections(client);
   if (ensureManagement) await ensureManagementFormCollections(client);
   if (ensureManagement) await ensureDocumentCollections(client);
   const accounts = createPocketBaseCompanyRepository(client);
@@ -56,7 +58,9 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     },
     saveOwnedFormDraft: (formId, schema) => formService.saveDraft(formId, schema),
     getOwnedFormVersions: (formId) => formService.getVersions(formId),
-    publishOwnedForm: (formId, versionId) => formService.publish(formId, versionId)
+    publishOwnedForm: (formId, versionId) => formService.publish(formId, versionId),
+    deleteIssue: (id) => createIssuesService(issues).delete(id),
+    archiveOwnedForm: (id) => formService.archive(id)
   });
   const documents = createDocumentService(documentRepository, {
     getTemplateVersion: (id) => documentRepository.findTemplateVersionById(id),

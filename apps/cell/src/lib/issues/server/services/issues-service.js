@@ -33,6 +33,15 @@ function commentBody(input) {
   return bodyMarkdown;
 }
 
+function voteSummary(votes, actor) {
+  const voterId = clean(actor?.id);
+  return { count: votes.length, votedByMe: Boolean(voterId && votes.some((vote) => vote.voterId === voterId)), voterNames: votes.map((vote) => vote.voterName).filter(Boolean) };
+}
+
+async function withVotes(repository, comment, actor) {
+  return { ...comment, votes: voteSummary(await repository.listCommentVotes(comment.id), actor) };
+}
+
 function normalize(input) {
   return {
     title: clean(input.title),
@@ -88,9 +97,9 @@ export function createIssuesService(repository) {
       const existing = await this.get(id);
       await repository.delete(existing.id);
     },
-    async listComments(issueId) {
+    async listComments(issueId, actor) {
       const issue = await this.get(issueId);
-      return repository.listComments(issue.id);
+      return Promise.all((await repository.listComments(issue.id)).map((comment) => withVotes(repository, comment, actor)));
     },
     async getComment(commentId) {
       const comment = await repository.findCommentById(clean(commentId));
@@ -115,19 +124,28 @@ export function createIssuesService(repository) {
       }
       if (depth >= MAX_COMMENT_DEPTH) throw new IssuesDataAccessError('INVALID_INPUT', 'Comment threads cannot be nested more deeply.');
       const now = new Date().toISOString();
-      return repository.createComment({ issueId: issue.id, parentId, bodyMarkdown: commentBody(input), authorId, authorName: clean(actor.name) || clean(actor.email) || authorId, createdAt: now, updatedAt: now, edited: false });
+      return withVotes(repository, await repository.createComment({ issueId: issue.id, parentId, bodyMarkdown: commentBody(input), authorId, authorName: clean(actor.name) || clean(actor.email) || authorId, createdAt: now, updatedAt: now, edited: false }), actor);
     },
     async updateComment(commentId, input = {}, actor) {
       const authorId = actorId(actor);
       const comment = await this.getComment(commentId);
       if (comment.authorId !== authorId) throw new IssuesDataAccessError('FORBIDDEN', 'Only the comment author can edit this comment.');
-      return repository.updateComment(comment.id, { bodyMarkdown: commentBody(input), updatedAt: new Date().toISOString(), edited: true });
+      return withVotes(repository, await repository.updateComment(comment.id, { bodyMarkdown: commentBody(input), updatedAt: new Date().toISOString(), edited: true }), actor);
     },
     async deleteComment(commentId, actor) {
       const authorId = actorId(actor);
       const comment = await this.getComment(commentId);
       if (comment.authorId !== authorId) throw new IssuesDataAccessError('FORBIDDEN', 'Only the comment author can delete this comment.');
       await repository.deleteComment(comment.id);
+    },
+    async toggleCommentVote(commentId, actor) {
+      const voterId = actorId(actor);
+      const comment = await this.getComment(commentId);
+      if (comment.authorId === voterId) throw new IssuesDataAccessError('FORBIDDEN', 'You cannot vote on your own comment.');
+      const existing = await repository.findCommentVote(comment.id, voterId);
+      if (existing) await repository.deleteCommentVote(existing.id);
+      else await repository.createCommentVote({ commentId: comment.id, voterId, voterName: clean(actor.name) || clean(actor.email) || voterId, createdAt: new Date().toISOString() });
+      return voteSummary(await repository.listCommentVotes(comment.id), actor);
     }
   };
 }

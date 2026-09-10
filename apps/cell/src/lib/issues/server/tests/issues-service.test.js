@@ -4,6 +4,7 @@ import { createIssuesService } from '../services/issues-service.js';
 function createRepository() {
   const records = [];
   const comments = [];
+  const votes = [];
   return {
     async list(filter) { return records.filter((issue) => (!filter.search || issue.title.toLowerCase().includes(filter.search.toLowerCase())) && (!filter.status || issue.status === filter.status) && (!filter.tag || issue.tags.some((tag) => tag.name === filter.tag))); },
     async listTags() { return [...new Map(records.flatMap((issue) => issue.tags).map((tag) => [tag.name, tag])).values()]; },
@@ -15,7 +16,11 @@ function createRepository() {
     async findCommentById(id) { return comments.find((comment) => comment.id === id) ?? null; },
     async createComment(input) { const comment = { id: `comment-${comments.length + 1}`, ...input }; comments.push(comment); return comment; },
     async updateComment(id, input) { const index = comments.findIndex((comment) => comment.id === id); comments[index] = { ...comments[index], ...input }; return comments[index]; },
-    async deleteComment(id) { const index = comments.findIndex((comment) => comment.id === id); comments.splice(index, 1); }
+    async deleteComment(id) { const index = comments.findIndex((comment) => comment.id === id); comments.splice(index, 1); },
+    async listCommentVotes(commentId) { return votes.filter((vote) => vote.commentId === commentId); },
+    async findCommentVote(commentId, voterId) { return votes.find((vote) => vote.commentId === commentId && vote.voterId === voterId) ?? null; },
+    async createCommentVote(input) { const vote = { id: `vote-${votes.length + 1}`, ...input }; votes.push(vote); return vote; },
+    async deleteCommentVote(id) { const index = votes.findIndex((vote) => vote.id === id); votes.splice(index, 1); }
   };
 }
 
@@ -75,5 +80,16 @@ describe('issues service', () => {
     const root = await service.createComment(issue.id, { bodyMarkdown: 'Root' }, { id: 'user-1' });
     await expect(service.createComment(issue.id, { bodyMarkdown: 'No author' })).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
     await expect(service.createComment(otherIssue.id, { bodyMarkdown: 'Wrong thread', parentId: root.id }, { id: 'user-2' })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+  });
+
+  test('toggles comment votes and preserves voter names', async () => {
+    const service = createIssuesService(createRepository());
+    const issue = await service.create({ title: 'Votable issue', type: 'internal' });
+    const comment = await service.createComment(issue.id, { bodyMarkdown: 'Please confirm.' }, { id: 'user-1', name: 'Alex' });
+    expect(await service.toggleCommentVote(comment.id, { id: 'user-2', name: 'Sam' })).toEqual({ count: 1, votedByMe: true, voterNames: ['Sam'] });
+    expect(await service.toggleCommentVote(comment.id, { id: 'user-3', name: 'Taylor' })).toEqual({ count: 2, votedByMe: true, voterNames: ['Sam', 'Taylor'] });
+    expect(await service.toggleCommentVote(comment.id, { id: 'user-2', name: 'Sam' })).toEqual({ count: 1, votedByMe: false, voterNames: ['Taylor'] });
+    await expect(service.toggleCommentVote(comment.id, { id: 'user-1', name: 'Alex' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(service.toggleCommentVote(comment.id)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
   });
 });

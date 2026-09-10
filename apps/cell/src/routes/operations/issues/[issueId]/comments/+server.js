@@ -2,9 +2,9 @@ import { json } from '@sveltejs/kit';
 import { createCrmServices } from '$lib/crm/server/composition.js';
 import { issuesErrorResponse } from '$lib/issues/server/http.js';
 
-export async function GET({ params }) {
+export async function GET({ params, locals }) {
   try {
-    return json(await (await createCrmServices()).issues.listComments(params.issueId));
+    return json(await (await createCrmServices()).issues.listComments(params.issueId, locals.user));
   } catch (error) {
     return issuesErrorResponse(error);
   }

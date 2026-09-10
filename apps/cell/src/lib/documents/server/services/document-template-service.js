@@ -15,6 +15,8 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
   const saveOwnedFormDraft = dependencies.saveOwnedFormDraft ?? (async () => null);
   const getOwnedFormVersions = dependencies.getOwnedFormVersions ?? (async () => []);
   const publishOwnedForm = dependencies.publishOwnedForm ?? (async () => null);
+  const deleteIssue = dependencies.deleteIssue ?? (async () => null);
+  const archiveOwnedForm = dependencies.archiveOwnedForm ?? (async () => null);
   const findTemplate = async (id) => {
     const template = await repository.findTemplateById(id);
     if (!template) throw new DocumentDataAccessError('NOT_FOUND', `Document template ${id} was not found.`);
@@ -36,6 +38,21 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
     list: () => repository.listTemplates(),
     get: findTemplate,
     versions: getVersions,
+    delete: async (templateId) => {
+      const template = await findTemplate(templateId);
+      const versions = await getVersions(template.id);
+      const comments = (await Promise.all(versions.map((version) => repository.listReviewComments(version.id)))).flat();
+      for (const issueId of [...new Set(comments.map((comment) => comment.issueId).filter(Boolean))]) {
+        try {
+          await deleteIssue(issueId);
+        } catch (error) {
+          if (error?.code !== 'NOT_FOUND') throw error;
+        }
+      }
+      await repository.deleteTemplate(template.id);
+      if (template.formId) await archiveOwnedForm(template.formId);
+      return template;
+    },
     create: async (input) => {
       const name = required(input.name, 'Template name');
       const ownedForm = await createOwnedForm({ name, description: String(input.description ?? '').trim() });

@@ -13,9 +13,11 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Sample data is an optional JSON fixture saved on a draft template revision for testing document rendering without a submission collection.
 - Authors can insert an explicit `page_break` marker from the editor toolbar or by typing `@Page`; it is not a form field or generated value.
 - Review shows authored template content without data substitution and supports flat comments anchored to selected text on a saved template version.
-- Review comments may be explicitly handed off to Operations Issues; linked comments retain a direct Issue link and a Review deep link.
-- Deleting a review comment also deletes its explicitly linked Operations Issue.
+- Every saved Review comment creates an internal Operations Issue; linked comments retain a direct Issue link and a Review deep link.
+- The Review comment body seeds the Issue description. The compact Review editor keeps the original comment context and supports the flat Issue conversation without changing the Review anchor; larger Issue updates use the full Issue page.
+- Deleting a review comment also deletes its automatically-created Operations Issue.
 - A document is a generated instance that snapshots template version, form version, validated data, and rendered HTML.
+- Template deletion permanently removes generated instances, template versions, Review comments and votes, and automatically-created linked Issues with their replies and votes; the owned form package is archived.
 
 ## Ownership
 
@@ -29,7 +31,7 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Form Builder owns form definitions, schemas, validation, calculations, and published form versions. Documents composes those services for owned package workflows.
 - Operations owns account context and operational entry points, not reusable templates.
 - PDF, files, signing, approvals, sharing, and advanced authorization are deferred capabilities.
-- Cell currently has no request-level authenticated identity in document routes, so the first review-comment slice is anonymous; stable author ownership and authorization remain deferred until identity/session wiring exists.
+- Review comments capture the authenticated creator's stable user ID and display name when available; older comments without those fields use a neutral reviewer fallback in the UI.
 - Provider SDKs remain in server-only adapters and composition roots.
 
 ## Invariants
@@ -43,8 +45,12 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Account context is optional for generated documents.
 - Sample data is draft-only authoring data and is never used as generated-document submission data.
 - Review comments are scoped to a saved template version, flat rather than threaded, and use text-range anchors with excerpt fallback when content changes.
-- Issue creation is explicit and optional; ordinary comments do not create Issues.
+- Clicking a review comment scrolls the authored saved-version content to its anchor and applies a temporary highlight; stale anchors show an explicit status instead of silently failing.
+- Saving a Review comment automatically creates an internal, open, medium-priority Issue; ordinary non-Review comments do not create Issues.
+- Automatically-created Review Issues use the `document-review` tag for filtering and discovery in Operations Issues.
 - Comment deletion is explicit and removes the linked Issue before removing the comment.
+- Template deletion is explicit, confirms the exact template name with a copy affordance, and never removes unrelated Issues.
+- Review comments and their linked Issue conversation replies support one toggleable thumbs-up vote per user, except authors cannot vote on their own comments; vote counts and voter name snapshots are shown in the Review and Sheet surfaces.
 
 ## Validation
 

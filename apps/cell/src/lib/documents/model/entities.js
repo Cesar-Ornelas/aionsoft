@@ -41,8 +41,25 @@
  * @property {string} excerpt
  * @property {{start: number, end: number, text: string}} anchor
  * @property {string|null} issueId
+ * @property {string|null} authorId
+ * @property {string|null} authorName
+ * @property {DocumentReviewCommentVoteSummary} votes
  * @property {string} createdAt
  * @property {string} updatedAt
+ */
+
+/** @typedef {Object} DocumentReviewCommentVote
+ * @property {string} id
+ * @property {string} commentId
+ * @property {string} voterId
+ * @property {string} voterName
+ * @property {string} createdAt
+ */
+
+/** @typedef {Object} DocumentReviewCommentVoteSummary
+ * @property {number} count
+ * @property {boolean} votedByMe
+ * @property {string[]} voterNames
  */
 
 export const DOCUMENT_TEMPLATE_STATUSES = new Set(['draft', 'published', 'archived']);

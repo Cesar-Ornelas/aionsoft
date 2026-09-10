@@ -3,6 +3,7 @@ import { createDocumentReviewService } from '../services/document-review-service
 
 function createRepository() {
   const comments = [];
+  const votes = [];
   const version = { id: 'version-1', templateId: 'template-1' };
   return {
     comments,
@@ -11,17 +12,23 @@ function createRepository() {
     async findReviewCommentById(id) { return comments.find((comment) => comment.id === id) ?? null; },
     async createReviewComment(input) { const comment = { id: `comment-${comments.length + 1}`, ...input }; comments.push(comment); return comment; },
     async updateReviewComment(id, input) { const comment = comments.find((entry) => entry.id === id); Object.assign(comment, input); return comment; },
-    async deleteReviewComment(id) { const index = comments.findIndex((comment) => comment.id === id); comments.splice(index, 1); }
+    async deleteReviewComment(id) { const index = comments.findIndex((comment) => comment.id === id); comments.splice(index, 1); },
+    async listReviewCommentVotes(commentId) { return votes.filter((vote) => vote.commentId === commentId); },
+    async findReviewCommentVote(commentId, voterId) { return votes.find((vote) => vote.commentId === commentId && vote.voterId === voterId) ?? null; },
+    async createReviewCommentVote(input) { const vote = { id: `vote-${votes.length + 1}`, ...input }; votes.push(vote); return vote; },
+    async deleteReviewCommentVote(id) { const index = votes.findIndex((vote) => vote.id === id); votes.splice(index, 1); }
   };
 }
 
 describe('document review service', () => {
-  test('creates version-scoped anonymous comments and links issues', async () => {
+  test('creates version-scoped comments with a linked issue', async () => {
     const repository = createRepository();
     const service = createDocumentReviewService(repository);
-    const comment = await service.create('version-1', { body: 'Clarify this clause.', anchor: { start: 4, end: 9, text: 'clause' } });
+    const comment = await service.create('version-1', { body: 'Clarify this clause.', issueId: 'issue-1', authorId: 'user-1', authorName: 'Aionsoft Admin', anchor: { start: 4, end: 9, text: 'clause' } });
     expect(comment.templateVersionId).toBe('version-1');
-    expect(comment.issueId).toBeNull();
+    expect(comment.issueId).toBe('issue-1');
+    expect(comment.authorId).toBe('user-1');
+    expect(comment.authorName).toBe('Aionsoft Admin');
     expect((await service.list('version-1'))).toHaveLength(1);
     expect((await service.linkIssue(comment.id, 'issue-1')).issueId).toBe('issue-1');
   });
@@ -38,5 +45,16 @@ describe('document review service', () => {
     const comment = await service.create('version-1', { body: 'Remove this note.', anchor: { start: 0, end: 4, text: 'Remove' } });
     await service.delete(comment.id);
     expect(await service.list('version-1')).toHaveLength(0);
+  });
+
+  test('toggles review comment votes and rejects self-voting', async () => {
+    const repository = createRepository();
+    const service = createDocumentReviewService(repository);
+    const comment = await service.create('version-1', { body: 'Review this.', authorId: 'user-1', authorName: 'Alex', anchor: { start: 0, end: 6, text: 'Review' } });
+    expect(await service.toggleCommentVote(comment.id, { id: 'user-2', name: 'Sam' })).toEqual({ count: 1, votedByMe: true, voterNames: ['Sam'] });
+    expect((await service.list('version-1', { id: 'user-2' }))[0].votes).toEqual({ count: 1, votedByMe: true, voterNames: ['Sam'] });
+    expect(await service.toggleCommentVote(comment.id, { id: 'user-2', name: 'Sam' })).toEqual({ count: 0, votedByMe: false, voterNames: [] });
+    await expect(service.toggleCommentVote(comment.id, { id: 'user-1', name: 'Alex' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(service.toggleCommentVote(comment.id)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
   });
 });

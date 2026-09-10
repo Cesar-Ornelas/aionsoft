@@ -1,6 +1,7 @@
 /** @typedef {import('../../model/entities.js').Issue} Issue */
 /** @typedef {import('../../model/entities.js').IssueComment} IssueComment */
 /** @typedef {import('../../model/entities.js').IssueTag} IssueTag */
+/** @typedef {import('../../model/entities.js').IssueCommentVote} IssueCommentVote */
 
 /**
  * @typedef {Object} IssuesRepository
@@ -15,6 +16,10 @@
  * @property {(input: Object) => Promise<IssueComment>} createComment
  * @property {(id: string, input: Object) => Promise<IssueComment>} updateComment
  * @property {(id: string) => Promise<void>} deleteComment
+ * @property {(commentId: string) => Promise<IssueCommentVote[]>} listCommentVotes
+ * @property {(commentId: string, voterId: string) => Promise<IssueCommentVote|null>} findCommentVote
+ * @property {(input: Object) => Promise<IssueCommentVote>} createCommentVote
+ * @property {(id: string) => Promise<void>} deleteCommentVote
  */
 
 export {};

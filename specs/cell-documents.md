@@ -43,15 +43,19 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - User-provided values are escaped before HTML rendering.
 - Sample data is authoring-only test data and is not used as generated-document submission data.
 - Explicit page breaks are preserved in normalized content and rendered with `break-before: page` and `page-break-before: always` hints for future PDF/export renderers.
-- Flagging a review comment as an issue is explicit and optional; the Issue contains the excerpt, original comment, document identifiers, and a Review backlink.
-- Deleting a review comment is explicit; when it has a linked Issue, the Issue is deleted with the comment.
-- Review comments are anonymous until Cell request identity/session wiring is available.
+- Saving a review comment automatically creates an internal, open, medium-priority Issue; the Issue contains the excerpt, original comment, document identifiers, and a Review backlink.
+- Automatically-created Review Issues are tagged `document-review` so they can be found from the Operations Issues tag filter.
+- Review provides `Open in Issues` and a compact `Edit` Sheet for Issue title, description, and flat comments. Operational metadata remains in the full Issues view.
+- Deleting a review comment is explicit; its automatically-created linked Issue is deleted with the comment.
+- Review comments store the authenticated creator's user ID and display name when available; legacy comments without author data remain supported with a neutral reviewer fallback.
+- Review comments and linked Issue replies support toggleable thumbs-up votes. A comment author cannot vote on their own comment, and the UI shows the vote count plus voter names on hover.
+- Deleting a template permanently removes its generated documents, template versions, Review comments and votes, and automatically-created linked Issues with their replies and votes. Owned form packages are archived rather than hard-deleted.
 - Arbitrary HTML, scripts, network fetches, and executable template expressions are rejected.
 - Operations Account association is optional; an invalid supplied account must be rejected.
 
 ## Routes
 
-Management owns reusable template authoring under `/management/documents`. Operations owns generated-document workflows under `/operations/documents` and optional account-context views under `/operations/accounts/[accountId]/documents`.
+Management owns reusable template authoring under `/management/documents`, including a destructive delete action with an explicit confirmation showing the exact template name and a copy affordance. Operations owns generated-document workflows under `/operations/documents` and optional account-context views under `/operations/accounts/[accountId]/documents`.
 
 ## Validation
 

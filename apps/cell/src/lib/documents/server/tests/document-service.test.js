@@ -7,11 +7,15 @@ function createRepository() {
   const templates = [];
   const versions = [];
   const documents = [];
+  const reviewComments = [];
+  const deletedTemplates = [];
   let nextId = 1;
   return {
     templates,
     versions,
     documents,
+    reviewComments,
+    deletedTemplates,
     async listTemplates() { return templates; },
     async findTemplateById(id) { return templates.find((item) => item.id === id) ?? null; },
     async createTemplate(input) { const value = { id: `template-${nextId++}`, ...input }; templates.push(value); return value; },
@@ -22,6 +26,8 @@ function createRepository() {
     async updateTemplateVersion(id, input) { const value = versions.find((item) => item.id === id); Object.assign(value, input); return value; },
     async createDocument(input) { const value = { id: `document-${nextId++}`, ...input }; documents.push(value); return value; },
     async listDocuments() { return documents; }
+    ,async listReviewComments(versionId) { return reviewComments.filter((item) => item.versionId === versionId); }
+    ,async deleteTemplate(id) { deletedTemplates.push(id); }
   };
 }
 
@@ -112,6 +118,25 @@ describe('document services', () => {
     const document = await documentService.generate({ templateVersionId: draft.id });
     expect(document.operationsAccountId).toBeNull();
     expect(document.formVersionId).toBeNull();
+  });
+
+  test('deletes the template and only its linked review issues', async () => {
+    const repository = createRepository();
+    const deletedIssues = [];
+    const templates = createDocumentTemplateService(repository, {
+      deleteIssue: async (id) => deletedIssues.push(id)
+    });
+    const template = await templates.create({ name: 'Retiring agreement' });
+    const version = await templates.saveDraft(template.id, { content });
+    repository.reviewComments.push(
+      { id: 'review-1', versionId: version.id, issueId: 'issue-linked' },
+      { id: 'review-2', versionId: version.id, issueId: 'issue-linked' }
+    );
+
+    await templates.delete(template.id);
+
+    expect(deletedIssues).toEqual(['issue-linked']);
+    expect(repository.deletedTemplates).toEqual([template.id]);
   });
 
   test('saves and publishes an owned form and document as a package', async () => {

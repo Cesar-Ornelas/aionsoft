@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import SaveIcon from '@lucide/svelte/icons/save';
+  import ThumbsUpIcon from '@lucide/svelte/icons/thumbs-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
@@ -26,6 +27,7 @@
   let commentError = $state('');
   let commentSubmitting = $state(false);
   let deletingCommentId = $state('');
+  let votingCommentId = $state('');
 
   function escapeHtml(value) {
     return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
@@ -35,6 +37,26 @@
     let html = escapeHtml(value).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/__([^_]+)__/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
     return html.replace(/\n/g, '<br>');
+  }
+
+  function voteTooltip(votes) {
+    return votes?.voterNames?.length ? votes.voterNames.join(', ') : 'No votes yet';
+  }
+
+  async function toggleCommentVote(comment) {
+    if (!data.user?.id || data.user.id === comment.authorId) return;
+    votingCommentId = comment.id;
+    commentError = '';
+    try {
+      const response = await fetch(`/operations/issues/${issue.id}/comments/${comment.id}/vote`, { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to update the vote.');
+      comments = comments.map((entry) => entry.id === comment.id ? { ...entry, votes: result } : entry);
+    } catch (error) {
+      commentError = error.message;
+    } finally {
+      votingCommentId = '';
+    }
   }
 
   async function saveIssue() {
@@ -138,6 +160,7 @@
                   {/if}
                 </header>
                 {#if editingCommentId === comment.id}<IssueDescriptionEditor value={editingBody} onChange={(value) => (editingBody = value)} minHeight="min-h-32" /><div class="mt-2 flex justify-end gap-2"><Button variant="ghost" size="sm" onclick={() => (editingCommentId = '')}>Cancel</Button><Button size="sm" onclick={() => saveEditedComment(comment)} disabled={commentSubmitting}>Save edit</Button></div>{:else}<div class="comment-body mt-3 text-sm leading-6 text-foreground">{@html renderCommentMarkdown(comment.bodyMarkdown)}</div>{/if}
+                <div class="mt-3 flex items-center gap-1">{#if data.user?.id && data.user.id !== comment.authorId}<Button variant="ghost" size="icon-xs" class={comment.votes?.votedByMe ? 'bg-primary/10 text-primary' : ''} title={comment.votes?.votedByMe ? 'Remove thumbs up' : 'Thumbs up'} aria-label={comment.votes?.votedByMe ? 'Remove thumbs up' : 'Thumbs up'} onclick={() => toggleCommentVote(comment)} disabled={votingCommentId === comment.id}><ThumbsUpIcon /></Button>{/if}<span title={voteTooltip(comment.votes)} class="text-xs text-muted-foreground">{comment.votes?.count ?? 0}</span></div>
               </article>
             {/each}
           </div>

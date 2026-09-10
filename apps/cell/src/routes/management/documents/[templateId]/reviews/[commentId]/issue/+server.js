@@ -1,6 +1,19 @@
 import { json } from '@sveltejs/kit';
 import { createCrmServices } from '$lib/crm/server/composition.js';
 
+export async function GET({ params }) {
+  try {
+    const services = await createCrmServices({ ensureManagement: true });
+    const comment = await services.documents.review.get(params.commentId);
+    if (!comment.issueId) return json({ error: 'This review comment has no linked issue.' }, { status: 404 });
+    const issue = await services.issues.get(comment.issueId);
+    return json({ issue, comments: await services.issues.listComments(issue.id) });
+  } catch (error) {
+    const status = error?.code === 'not_found' ? 404 : error?.code === 'invalid_input' ? 400 : 500;
+    return json({ error: error?.message || 'Unable to load the linked issue.' }, { status });
+  }
+}
+
 export async function POST({ params, url }) {
   try {
     const services = await createCrmServices({ ensureManagement: true });
@@ -12,12 +25,13 @@ export async function POST({ params, url }) {
       title: `Review: ${template.name} - ${comment.excerpt.slice(0, 120)}`,
       descriptionMarkdown: `Document review comment\n\nSelected text:\n> ${comment.excerpt.replaceAll('\n', '\n> ')}\n\nComment:\n${comment.body}\n\n[Open document review](${reviewUrl})`,
       type: 'internal',
-      priority: 'medium'
+      priority: 'medium',
+      tags: ['document-review']
     });
     await services.documents.review.linkIssue(comment.id, issue.id);
     return json({ issueId: issue.id, url: `/operations/issues/${issue.id}` });
   } catch (error) {
-    const status = error?.code === 'NOT_FOUND' ? 404 : error?.code === 'INVALID_INPUT' ? 400 : 500;
+    const status = error?.code === 'not_found' ? 404 : error?.code === 'invalid_input' ? 400 : 500;
     return json({ error: error?.message || 'Unable to create the linked issue.' }, { status });
   }
 }

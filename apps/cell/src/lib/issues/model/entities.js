@@ -29,6 +29,21 @@
  * @property {string} createdAt
  * @property {string} updatedAt
  * @property {boolean} edited
+ * @property {IssueCommentVoteSummary} votes
+ */
+
+/** @typedef {Object} IssueCommentVote
+ * @property {string} id
+ * @property {string} commentId
+ * @property {string} voterId
+ * @property {string} voterName
+ * @property {string} createdAt
+ */
+
+/** @typedef {Object} IssueCommentVoteSummary
+ * @property {number} count
+ * @property {boolean} votedByMe
+ * @property {string[]} voterNames
  */
 
 /**

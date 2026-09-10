@@ -17,7 +17,7 @@ Add a Review workspace to the Document Builder that shows authored template cont
 
 ## Implementation
 
-Status: first slice implemented. Review rendering, anonymous version-scoped comments, text-range deep links, and optional Issue handoff are in place. Remaining work includes stronger identity/authorization, stale-anchor UI polish, adapter integration tests, and richer browser coverage.
+Status: first slice implemented. Review rendering, anonymous version-scoped comments, text-range deep links, and optional Issue handoff are in place. The click-to-location slice now renders saved-version content, applies temporary highlights, scrolls to comment anchors, and reports stale anchors. Remaining work includes browser coverage, adapter integration tests, and stronger identity/authorization.
 
 1. Add authored-content rendering that preserves field tokens and page-break markers.
 2. Add selection anchor creation/reselection APIs to the document editor.
@@ -27,6 +27,22 @@ Status: first slice implemented. Review rendering, anonymous version-scoped comm
 6. Add explicit Issue creation and backlink persistence.
 7. Update feature context/specs and add focused tests.
 
+### Comment Navigation Follow-up
+
+1. Render review anchors against the same saved template version that owns the comments; do not silently anchor comments against unsaved editor content.
+2. Isolate the authored document body from the Review notice so character offsets cover only document content.
+3. Normalize selection offsets to match trimmed selected text.
+4. Reconstruct selected ranges across paragraphs and table cells, wrap the range in a temporary marked highlight, and clear the previous highlight when another comment is opened.
+5. Scroll the first highlighted fragment into the left review pane and preserve `tab=review&comment=<id>` deep links after reload.
+6. Show a visible stale-anchor state when the saved text no longer matches instead of silently failing.
+7. Add focused anchor tests, browser coverage, and update the Documents feature context after implementation.
+
+### Navigation Decisions
+
+- Preserve the existing `{ start, end, text }` anchor contract.
+- Use temporary DOM highlighting; never persist highlight markup in document content.
+- Keep review comments flat. PDF annotations, realtime collaboration, threaded comments, and rich annotation ranges remain out of scope.
+
 ## Validation
 
 - `bun run cell:test:documents`
@@ -34,3 +50,4 @@ Status: first slice implemented. Review rendering, anonymous version-scoped comm
 - `get_errors` on touched files
 - `git diff --check`
 - Browser validation for Review, selection comments, reload deep links, Issue creation, and backlinks.
+- Browser validation for click-to-scroll, persistent highlighting, multi-paragraph/table selections, stale anchors, and saved-versus-unsaved content.

@@ -3,6 +3,7 @@ import { IssuesDataAccessError } from '../../../model/data-access-error.js';
 const COLLECTION = 'operations_issues';
 const TAG_COLLECTION = 'operations_issue_tags';
 const TAG_LINK_COLLECTION = 'operations_issue_tag_links';
+const COMMENT_VOTES = 'operations_issue_comment_votes';
 
 function issueFromRecord(record) {
   return {
@@ -38,6 +39,17 @@ function commentFromRecord(record) {
     createdAt: record.created || '',
     updatedAt: record.updated || record.created || '',
     edited: Boolean(record.edited)
+  };
+}
+
+function commentVoteFromRecord(record) {
+  const voter = record.expand?.voter;
+  return {
+    id: record.id,
+    commentId: record.comment,
+    voterId: record.voter,
+    voterName: record.voter_name || voter?.name || voter?.email || record.voter || '',
+    createdAt: record.created || record.created_at || ''
   };
 }
 
@@ -223,6 +235,51 @@ export function createPocketBaseIssuesRepository(client) {
         await client.collection('operations_issue_comments').delete(id);
       } catch (error) {
         throw translateError(error, 'Unable to delete the issue comment.');
+      }
+    },
+
+    async listCommentVotes(commentId) {
+      try {
+        return (await client.collection(COMMENT_VOTES).getFullList({
+          filter: client.filter('comment = {:comment}', { comment: commentId }),
+          sort: 'created_at',
+          expand: 'voter'
+        })).map(commentVoteFromRecord);
+      } catch (error) {
+        throw translateError(error, 'Unable to list issue comment votes.');
+      }
+    },
+
+    async findCommentVote(commentId, voterId) {
+      try {
+        return commentVoteFromRecord(await client.collection(COMMENT_VOTES).getFirstListItem(
+          client.filter('comment = {:comment} && voter = {:voter}', { comment: commentId, voter: voterId }),
+          { expand: 'voter' }
+        ));
+      } catch (error) {
+        if (Number(error?.status) === 404) return null;
+        throw translateError(error, 'Unable to load the issue comment vote.');
+      }
+    },
+
+    async createCommentVote(input) {
+      try {
+        return commentVoteFromRecord(await client.collection(COMMENT_VOTES).create({
+          comment: input.commentId,
+          voter: input.voterId,
+          voter_name: input.voterName,
+          created_at: input.createdAt
+        }, { expand: 'voter' }));
+      } catch (error) {
+        throw translateError(error, 'Unable to create the issue comment vote.');
+      }
+    },
+
+    async deleteCommentVote(id) {
+      try {
+        await client.collection(COMMENT_VOTES).delete(id);
+      } catch (error) {
+        throw translateError(error, 'Unable to remove the issue comment vote.');
       }
     }
   };

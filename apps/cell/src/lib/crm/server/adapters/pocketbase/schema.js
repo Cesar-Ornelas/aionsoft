@@ -15,6 +15,7 @@ const COLLECTIONS = Object.freeze({
   ,billingAgreements: 'billing_agreements'
   ,billingAgreementItems: 'billing_agreement_items'
   ,operationsIssueComments: 'operations_issue_comments'
+  ,operationsIssueCommentVotes: 'operations_issue_comment_votes'
   ,operationsIssueTags: 'operations_issue_tags'
   ,operationsIssueTagLinks: 'operations_issue_tag_links'
   ,operationsIssueAssignees: 'operations_issue_assignees'
@@ -113,6 +114,14 @@ const BASE_DEFINITIONS = [
       'CREATE INDEX `idx_operations_issue_comments_issue` ON `operations_issue_comments` (`issue`)',
       'CREATE INDEX `idx_operations_issue_comments_parent` ON `operations_issue_comments` (`parent`)',
       'CREATE INDEX `idx_operations_issue_comments_created` ON `operations_issue_comments` (`created`)'
+    ]
+  },
+  {
+    name: COLLECTIONS.operationsIssueCommentVotes,
+    fields: [dateField('created_at', true)],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_operations_issue_comment_votes_comment_voter` ON `operations_issue_comment_votes` (`comment`, `voter`)',
+      'CREATE INDEX `idx_operations_issue_comment_votes_comment` ON `operations_issue_comment_votes` (`comment`)'
     ]
   },
   {
@@ -397,6 +406,7 @@ export async function ensureCrmCompanyCollections(client) {
         COLLECTIONS.operationsEventAttendees,
         COLLECTIONS.operationsCalls,
           COLLECTIONS.operationsIssueComments,
+          COLLECTIONS.operationsIssueCommentVotes,
           COLLECTIONS.operationsIssueTagLinks,
           COLLECTIONS.operationsIssueAssignees,
         COLLECTIONS.catalogPriceOffers,
@@ -427,6 +437,10 @@ export async function ensureCrmCompanyCollections(client) {
       relationField('issue', collections.get(COLLECTIONS.operationsIssues).id, true, true),
       relationField('author', collections.get('users').id, true, false),
       relationField('parent', collections.get(COLLECTIONS.operationsIssueComments).id, false, true)
+    ]],
+    [COLLECTIONS.operationsIssueCommentVotes, [
+      relationField('comment', collections.get(COLLECTIONS.operationsIssueComments).id, true, true),
+      relationField('voter', collections.get('users').id, true, false)
     ]],
     [COLLECTIONS.operationsIssueTags, []],
     [COLLECTIONS.operationsIssueTagLinks, [
