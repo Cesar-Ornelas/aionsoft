@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import CopyIcon from "@lucide/svelte/icons/copy";
+  import DownloadIcon from "@lucide/svelte/icons/download";
   import EyeIcon from "@lucide/svelte/icons/eye";
   import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
   import FileTextIcon from "@lucide/svelte/icons/file-text";
@@ -11,6 +12,7 @@
   import SaveIcon from "@lucide/svelte/icons/save";
   import ThumbsUpIcon from "@lucide/svelte/icons/thumbs-up";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
+  import Undo2Icon from "@lucide/svelte/icons/undo-2";
   import UploadCloudIcon from "@lucide/svelte/icons/upload-cloud";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Field from "$lib/components/ui/field";
@@ -85,6 +87,8 @@
   let votingReviewCommentId = $state("");
   let deleteTemplateOpen = $state(false);
   let templateNameCopied = $state(false);
+  let pendingRollback = $state(null);
+  let isRollingBack = $state(false);
   let deleteTemplateConfirmation = $state("");
   let canDeleteTemplate = $derived(
     deleteTemplateConfirmation === data.template.name,
@@ -711,6 +715,51 @@
       toast.error(errorMessage);
     }
   }
+
+  async function exportTemplate(includeCollaboration = false) {
+    try {
+      const query = includeCollaboration ? "?includeIssues=true&includeVotes=true" : "";
+      const response = await fetch(`/management/documents/${data.template.id}/export${query}`);
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Unable to export document package.");
+      }
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = `${data.template.name.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase() || "document"}.aionsoft-document.json`;
+      anchor.click();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success(includeCollaboration ? "Document package with collaboration exported." : "Document package exported.");
+    } catch (error) {
+      toast.error(error.message || "Unable to export document package.");
+    }
+  }
+
+  async function rollbackTemplate(version) {
+    isRollingBack = true;
+    try {
+      const response = await fetch(`/management/documents/${data.template.id}/versions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "rollback", versionId: version.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to roll back document.");
+      pendingRollback = null;
+      toast.success(`Document restored to version ${version.versionNumber}.`);
+      await goto(`/management/documents/${data.template.id}?tab=history`, {
+        invalidateAll: true,
+        replaceState: true,
+      });
+    } catch (error) {
+      errorMessage = error.message;
+      toast.error(errorMessage);
+    } finally {
+      isRollingBack = false;
+    }
+  }
 </script>
 
 <div class="flex flex-col gap-6">
@@ -761,6 +810,8 @@
           ? "Saving..."
           : "Save draft"}</Button
       >
+        <Button variant="outline" onclick={() => exportTemplate()}><DownloadIcon data-icon="inline-start" />Export</Button>
+        <Button variant="outline" onclick={() => exportTemplate(true)}><DownloadIcon data-icon="inline-start" />Export with collaboration</Button>
         <AlertDialog.Root
           open={deleteTemplateOpen}
           onOpenChange={setDeleteTemplateOpen}
@@ -1201,7 +1252,7 @@
           {#each data.versions as version}<div
               class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
             >
-              <span class="font-medium text-foreground"
+              ><span class="font-medium text-foreground"
                 >Version {version.versionNumber}</span
               ><Badge variant={version.isPublished ? "default" : "secondary"}
                 >{version.status}</Badge
@@ -1209,7 +1260,34 @@
                 >{version.createdAt
                   ? new Date(version.createdAt).toLocaleString()
                   : "Not available"}</span
-              >
+              >{#if version.isPublished && version.id !== data.versions[0]?.id}<AlertDialog.Root
+                  open={pendingRollback?.id === version.id}
+                  onOpenChange={(open) => !open && (pendingRollback = null)}
+                ><AlertDialog.Trigger
+                    >{#snippet child({ props })}<Button
+                        {...props}
+                        variant="outline"
+                        size="sm"
+                        onclick={() => (pendingRollback = version)}
+                        ><Undo2Icon data-icon="inline-start" />Restore</Button
+                      >{/snippet}</AlertDialog.Trigger
+                  ><AlertDialog.Content
+                    ><AlertDialog.Header
+                      ><AlertDialog.Title
+                        >Restore version {version.versionNumber}?</AlertDialog.Title
+                      ><AlertDialog.Description
+                        >This creates a new published revision using the content and form from version {version.versionNumber}. Existing history remains unchanged.</AlertDialog.Description
+                      ></AlertDialog.Header
+                    ><AlertDialog.Footer
+                      ><AlertDialog.Cancel>Cancel</AlertDialog.Cancel
+                      ><AlertDialog.Action
+                        onclick={() => rollbackTemplate(version)}
+                        disabled={isRollingBack}
+                        >{isRollingBack ? "Restoring..." : "Restore version"}</AlertDialog.Action
+                      ></AlertDialog.Footer
+                    ></AlertDialog.Content
+                  ></AlertDialog.Root
+                >{/if}
             </div>{/each}{#if !data.versions.length}<p
               class="py-3 text-sm text-muted-foreground"
             >

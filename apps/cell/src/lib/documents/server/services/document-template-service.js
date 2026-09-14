@@ -15,6 +15,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
   const saveOwnedFormDraft = dependencies.saveOwnedFormDraft ?? (async () => null);
   const getOwnedFormVersions = dependencies.getOwnedFormVersions ?? (async () => []);
   const publishOwnedForm = dependencies.publishOwnedForm ?? (async () => null);
+  const cloneOwnedFormRevision = dependencies.cloneOwnedFormRevision ?? (async () => null);
   const deleteIssue = dependencies.deleteIssue ?? (async () => null);
   const archiveOwnedForm = dependencies.archiveOwnedForm ?? (async () => null);
   const findTemplate = async (id) => {
@@ -33,6 +34,21 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
     }
     return normalized;
   };
+  const publishVersion = async (templateId, version) => {
+    const template = await findTemplate(templateId);
+    if (template.formId) {
+      const formVersions = await getOwnedFormVersions(template.formId);
+      const formVersion = formVersions.find((candidate) => candidate.id === version.formVersionId);
+      if (!formVersion || formVersion.isPublished) throw new DocumentDataAccessError('CONFLICT', 'A matching draft form version is required for publication.');
+      await validateContent(version.content, version.formVersionId, { allowDraft: true });
+      await publishOwnedForm(template.formId, formVersion.id);
+    } else {
+      await validateContent(version.content, version.formVersionId);
+    }
+    await repository.updateTemplateVersion(version.id, { isPublished: true, status: 'published' });
+    await repository.updateTemplate(template.id, { status: 'published', updatedAt: now() });
+    return repository.findTemplateVersionById(version.id);
+  };
 
   return {
     list: () => repository.listTemplates(),
@@ -40,7 +56,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
     versions: getVersions,
     delete: async (templateId) => {
       const template = await findTemplate(templateId);
-      const versions = await getVersions(template.id);
+      const versions = (await getVersions(template.id)).sort((left, right) => right.versionNumber - left.versionNumber);
       const comments = (await Promise.all(versions.map((version) => repository.listReviewComments(version.id)))).flat();
       for (const issueId of [...new Set(comments.map((comment) => comment.issueId).filter(Boolean))]) {
         try {
@@ -77,18 +93,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
       const template = await findTemplate(templateId);
       const version = await latestVersion(template.id);
       if (!version || version.isPublished) throw new DocumentDataAccessError('CONFLICT', 'A draft template version is required for publication.');
-      if (template.formId) {
-        const formVersions = await getOwnedFormVersions(template.formId);
-        const formVersion = formVersions.find((candidate) => candidate.id === version.formVersionId);
-        if (!formVersion || formVersion.isPublished) throw new DocumentDataAccessError('CONFLICT', 'A matching draft form version is required for publication.');
-        await validateContent(version.content, version.formVersionId, { allowDraft: true });
-        await publishOwnedForm(template.formId, formVersion.id);
-      } else {
-        await validateContent(version.content, version.formVersionId);
-      }
-      await repository.updateTemplateVersion(version.id, { isPublished: true, status: 'published' });
-      await repository.updateTemplate(template.id, { status: 'published', updatedAt: now() });
-      return repository.findTemplateVersionById(version.id);
+      return publishVersion(template.id, version);
     },
     cloneRevision: async (templateId, versionId) => {
       const template = await findTemplate(templateId);
@@ -96,6 +101,18 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
       if (!source || source.templateId !== template.id) throw new DocumentDataAccessError('NOT_FOUND', 'Template version was not found.');
       const latest = await latestVersion(template.id);
       return repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest?.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), formVersionId: source.formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+    },
+    rollback: async (templateId, versionId) => {
+      const template = await findTemplate(templateId);
+      const source = await repository.findTemplateVersionById(versionId);
+      if (!source || source.templateId !== template.id || !source.isPublished) throw new DocumentDataAccessError('INVALID_INPUT', 'Only a published version from this document can be restored.');
+      const versions = (await getVersions(template.id)).sort((left, right) => right.versionNumber - left.versionNumber);
+      const latest = versions[0];
+      if (!latest?.isPublished || source.id === latest.id) throw new DocumentDataAccessError('CONFLICT', 'Select an older published version to roll back.');
+      let formVersionId = source.formVersionId;
+      if (template.formId && source.formVersionId) formVersionId = (await cloneOwnedFormRevision(template.formId, source.formVersionId)).id;
+      const draft = await repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+      return publishVersion(template.id, draft);
     }
   };
 }

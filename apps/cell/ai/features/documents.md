@@ -17,6 +17,7 @@ Documents owns reusable document templates, paired document-owned form packages,
 - The Review comment body seeds the Issue description. The compact Review editor keeps the original comment context and supports the flat Issue conversation without changing the Review anchor; larger Issue updates use the full Issue page.
 - Deleting a review comment also deletes its automatically-created Operations Issue.
 - A document is a generated instance that snapshots template version, form version, validated data, and rendered HTML.
+- A document package is a versioned JSON bundle containing one template, its owned form and all revisions, generated snapshots, and Review comments. Linked Issues, replies, and thumbs-up votes are optional collaboration sections.
 - Template deletion permanently removes generated instances, template versions, Review comments and votes, and automatically-created linked Issues with their replies and votes; the owned form package is archived.
 
 ## Ownership
@@ -33,6 +34,7 @@ Documents owns reusable document templates, paired document-owned form packages,
 - PDF, files, signing, approvals, sharing, and advanced authorization are deferred capabilities.
 - Review comments capture the authenticated creator's stable user ID and display name when available; older comments without those fields use a neutral reviewer fallback in the UI.
 - Provider SDKs remain in server-only adapters and composition roots.
+- Document package imports always create a new copy with remapped IDs. Missing target accounts or users do not block import; account relations are omitted and author/voter display-name snapshots remain.
 
 ## Invariants
 
@@ -50,6 +52,8 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Automatically-created Review Issues use the `document-review` tag for filtering and discovery in Operations Issues.
 - Comment deletion is explicit and removes the linked Issue before removing the comment.
 - Template deletion is explicit, confirms the exact template name with a copy affordance, and never removes unrelated Issues.
+- Package export/import is explicit and limited to one template bundle. JSON content, form schemas, anchors, generated HTML, and version metadata are preserved; overwrite/merge and provider-specific dumps are not supported.
+- Published templates can be rolled back from Version history by restoring an older published revision. Rollback creates and publishes a new revision, including a matching owned form revision, and never mutates historical versions.
 - Review comments and their linked Issue conversation replies support one toggleable thumbs-up vote per user, except authors cannot vote on their own comments; vote counts and voter name snapshots are shown in the Review and Sheet surfaces.
 
 ## Validation

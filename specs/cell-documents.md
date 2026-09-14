@@ -39,6 +39,7 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - Standalone Forms and legacy form-backed templates remain supported independently.
 - Field references must resolve against the pinned form version.
 - Published template versions are immutable.
+- Rollback restores an older published revision by creating a new published template/form revision; historical versions remain immutable and available in Version history.
 - Generated documents pin template and form versions and preserve validated data and rendered HTML.
 - User-provided values are escaped before HTML rendering.
 - Sample data is authoring-only test data and is not used as generated-document submission data.
@@ -50,12 +51,13 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - Review comments store the authenticated creator's user ID and display name when available; legacy comments without author data remain supported with a neutral reviewer fallback.
 - Review comments and linked Issue replies support toggleable thumbs-up votes. A comment author cannot vote on their own comment, and the UI shows the vote count plus voter names on hover.
 - Deleting a template permanently removes its generated documents, template versions, Review comments and votes, and automatically-created linked Issues with their replies and votes. Owned form packages are archived rather than hard-deleted.
+- Templates can be exported as versioned JSON packages containing the owned form, all form/template versions, generated snapshots, and Review comments. Linked Issues, replies, and Review/Issue comment votes are optional sections. Imports always create a new copy with fresh IDs, remap internal relations, preserve JSON/HTML/version data, and omit unavailable account/user relations while retaining display-name snapshots.
 - Arbitrary HTML, scripts, network fetches, and executable template expressions are rejected.
 - Operations Account association is optional; an invalid supplied account must be rejected.
 
 ## Routes
 
-Management owns reusable template authoring under `/management/documents`, including a destructive delete action with an explicit confirmation showing the exact template name and a copy affordance. Operations owns generated-document workflows under `/operations/documents` and optional account-context views under `/operations/accounts/[accountId]/documents`.
+Management owns reusable template authoring under `/management/documents`, including destructive deletion, JSON package export/import, and Version history rollback. Export is available from a template detail route; import is available from the template list. Operations owns generated-document workflows under `/operations/documents` and optional account-context views under `/operations/accounts/[accountId]/documents`.
 
 ## Validation
 

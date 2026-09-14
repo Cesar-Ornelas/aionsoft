@@ -139,6 +139,22 @@ describe('document services', () => {
     expect(repository.deletedTemplates).toEqual([template.id]);
   });
 
+  test('rolls back to a published revision by creating a new published version', async () => {
+    const repository = createRepository();
+    const templates = createDocumentTemplateService(repository);
+    const template = await templates.create({ name: 'Versioned agreement' });
+    const first = await repository.createTemplateVersion({ templateId: template.id, versionNumber: 1, content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Original' }] }] }, sampleData: {}, formVersionId: null, isPublished: true, status: 'published', createdAt: '2026-01-01' });
+    const second = await repository.createTemplateVersion({ templateId: template.id, versionNumber: 2, content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Mistake' }] }] }, sampleData: {}, formVersionId: null, isPublished: true, status: 'published', createdAt: '2026-01-02' });
+
+    const restored = await templates.rollback(template.id, first.id);
+
+    expect(restored.versionNumber).toBe(3);
+    expect(restored.isPublished).toBe(true);
+    expect(restored.content).toEqual(first.content);
+    expect(repository.versions.find((item) => item.id === first.id).isPublished).toBe(true);
+    expect(repository.versions.find((item) => item.id === second.id).isPublished).toBe(true);
+  });
+
   test('saves and publishes an owned form and document as a package', async () => {
     const repository = createRepository();
     const ownedForm = { id: 'owned-form-1', name: 'Service agreement fields' };

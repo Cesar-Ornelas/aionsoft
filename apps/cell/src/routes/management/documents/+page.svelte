@@ -1,15 +1,44 @@
 <script>
+  import { goto } from '$app/navigation';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
+  import DownloadIcon from '@lucide/svelte/icons/download';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SearchIcon from '@lucide/svelte/icons/search';
+  import UploadIcon from '@lucide/svelte/icons/upload';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
+  import { toast } from '$lib/stores/toast.js';
 
   let { data } = $props();
   let query = $state('');
+  let importInput = $state();
+  let isImporting = $state(false);
   let filteredTemplates = $derived(data.templates.filter((template) => `${template.name} ${template.description}`.toLowerCase().includes(query.toLowerCase())));
   const statusVariant = (status) => status === 'published' ? 'default' : status === 'archived' ? 'destructive' : 'secondary';
+
+  async function importPackage(event) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    isImporting = true;
+    try {
+      const bundle = JSON.parse(await file.text());
+      const response = await fetch('/management/documents/import', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(bundle)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to import document package.');
+      toast.success('Document package imported.');
+      await goto(`/management/documents/${result.template.id}`);
+    } catch (error) {
+      toast.error(error.message || 'Unable to import document package.');
+    } finally {
+      isImporting = false;
+    }
+  }
 </script>
 
 <div class="flex flex-col gap-6">
@@ -19,7 +48,11 @@
       <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground">Document templates</h1>
       <p class="mt-2 max-w-2xl text-sm text-muted-foreground">Build reusable documents that can be filled from published forms or used as internal templates.</p>
     </div>
-    <Button href="/management/documents/new"><PlusIcon data-icon="inline-start" />New template</Button>
+    <div class="flex flex-wrap gap-2">
+      <input bind:this={importInput} type="file" accept="application/json,.json" class="hidden" onchange={importPackage} />
+      <Button variant="outline" onclick={() => importInput?.click()} disabled={isImporting}><UploadIcon data-icon="inline-start" />{isImporting ? 'Importing...' : 'Import package'}</Button>
+      <Button href="/management/documents/new"><PlusIcon data-icon="inline-start" />New template</Button>
+    </div>
   </div>
 
   <section class="rounded-2xl border border-border bg-card shadow-sm">

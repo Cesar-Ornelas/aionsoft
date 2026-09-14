@@ -1,5 +1,7 @@
 # Data Access and Provider Portability
 
+Feature export/import packages are provider-neutral JSON contracts. They must use stable application-level keys inside the package, remap provider IDs during import, validate required references before writes, and keep provider SDK calls inside server-only adapters/composition roots. Imports that cannot guarantee a transaction must use explicit compensation cleanup and report skipped optional relations. Provider-specific dump/restore formats are not feature contracts.
+
 ## Purpose
 
 Application features must remain understandable and testable without depending directly on a database, authentication service, file store, or provider SDK. This standard makes changing providers an adapter replacement rather than a rewrite of routes and business rules.

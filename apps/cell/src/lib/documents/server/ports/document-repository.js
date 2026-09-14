@@ -9,8 +9,8 @@
  * @property {(id: string) => Promise<import('../../model/entities.js').DocumentTemplateVersion|null>} findTemplateVersionById
  * @property {(input: Object) => Promise<import('../../model/entities.js').DocumentTemplateVersion>} createTemplateVersion
  * @property {(id: string, input: Object) => Promise<import('../../model/entities.js').DocumentTemplateVersion>} updateTemplateVersion
- * @property {(input: Object) => Promise<import('../../model/entities.js').Document>} createDocument
  * @property {() => Promise<import('../../model/entities.js').Document[]>} listDocuments
+ * @property {(input: Object) => Promise<import('../../model/entities.js').Document>} createDocument
  * @property {(templateVersionId: string) => Promise<import('../../model/entities.js').DocumentReviewComment[]>} listReviewComments
  * @property {(input: Object) => Promise<import('../../model/entities.js').DocumentReviewComment>} createReviewComment
  * @property {(id: string) => Promise<import('../../model/entities.js').DocumentReviewComment|null>} findReviewCommentById
