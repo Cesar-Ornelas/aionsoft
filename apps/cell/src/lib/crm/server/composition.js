@@ -28,6 +28,8 @@ import { createDocumentTemplateService } from '$lib/documents/server/services/do
 import { createDocumentService } from '$lib/documents/server/services/document-service.js';
 import { createDocumentReviewService } from '$lib/documents/server/services/document-review-service.js';
 import { createDocumentPortabilityService } from '$lib/documents/server/services/document-portability-service.js';
+import { createPocketBaseDocumentResourceRepository } from '$lib/documents/server/adapters/pocketbase/resources.js';
+import { createDocumentResourceService } from '$lib/documents/server/services/document-resource-service.js';
 
 export async function createCrmServices({ ensureManagement = false } = {}) {
   const client = await getAdminPocketBaseClient();
@@ -50,6 +52,7 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
   const forms = createPocketBaseFormRepository(client);
   const formService = createFormService(forms);
   const documentRepository = createPocketBaseDocumentRepository(client);
+  const documentResources = createDocumentResourceService(createPocketBaseDocumentResourceRepository(client));
   const documentTemplates = createDocumentTemplateService(documentRepository, {
     getFormVersion: (id) => formService.getVersion(id),
     createOwnedForm: async ({ name, description }) => {
@@ -67,7 +70,8 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
   const documents = createDocumentService(documentRepository, {
     getTemplateVersion: (id) => documentRepository.findTemplateVersionById(id),
     getFormVersion: (id) => formService.getVersion(id),
-    findAccount: async (id) => operationsAccounts.findById(id)
+    findAccount: async (id) => operationsAccounts.findById(id),
+    listResources: (templateId) => documentResources.list(templateId)
   });
   const documentReview = createDocumentReviewService(documentRepository);
   const documentPortability = createDocumentPortabilityService({
@@ -92,6 +96,6 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     issues: createIssuesService(issues),
     billing: createBillingAgreementService(billingAgreements, { operationsAccounts, catalog }),
     forms: formService,
-    documents: { templates: documentTemplates, instances: documents, review: documentReview, portability: documentPortability }
+    documents: { templates: documentTemplates, instances: documents, review: documentReview, portability: documentPortability, resources: documentResources }
   };
 }

@@ -116,6 +116,27 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
     ]
   },
   {
+    name: 'resources',
+    type: 'base',
+    schema: [
+      { name: 'resource_key', type: 'text', required: true },
+      { name: 'scope_key', type: 'text', required: true },
+      { name: 'resource_type', type: 'text', required: true },
+      { name: 'file', type: 'file', required: true, options: { maxSelect: 1, maxSize: 5242880, mimeTypes: ['image/png', 'image/jpeg'] } },
+      { name: 'name', type: 'text', required: true },
+      { name: 'media_type', type: 'text', required: true },
+      { name: 'size_bytes', type: 'number', required: true },
+      { name: 'checksum', type: 'text' },
+      { name: 'width', type: 'number' },
+      { name: 'height', type: 'number' },
+      { name: 'created_at', type: 'date', required: true }
+    ],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_resources_resource_key` ON `resources` (`resource_key`)',
+      'CREATE INDEX `idx_resources_scope_type` ON `resources` (`scope_key`, `resource_type`)'
+    ]
+  },
+  {
     name: 'documents_template_versions',
     type: 'base',
     schema: [
@@ -123,6 +144,7 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
       { name: 'version_number', type: 'number', required: true },
       { name: 'content', type: 'json', required: true },
       { name: 'sample_data', type: 'json' },
+      { name: 'page_config', type: 'json' },
       { name: 'form_version', type: 'relation', options: { collectionId: 'management_form_versions', cascadeDelete: false } },
       { name: 'is_published', type: 'bool' },
       { name: 'status', type: 'text', required: true },

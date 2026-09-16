@@ -68,6 +68,7 @@ export async function ensureManagementFormCollections(client = createPocketBaseC
 
 export async function ensureDocumentCollections(client = createPocketBaseClient()) {
   const documentDefinitions = MANAGEMENT_COLLECTION_DEFINITIONS.filter((definition) => definition.name.startsWith('documents'));
+  await ensureManagementCollections(client, MANAGEMENT_COLLECTION_DEFINITIONS.filter((definition) => definition.name === 'resources'));
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_templates'));
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents_template_versions'));
   await ensureManagementCollections(client, documentDefinitions.filter((definition) => definition.name === 'documents'));

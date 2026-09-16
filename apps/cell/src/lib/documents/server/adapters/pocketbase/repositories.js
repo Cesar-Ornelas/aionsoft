@@ -16,7 +16,7 @@ function templateFromRecord(record) {
 }
 
 function versionFromRecord(record) {
-  return { id: record.id, templateId: record.template, versionNumber: Number(record.version_number || 0), content: parseJson(record.content, { type: 'doc', content: [] }), sampleData: parseJson(record.sample_data, {}), formVersionId: record.form_version || null, isPublished: Boolean(record.is_published), status: record.status, createdAt: record.created_at || record.created || '' };
+  return { id: record.id, templateId: record.template, versionNumber: Number(record.version_number || 0), content: parseJson(record.content, { type: 'doc', content: [] }), sampleData: parseJson(record.sample_data, {}), pageConfig: parseJson(record.page_config, null), formVersionId: record.form_version || null, isPublished: Boolean(record.is_published), status: record.status, createdAt: record.created_at || record.created || '' };
 }
 
 function documentFromRecord(record) {
@@ -70,7 +70,7 @@ export function createPocketBaseDocumentRepository(client) {
     },
     async listTemplateVersions(templateId) { try { return (await versions.getFullList({ filter: client.filter('template = {:template}', { template: templateId }), sort: '-version_number' })).map(versionFromRecord); } catch (error) { throw translateError(error, 'Unable to list document template versions.'); } },
     async findTemplateVersionById(id) { try { return versionFromRecord(await versions.getOne(id)); } catch (error) { if (Number(error?.status) === 404) return null; throw translateError(error, 'Unable to load the document template version.'); } },
-    async createTemplateVersion(input) { try { return versionFromRecord(await versions.create({ template: input.templateId, version_number: input.versionNumber, content: input.content, sample_data: input.sampleData ?? {}, form_version: input.formVersionId || '', is_published: Boolean(input.isPublished), status: input.status, created_at: input.createdAt })); } catch (error) { throw translateError(error, 'Unable to create the document template version.'); } },
+    async createTemplateVersion(input) { try { return versionFromRecord(await versions.create({ template: input.templateId, version_number: input.versionNumber, content: input.content, sample_data: input.sampleData ?? {}, page_config: input.pageConfig ?? {}, form_version: input.formVersionId || '', is_published: Boolean(input.isPublished), status: input.status, created_at: input.createdAt })); } catch (error) { throw translateError(error, 'Unable to create the document template version.'); } },
     async updateTemplateVersion(id, input) { try { return versionFromRecord(await versions.update(id, { ...(input.isPublished !== undefined && { is_published: Boolean(input.isPublished) }), ...(input.status !== undefined && { status: input.status }) })); } catch (error) { throw translateError(error, 'Unable to update the document template version.'); } },
     async createDocument(input) { try { return documentFromRecord(await documents.create({ operations_account: input.operationsAccountId || '', template_version: input.templateVersionId, form_version: input.formVersionId || '', status: input.status, data_snapshot: input.dataSnapshot, rendered_html: input.renderedHtml, created_at: input.createdAt })); } catch (error) { throw translateError(error, 'Unable to create the document.'); } },
     async listDocuments() { try { return (await documents.getFullList({ sort: '-created_at' })).map(documentFromRecord); } catch (error) { throw translateError(error, 'Unable to list documents.'); } }

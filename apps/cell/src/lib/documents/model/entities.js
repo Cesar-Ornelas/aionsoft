@@ -1,5 +1,19 @@
 /** @typedef {'draft' | 'published' | 'archived'} DocumentTemplateStatus */
 /** @typedef {'draft' | 'generated' | 'archived'} DocumentStatus */
+/** @typedef {'image'} DocumentResourceType */
+
+/** @typedef {Object} DocumentResource
+ * @property {string} resourceKey
+ * @property {DocumentResourceType} resourceType
+ * @property {string} scopeKey
+ * @property {string} name
+ * @property {string} mediaType
+ * @property {number} sizeBytes
+ * @property {string} checksum
+ * @property {number|null} width
+ * @property {number|null} height
+ * @property {string} createdAt
+ */
 
 /** @typedef {Object} DocumentTemplate
  * @property {string} id
@@ -17,6 +31,7 @@
  * @property {number} versionNumber
  * @property {Object} content
  * @property {Object} sampleData
+ * @property {Object} pageConfig
  * @property {string|null} formVersionId
  * @property {boolean} isPublished
  * @property {string} status

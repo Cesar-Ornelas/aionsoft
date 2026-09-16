@@ -12,6 +12,8 @@ Documents owns reusable document templates, paired document-owned form packages,
 - A field reference points to a stable field ID/key from the pinned form version.
 - Sample data is an optional JSON fixture saved on a draft template revision for testing document rendering without a submission collection.
 - Authors can insert an explicit `page_break` marker from the editor toolbar or by typing `@Page`; it is not a form field or generated value.
+- Authors can insert and edit tables from the document editor. When the cursor is inside a table, the editor shows its row and column count and provides controls to add or remove rows and columns or delete the table.
+- Document configurations are saved per template version. Authors can set inch-based page margins and optional rich-text headers and footers from the editor toolbar; headers and footers support compact layout tables with aligned cells and preset font sizes that can vary within a line. Layout-table boundaries are visible while authoring but render with zero borders, padding, and spacing. The settings are preserved by rollback and package export/import.
 - Review shows authored template content without data substitution and supports flat comments anchored to selected text on a saved template version.
 - Every saved Review comment creates an internal Operations Issue; linked comments retain a direct Issue link and a Review deep link.
 - The Review comment body seeds the Issue description. The compact Review editor keeps the original comment context and supports the flat Issue conversation without changing the Review anchor; larger Issue updates use the full Issue page.
@@ -44,6 +46,7 @@ Documents owns reusable document templates, paired document-owned form packages,
 - Field references must resolve against the pinned form schema.
 - Rendering is deterministic, escapes values, and rejects unsafe or unsupported content.
 - Explicit page-break markers are preserved in document content and rendered with print-oriented `break-before: page` hints for future PDF/export adapters; normal HTML preview remains valid.
+- Page configuration rendering emits deterministic print-oriented CSS and header/footer regions for HTML preview and future export adapters. PDF generation and page-number substitution remain deferred.
 - Account context is optional for generated documents.
 - Sample data is draft-only authoring data and is never used as generated-document submission data.
 - Review comments are scoped to a saved template version, flat rather than threaded, and use text-range anchors with excerpt fallback when content changes.

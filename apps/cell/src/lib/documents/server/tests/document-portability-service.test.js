@@ -40,7 +40,7 @@ function seed(store) {
   store.forms.push({ id: 'form-1', name: 'Fields', description: '', category: 'document', status: 'published' });
   store.formVersions.push({ id: 'form-version-1', formId: 'form-1', versionNumber: 1, schema: { fields: [] }, isPublished: true, status: 'published', createdAt: '2026-01-01' });
   store.templates.push({ id: 'template-1', name: 'Agreement', description: 'A package', formId: 'form-1', status: 'published' });
-  store.templateVersions.push({ id: 'template-version-1', templateId: 'template-1', versionNumber: 1, content: { type: 'doc', content: [] }, sampleData: {}, formVersionId: 'form-version-1', isPublished: true, status: 'published', createdAt: '2026-01-01' });
+  store.templateVersions.push({ id: 'template-version-1', templateId: 'template-1', versionNumber: 1, content: { type: 'doc', content: [] }, sampleData: {}, pageConfig: { margins: { top: 0.5, right: 1, bottom: 1, left: 1 } }, formVersionId: 'form-version-1', isPublished: true, status: 'published', createdAt: '2026-01-01' });
   store.documents.push({ id: 'document-1', templateVersionId: 'template-version-1', formVersionId: 'form-version-1', operationsAccountId: 'missing-account', status: 'generated', dataSnapshot: { name: 'Acme' }, renderedHtml: '<p>Acme</p>' });
   store.reviewComments.push({ id: 'review-comment-1', templateVersionId: 'template-version-1', body: 'Fix this', excerpt: 'this', anchor: { start: 0, end: 4, text: 'this' }, issueId: 'issue-1', authorId: 'missing-user', authorName: 'Reviewer' });
   store.reviewVotes.push({ id: 'review-vote-1', commentId: 'review-comment-1', voterId: 'user-1', voterName: 'Voter' });
@@ -74,6 +74,7 @@ describe('document portability service', () => {
 
     expect(result.template.id).not.toBe('template-1');
     expect(target.store.templateVersions[0].templateId).toBe(result.template.id);
+    expect(target.store.templateVersions[0].pageConfig.margins.top).toBe(0.5);
     expect(target.store.documents[0].templateVersionId).toBe(target.store.templateVersions[0].id);
     expect(target.store.reviewComments[0].issueId).toBe(target.store.issues[0].id);
     expect(target.store.reviewVotes[0].commentId).toBe(target.store.reviewComments[0].id);

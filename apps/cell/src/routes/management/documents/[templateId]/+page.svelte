@@ -17,11 +17,11 @@
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Field from "$lib/components/ui/field";
   import * as Sheet from "$lib/components/ui/sheet";
-  import * as Tabs from "$lib/components/ui/tabs";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import DocumentTemplateEditor from "$lib/components/DocumentTemplateEditor.svelte";
+  import DocumentPageConfigDialog from "$lib/components/DocumentPageConfigDialog.svelte";
   import FormSchemaEditor from "$lib/components/FormSchemaEditor.svelte";
   import IssueDescriptionEditor from "$lib/components/IssueDescriptionEditor.svelte";
   import {
@@ -29,6 +29,7 @@
     renderDocumentHtml,
   } from "$lib/documents/model/content.js";
   import { toast } from "$lib/stores/toast.js";
+  import { DEFAULT_PAGE_CONFIG, normalizePageConfig } from "$lib/documents/model/page-config.js";
 
   let { data } = $props();
   let selectedFormVersionId = $state(
@@ -43,6 +44,11 @@
   let sampleData = $state(
     structuredClone(data.versions?.[0]?.sampleData ?? {}),
   );
+  let pageConfig = $state(
+    normalizePageConfig(data.versions?.[0]?.pageConfig ?? DEFAULT_PAGE_CONFIG),
+  );
+  let pageConfigDialogOpen = $state(false);
+  let resources = $state(structuredClone(data.resources ?? []));
   let formFields = $state(
     structuredClone(data.ownedFormVersions?.[0]?.schema?.fields ?? []),
   );
@@ -104,12 +110,25 @@
   function handleEditorReady(api) {
     editorApi = api;
   }
+
+  async function uploadResource(file) {
+    const form = new FormData();
+    form.set("file", file);
+    const response = await fetch(`/management/documents/${data.template.id}/resources`, { method: "POST", body: form });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Unable to upload image.");
+    resources = [result.resource, ...resources];
+    toast.success("Image uploaded.");
+    return result.resource;
+  }
   function renderPreviewHtml() {
     try {
       return renderDocumentHtml(
         content,
         { ...sampleData, ...previewValues },
         { fields: formFields },
+        pageConfig,
+        resources,
       );
     } catch (error) {
       return '<p class="document-preview-error">Document preview is unavailable until its field references are resolved.</p>';
@@ -118,7 +137,7 @@
 
   function renderAuthoredHtml() {
     try {
-      return renderAuthoredDocumentHtml(latestVersion?.content ?? content);
+      return renderAuthoredDocumentHtml(latestVersion?.content ?? content, latestVersion?.pageConfig ?? pageConfig);
     } catch {
       return '<p class="document-preview-error">Document review is unavailable until the authored content is valid.</p>';
     }
@@ -632,6 +651,7 @@
           body: JSON.stringify({
             content,
             sampleData,
+            pageConfig,
             formSchema: { fields: formFields },
             formVersionId: data.template.formId
               ? null
@@ -875,30 +895,23 @@
   <section
     class="rounded-2xl border border-border bg-card p-4 shadow-sm lg:p-6"
   >
-    <Tabs.Root bind:value={workspaceTab}>
-      <Tabs.List class="w-full sm:w-fit">
-        <Tabs.Trigger value="form" class="flex-1 cursor-pointer sm:flex-none"
-          >Form</Tabs.Trigger
-        >
-        <Tabs.Trigger value="sample" class="flex-1 cursor-pointer sm:flex-none"
-          >Sample data</Tabs.Trigger
-        >
-        <Tabs.Trigger
-          value="document"
-          class="flex-1 cursor-pointer sm:flex-none">Document</Tabs.Trigger
-        >
-        <Tabs.Trigger value="preview" class="flex-1 cursor-pointer sm:flex-none"
-          >Preview</Tabs.Trigger
-        >
-        <Tabs.Trigger value="review" class="flex-1 cursor-pointer sm:flex-none"
-          >Review</Tabs.Trigger
-        >
-        <Tabs.Trigger value="history" class="flex-1 cursor-pointer sm:flex-none"
-          >History</Tabs.Trigger
-        >
-      </Tabs.List>
+    <div class="flex flex-col gap-2">
+      <div class="flex w-full flex-wrap items-center gap-1 rounded-full bg-muted p-1 sm:w-fit" role="tablist" aria-label="Document workspace">
+        {#each [{ value: "form", label: "Form" }, { value: "sample", label: "Sample data" }, { value: "document", label: "Document" }, { value: "preview", label: "Preview" }, { value: "review", label: "Review" }, { value: "history", label: "History" }] as tab}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={workspaceTab === tab.value}
+            class="flex-1 rounded-full px-3 py-1 text-sm font-medium transition-colors hover:bg-background/70 sm:flex-none"
+            class:bg-background={workspaceTab === tab.value}
+            class:text-foreground={workspaceTab === tab.value}
+            class:text-muted-foreground={workspaceTab !== tab.value}
+            onclick={() => (workspaceTab = tab.value)}
+          >{tab.label}</button>
+        {/each}
+      </div>
 
-      <Tabs.Content value="form" class="pt-6">
+      {#if workspaceTab === "form"}<div role="tabpanel" class="pt-6">
         {#if data.ownedForm}
           <FormSchemaEditor
             fields={formFields}
@@ -916,9 +929,9 @@
             </p>
           </div>
         {/if}
-      </Tabs.Content>
+      </div>{/if}
 
-      <Tabs.Content value="sample" class="pt-6">
+      {#if workspaceTab === "sample"}<div role="tabpanel" class="pt-6">
         {#if data.ownedForm}
           <FormSchemaEditor
             fields={formFields}
@@ -951,9 +964,9 @@
             </p>
           </div>
         {/if}
-      </Tabs.Content>
+      </div>{/if}
 
-      <Tabs.Content value="document" class="pt-6">
+      {#if workspaceTab === "document"}<div role="tabpanel" class="pt-6">
         <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <section class="min-w-0">
             <div class="mb-3 flex items-center justify-between gap-4">
@@ -976,6 +989,9 @@
               {dateFormat}
               onChange={(nextContent) => (content = nextContent)}
               onEditorReady={handleEditorReady}
+              {resources}
+              onUploadResource={uploadResource}
+              onOpenConfiguration={() => (pageConfigDialogOpen = true)}
             />
           </section>
 
@@ -1057,9 +1073,9 @@
             </div>
           </aside>
         </div>
-      </Tabs.Content>
+      </div>{/if}
 
-      <Tabs.Content value="preview" class="pt-6">
+      {#if workspaceTab === "preview"}<div role="tabpanel" class="pt-6">
         <div
           class="mb-4 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100"
         >
@@ -1072,9 +1088,9 @@
         >
           {@html renderPreviewHtml()}
         </div>
-      </Tabs.Content>
+      </div>{/if}
 
-      <Tabs.Content value="review" class="pt-6">
+      {#if workspaceTab === "review"}<div role="tabpanel" class="pt-6">
         <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section
             class="document-review min-h-[42rem] min-w-0 rounded-xl border border-border bg-background px-4 py-5 text-base leading-8 text-foreground lg:px-8 lg:py-7"
@@ -1238,9 +1254,9 @@
               </p>{/if}
           </aside>
         </div>
-      </Tabs.Content>
+      </div>{/if}
 
-      <Tabs.Content value="history" class="pt-6">
+      {#if workspaceTab === "history"}<div role="tabpanel" class="pt-6">
         <div>
           <h2 class="text-lg font-semibold text-foreground">Version history</h2>
           <p class="mt-1 text-sm text-muted-foreground">
@@ -1294,8 +1310,8 @@
               No saved versions yet.
             </p>{/if}
         </div>
-      </Tabs.Content>
-    </Tabs.Root>
+      </div>{/if}
+    </div>
     <Sheet.Root bind:open={issueSheetOpen}>
       <Sheet.Content side="right" class="w-full overflow-hidden sm:max-w-xl">
         <Sheet.Header
@@ -1459,6 +1475,13 @@
           </div>{/if}
       </Sheet.Content>
     </Sheet.Root>
+    <DocumentPageConfigDialog
+      bind:open={pageConfigDialogOpen}
+      value={pageConfig}
+      {resources}
+      onUploadResource={uploadResource}
+      onApply={(nextConfig) => (pageConfig = nextConfig)}
+    />
     {#if errorMessage}<p class="mt-4 text-sm text-destructive" role="alert">
         {errorMessage}
       </p>{/if}

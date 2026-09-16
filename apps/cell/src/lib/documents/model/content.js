@@ -1,7 +1,8 @@
 import { DocumentDataAccessError } from './data-access-error.js';
+import { normalizePageConfig } from './page-config.js';
 
 const BLOCK_TYPES = new Set(['doc', 'paragraph', 'heading', 'bulletList', 'orderedList', 'listItem', 'blockquote', 'horizontalRule', 'page_break', 'table', 'tableRow', 'tableCell', 'tableHeader']);
-const INLINE_TYPES = new Set(['text', 'document_field', 'hardBreak']);
+const INLINE_TYPES = new Set(['text', 'document_field', 'hardBreak', 'image']);
 const ALLOWED_HEADING_LEVELS = new Set([1, 2, 3]);
 export const DATE_FORMATS = new Set(['long', 'medium', 'short', 'numeric', 'iso']);
 
@@ -35,11 +36,19 @@ function normalizeNode(node, index) {
     if (DATE_FORMATS.has(format)) normalized.attrs.format = format;
     return normalized;
   }
+  if (node.type === 'image') {
+    const resourceKey = String(node.attrs?.resourceKey ?? '').trim();
+    const width = node.attrs?.width == null ? null : Math.min(100, Math.max(1, Number(node.attrs.width)));
+    if (!resourceKey || (width !== null && !Number.isFinite(width))) fail('Document images need a resource key and valid width.', { index });
+    normalized.attrs = { resourceKey, alt: String(node.attrs?.alt ?? '').trim().slice(0, 240), width };
+    return normalized;
+  }
   if (node.type === 'heading') {
     const level = Number(node.attrs?.level ?? 2);
     if (!ALLOWED_HEADING_LEVELS.has(level)) fail('Document headings must use levels 1, 2, or 3.', { index });
     normalized.attrs = { level };
   }
+  if (node.type === 'paragraph' && ['left', 'center', 'right', 'justify'].includes(node.attrs?.textAlign)) normalized.attrs = { textAlign: node.attrs.textAlign };
   if (node.type === 'tableCell' || node.type === 'tableHeader') {
     const colspan = Math.max(1, Number(node.attrs?.colspan ?? 1));
     const rowspan = Math.max(1, Number(node.attrs?.rowspan ?? 1));
@@ -106,11 +115,11 @@ function formatFieldValue(value, format, field) {
   return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(date);
 }
 
-function renderInline(nodes, values, fields) {
+function renderInline(nodes, values, fields, resourceMap = new Map()) {
   return (nodes ?? []).map((node) => {
     if (node.type === 'text') {
       let html = escapeHtml(node.text);
-      for (const mark of node.marks ?? []) if (mark.type === 'bold') html = `<strong>${html}</strong>`; else if (mark.type === 'italic') html = `<em>${html}</em>`; else if (mark.type === 'code') html = `<code>${html}</code>`;
+      for (const mark of node.marks ?? []) if (mark.type === 'bold') html = `<strong>${html}</strong>`; else if (mark.type === 'italic') html = `<em>${html}</em>`; else if (mark.type === 'fontSize') html = `<span style="font-size:${mark.attrs.size}">${html}</span>`; else if (mark.type === 'code') html = `<code>${html}</code>`;
       return html;
     }
     if (node.type === 'hardBreak') return '<br />';
@@ -120,23 +129,29 @@ function renderInline(nodes, values, fields) {
       const formattedValue = formatFieldValue(value, node.attrs.format || 'long', field);
       return `<span data-document-field="${escapeHtml(node.attrs.fieldKey || node.attrs.fieldId)}">${escapeHtml(formattedValue)}</span>`;
     }
+    if (node.type === 'image') {
+      const resource = resourceMap.get(node.attrs.resourceKey);
+      if (!resource?.url) return '';
+      const width = node.attrs.width ? `width:${node.attrs.width}%;` : 'max-width:100%;';
+      return `<img src="${escapeHtml(resource.url)}" alt="${escapeHtml(node.attrs.alt)}" style="${width}height:auto;display:block" />`;
+    }
     return '';
   }).join('');
 }
 
-function renderNode(node, values, fields) {
-  if (node.type === 'paragraph') return `<p>${renderInline(node.content, values, fields)}</p>`;
-  if (node.type === 'heading') return `<h${node.attrs.level}>${renderInline(node.content, values, fields)}</h${node.attrs.level}>`;
-  if (node.type === 'blockquote') return `<blockquote>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</blockquote>`;
-  if (node.type === 'bulletList') return `<ul>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</ul>`;
-  if (node.type === 'orderedList') return `<ol>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</ol>`;
-  if (node.type === 'listItem') return `<li>${(node.content ?? []).map((child) => child.type === 'paragraph' ? renderInline(child.content, values, fields) : renderNode(child, values, fields)).join('')}</li>`;
+function renderNode(node, values, fields, resourceMap = new Map()) {
+  if (node.type === 'paragraph') return `<p${node.attrs?.textAlign ? ` style="text-align:${node.attrs.textAlign}"` : ''}>${renderInline(node.content, values, fields, resourceMap)}</p>`;
+  if (node.type === 'heading') return `<h${node.attrs.level}>${renderInline(node.content, values, fields, resourceMap)}</h${node.attrs.level}>`;
+  if (node.type === 'blockquote') return `<blockquote>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</blockquote>`;
+  if (node.type === 'bulletList') return `<ul>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</ul>`;
+  if (node.type === 'orderedList') return `<ol>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</ol>`;
+  if (node.type === 'listItem') return `<li>${(node.content ?? []).map((child) => child.type === 'paragraph' ? renderInline(child.content, values, fields, resourceMap) : renderNode(child, values, fields, resourceMap)).join('')}</li>`;
   if (node.type === 'horizontalRule') return '<hr />';
   if (node.type === 'page_break') return '<div class="document-page-break" data-page-break="true" style="break-before:page;page-break-before:always" aria-hidden="true"></div>';
-  if (node.type === 'table') return `<table class="document-table" style="width:100%;border-collapse:collapse"><tbody>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</tbody></table>`;
-  if (node.type === 'tableRow') return `<tr>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</tr>`;
-  if (node.type === 'tableHeader') return `<th${cellAttributes(node)}>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</th>`;
-  if (node.type === 'tableCell') return `<td${cellAttributes(node)}>${(node.content ?? []).map((child) => renderNode(child, values, fields)).join('')}</td>`;
+  if (node.type === 'table') return `<table class="document-table" style="width:100%;border-collapse:collapse"><tbody>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</tbody></table>`;
+  if (node.type === 'tableRow') return `<tr>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</tr>`;
+  if (node.type === 'tableHeader') return `<th${cellAttributes(node)}>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</th>`;
+  if (node.type === 'tableCell') return `<td${cellAttributes(node)}>${(node.content ?? []).map((child) => renderNode(child, values, fields, resourceMap)).join('')}</td>`;
   return '';
 }
 
@@ -144,17 +159,18 @@ function renderAuthoredInline(nodes) {
   return (nodes ?? []).map((node) => {
     if (node.type === 'text') {
       let html = escapeHtml(node.text);
-      for (const mark of node.marks ?? []) if (mark.type === 'bold') html = `<strong>${html}</strong>`; else if (mark.type === 'italic') html = `<em>${html}</em>`; else if (mark.type === 'code') html = `<code>${html}</code>`;
+      for (const mark of node.marks ?? []) if (mark.type === 'bold') html = `<strong>${html}</strong>`; else if (mark.type === 'italic') html = `<em>${html}</em>`; else if (mark.type === 'fontSize') html = `<span style="font-size:${mark.attrs.size}">${html}</span>`; else if (mark.type === 'code') html = `<code>${html}</code>`;
       return html;
     }
     if (node.type === 'hardBreak') return '<br />';
     if (node.type === 'document_field') return `<span class="document-authored-field" data-document-field="${escapeHtml(node.attrs.fieldKey || node.attrs.fieldId)}">@${escapeHtml(node.attrs.label || node.attrs.fieldKey || node.attrs.fieldId)}</span>`;
+    if (node.type === 'image') return `<span class="document-authored-image" data-resource-key="${escapeHtml(node.attrs.resourceKey)}">[Image: ${escapeHtml(node.attrs.alt || node.attrs.resourceKey)}]</span>`;
     return '';
   }).join('');
 }
 
 function renderAuthoredNode(node) {
-  if (node.type === 'paragraph') return `<p>${renderAuthoredInline(node.content)}</p>`;
+  if (node.type === 'paragraph') return `<p${node.attrs?.textAlign ? ` style="text-align:${node.attrs.textAlign}"` : ''}>${renderAuthoredInline(node.content)}</p>`;
   if (node.type === 'heading') return `<h${node.attrs.level}>${renderAuthoredInline(node.content)}</h${node.attrs.level}>`;
   if (node.type === 'blockquote') return `<blockquote>${(node.content ?? []).map(renderAuthoredNode).join('')}</blockquote>`;
   if (node.type === 'bulletList') return `<ul>${(node.content ?? []).map(renderAuthoredNode).join('')}</ul>`;
@@ -175,16 +191,42 @@ function cellAttributes(node) {
   return ` style="border:0;padding:0.35rem 0.5rem;vertical-align:top"${colspan > 1 ? ` colspan="${colspan}"` : ''}${rowspan > 1 ? ` rowspan="${rowspan}"` : ''}`;
 }
 
-export function renderDocumentHtml(content, values = {}, formSchema = { fields: [] }) {
+function renderLayoutNode(node, values, fields, authored = false, resourceMap = new Map()) {
+  const inline = authored ? renderAuthoredInline(node.content) : renderInline(node.content, values, fields, resourceMap);
+  if (node.type === 'paragraph') return `<p${node.attrs?.textAlign ? ` style="text-align:${node.attrs.textAlign}"` : ''}>${inline}</p>`;
+  if (node.type === 'table') return `<table class="document-layout-table" style="width:100%;border:0;border-collapse:collapse;border-spacing:0;margin:0;padding:0"><tbody>${(node.content ?? []).map((child) => renderLayoutNode(child, values, fields, authored, resourceMap)).join('')}</tbody></table>`;
+  if (node.type === 'tableRow') return `<tr>${(node.content ?? []).map((child) => renderLayoutNode(child, values, fields, authored, resourceMap)).join('')}</tr>`;
+  if (node.type === 'tableHeader' || node.type === 'tableCell') {
+    const tag = node.type === 'tableHeader' ? 'th' : 'td';
+    const colspan = Number(node.attrs?.colspan ?? 1);
+    const rowspan = Number(node.attrs?.rowspan ?? 1);
+    return `<${tag} style="border:0;margin:0;padding:0;vertical-align:top"${colspan > 1 ? ` colspan="${colspan}"` : ''}${rowspan > 1 ? ` rowspan="${rowspan}"` : ''}>${(node.content ?? []).map((child) => renderLayoutNode(child, values, fields, authored, resourceMap)).join('')}</${tag}>`;
+  }
+  return '';
+}
+
+function renderPageLayout(bodyHtml, pageConfig, renderRichText) {
+  const config = normalizePageConfig(pageConfig);
+  const margins = config.margins;
+  const headerHtml = renderRichText(config.header);
+  const footerHtml = renderRichText(config.footer);
+  const header = headerHtml.replace(/<p><\/p>/g, '') ? `<header class="document-header">${headerHtml}</header>` : '';
+  const footer = footerHtml.replace(/<p><\/p>/g, '') ? `<footer class="document-footer">${footerHtml}</footer>` : '';
+  return `<div class="document-page" style="--document-margin-top:${margins.top}in;--document-margin-right:${margins.right}in;--document-margin-bottom:${margins.bottom}in;--document-margin-left:${margins.left}in"><style>@page{margin:${margins.top}in ${margins.right}in ${margins.bottom}in ${margins.left}in}.document-page{padding:var(--document-margin-top) var(--document-margin-right) var(--document-margin-bottom) var(--document-margin-left)}.document-header{margin-bottom:1rem}.document-footer{margin-top:1rem}</style>${header}${bodyHtml}${footer}</div>`;
+}
+
+export function renderDocumentHtml(content, values = {}, formSchema = { fields: [] }, pageConfig = null, resources = []) {
   const normalized = normalizeDocumentContent(content);
   validateFieldReferences(normalized, formSchema);
   const fields = [];
   const collect = (items) => (items ?? []).forEach((field) => { fields.push(field); collect(field.fields); });
   collect(formSchema.fields);
-  return normalized.content.map((node) => renderNode(node, values, fields)).join('');
+  const resourceMap = new Map(resources.map((resource) => [resource.resourceKey, resource]));
+  const bodyHtml = normalized.content.map((node) => renderNode(node, values, fields, resourceMap)).join('');
+  return renderPageLayout(bodyHtml, pageConfig, (richText) => richText.content.map((node) => renderLayoutNode(node, values, fields, false, resourceMap)).join(''));
 }
 
-export function renderAuthoredDocumentHtml(content) {
+export function renderAuthoredDocumentHtml(content, pageConfig = null) {
   const normalized = normalizeDocumentContent(content);
-  return normalized.content.map(renderAuthoredNode).join('');
+  return renderPageLayout(normalized.content.map(renderAuthoredNode).join(''), pageConfig, (richText) => richText.content.map((node) => renderLayoutNode(node, {}, [], true)).join(''));
 }

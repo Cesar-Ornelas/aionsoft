@@ -73,7 +73,7 @@ export function createDocumentPortabilityService({ documents, forms, issues, fin
     const template = await documents.createTemplate({ name: `${sourceTemplate.name} (Imported)`, description: sourceTemplate.description, formId: form?.id || null, status: sourceTemplate.status, createdAt: sourceTemplate.createdAt, updatedAt: sourceTemplate.updatedAt });
     map(sourceTemplate.key, template.id);
     for (const version of [...bundle.templateVersions].sort((left, right) => left.versionNumber - right.versionNumber)) {
-      const created = await documents.createTemplateVersion({ templateId: template.id, versionNumber: version.versionNumber, content: clone(version.content), sampleData: clone(version.sampleData ?? {}), formVersionId: resolve(version.formVersionKey), isPublished: Boolean(version.isPublished), status: version.status, createdAt: version.createdAt });
+      const created = await documents.createTemplateVersion({ templateId: template.id, versionNumber: version.versionNumber, content: clone(version.content), sampleData: clone(version.sampleData ?? {}), pageConfig: clone(version.pageConfig ?? {}), formVersionId: resolve(version.formVersionKey), isPublished: Boolean(version.isPublished), status: version.status, createdAt: version.createdAt });
       map(version.key, created.id);
     }
     for (const document of bundle.documents ?? []) {

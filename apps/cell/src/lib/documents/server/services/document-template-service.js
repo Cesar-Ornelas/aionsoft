@@ -1,5 +1,6 @@
 import { DocumentDataAccessError } from '../../model/data-access-error.js';
 import { normalizeDocumentContent, validateFieldReferences } from '../../model/content.js';
+import { normalizePageConfig } from '../../model/page-config.js';
 
 const now = () => new Date().toISOString();
 const required = (value, label) => {
@@ -87,7 +88,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
         isOwnedDraft = true;
       }
       const content = await validateContent(contentInput(input), formVersionId, { allowDraft: isOwnedDraft });
-      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (previous?.versionNumber ?? 0) + 1, content, sampleData: sampleData(input.sampleData), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (previous?.versionNumber ?? 0) + 1, content, sampleData: sampleData(input.sampleData), pageConfig: normalizePageConfig(input.pageConfig), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
     },
     publish: async (templateId) => {
       const template = await findTemplate(templateId);
@@ -100,7 +101,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
       const source = await repository.findTemplateVersionById(versionId);
       if (!source || source.templateId !== template.id) throw new DocumentDataAccessError('NOT_FOUND', 'Template version was not found.');
       const latest = await latestVersion(template.id);
-      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest?.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), formVersionId: source.formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest?.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), pageConfig: normalizePageConfig(source.pageConfig), formVersionId: source.formVersionId, isPublished: false, status: 'draft', createdAt: now() });
     },
     rollback: async (templateId, versionId) => {
       const template = await findTemplate(templateId);
@@ -111,7 +112,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
       if (!latest?.isPublished || source.id === latest.id) throw new DocumentDataAccessError('CONFLICT', 'Select an older published version to roll back.');
       let formVersionId = source.formVersionId;
       if (template.formId && source.formVersionId) formVersionId = (await cloneOwnedFormRevision(template.formId, source.formVersionId)).id;
-      const draft = await repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+      const draft = await repository.createTemplateVersion({ templateId: template.id, versionNumber: (latest.versionNumber ?? 0) + 1, content: structuredClone(source.content), sampleData: structuredClone(source.sampleData ?? {}), pageConfig: normalizePageConfig(source.pageConfig), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
       return publishVersion(template.id, draft);
     }
   };

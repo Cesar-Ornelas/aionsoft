@@ -78,6 +78,65 @@ describe('document content', () => {
     expect(rendered).toContain('Page two');
   });
 
+  test('renders version page configuration around document content', () => {
+    const rendered = renderDocumentHtml(
+      { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] },
+      {},
+      { fields: [] },
+      {
+        margins: { top: 0.5, right: 0.75, bottom: 1.25, left: 1.5 },
+        header: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Header' }] }] },
+        footer: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Footer' }] }] }
+      }
+    );
+    expect(rendered).toContain('--document-margin-top:0.5in');
+    expect(rendered).toContain('Header');
+    expect(rendered).toContain('Footer');
+    expect(rendered).toContain('Body');
+  });
+
+  test('renders header layout tables without borders or spacing and preserves alignment', () => {
+    const rendered = renderDocumentHtml(
+      { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] },
+      {},
+      { fields: [] },
+      {
+        header: {
+          type: 'doc',
+          content: [{ type: 'table', content: [{ type: 'tableRow', content: [{ type: 'tableCell', attrs: { colspan: 1, rowspan: 1 }, content: [{ type: 'paragraph', attrs: { textAlign: 'right' }, content: [{ type: 'text', text: 'Right header' }] }] }] }] }]
+        }
+      }
+    );
+    expect(rendered).toContain('class="document-layout-table"');
+    expect(rendered).toContain('border:0;border-collapse:collapse;border-spacing:0;margin:0;padding:0');
+    expect(rendered).toContain('border:0;margin:0;padding:0;vertical-align:top');
+    expect(rendered).toContain('text-align:right');
+    expect(rendered).toContain('Right header');
+  });
+
+  test('renders header font-size marks', () => {
+    const rendered = renderDocumentHtml(
+      { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] },
+      {},
+      { fields: [] },
+      {
+        header: {
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Company name', marks: [{ type: 'fontSize', attrs: { size: '24pt' } }] }, { type: 'text', text: ' Address', marks: [{ type: 'fontSize', attrs: { size: '10pt' } }] }] }]
+        }
+      }
+    );
+    expect(rendered).toContain('<span style="font-size:24pt">Company name</span>');
+    expect(rendered).toContain('<span style="font-size:10pt"> Address</span>');
+  });
+
+  test('renders scoped document images with escaped metadata and width', () => {
+    const html = renderDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'image', attrs: { resourceKey: 'img-1', alt: 'A "sample"', width: 60 } }] }] }, {}, { fields: [] }, null, [{ resourceKey: 'img-1', url: 'https://files.example/image.png' }]);
+    expect(html).toContain('src="https://files.example/image.png"');
+    expect(html).toContain('alt="A &quot;sample&quot;"');
+    expect(html).toContain('width:60%;');
+  });
+
   test('renders authored review content without replacing field tokens', () => {
     const authored = renderAuthoredDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Customer: ' }, { type: 'document_field', attrs: { fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name' } }] }] });
     expect(authored).toContain('Customer: ');
@@ -91,7 +150,7 @@ describe('document services', () => {
     const repository = createRepository();
     const templates = createDocumentTemplateService(repository, { getFormVersion: async (id) => id === formVersion.id ? formVersion : null });
     const template = await templates.create({ name: 'Service agreement' });
-    const draft = await templates.saveDraft(template.id, { content, formVersionId: formVersion.id });
+    const draft = await templates.saveDraft(template.id, { content, formVersionId: formVersion.id, pageConfig: { margins: { top: 0.5, right: 1, bottom: 1, left: 1 } } });
     await templates.publish(template.id);
     const documentService = createDocumentService(repository, {
       getTemplateVersion: async (id) => repository.findTemplateVersionById(id),
@@ -106,6 +165,7 @@ describe('document services', () => {
     expect(document.renderedHtml).toContain('Acme');
     expect(document.dataSnapshot).toEqual({ name: 'Acme' });
     expect(repository.versions.find((item) => item.id === draft.id).isPublished).toBe(true);
+    expect(repository.versions.find((item) => item.id === draft.id).pageConfig.margins.top).toBe(0.5);
   });
 
   test('allows internal documents without an account or form', async () => {
