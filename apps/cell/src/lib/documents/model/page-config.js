@@ -1,3 +1,6 @@
+import { normalizeTableCellAttrs } from './table-cell.js';
+import { normalizeTokenStyle, TOKEN_FONT_SIZES, normalizeLineHeight } from './token-style.js';
+
 export const DEFAULT_PAGE_CONFIG = Object.freeze({
   margins: { top: 1, right: 1, bottom: 1, left: 1 },
   header: { type: 'doc', content: [{ type: 'paragraph' }] },
@@ -11,7 +14,8 @@ const clampMargin = (value) => {
 };
 
 const clone = (value) => structuredClone(value);
-const ALLOWED_FONT_SIZES = new Set(['10pt', '12pt', '14pt', '16pt', '18pt', '24pt', '32pt']);
+const ALLOWED_FONT_SIZES = new Set(TOKEN_FONT_SIZES);
+const ALLOWED_DATE_FORMATS = new Set(['long', 'medium', 'short', 'numeric', 'iso']);
 
 function normalizeRichTextNode(node) {
   if (!node || typeof node !== 'object') return { type: 'paragraph' };
@@ -23,26 +27,42 @@ function normalizeRichTextNode(node) {
     };
   }
   if (node.type === 'hardBreak') return { type: 'hardBreak' };
+  if (node.type === 'document_field') {
+    const fieldId = String(node.attrs?.fieldId ?? '').trim();
+    const fieldKey = String(node.attrs?.fieldKey ?? '').trim();
+    if (!fieldId && !fieldKey) return { type: 'paragraph' };
+    const normalized = { type: 'document_field', attrs: { fieldId: fieldId || null, fieldKey: fieldKey || null, label: String(node.attrs?.label ?? (fieldKey || fieldId)).trim(), ...normalizeTokenStyle(node.attrs) } };
+    if (ALLOWED_DATE_FORMATS.has(node.attrs?.format)) normalized.attrs.format = node.attrs.format;
+    return normalized;
+  }
+  if (node.type === 'document_variable') {
+    const variableKey = String(node.attrs?.variableKey ?? '').trim();
+    if (!variableKey) return { type: 'paragraph' };
+    return { type: 'document_variable', attrs: { variableKey, label: String(node.attrs?.label ?? variableKey).trim(), ...normalizeTokenStyle(node.attrs) } };
+  }
   if (node.type === 'image') {
     const resourceKey = String(node.attrs?.resourceKey ?? '').trim();
     const width = node.attrs?.width == null ? null : Math.min(100, Math.max(1, Number(node.attrs.width)));
-    if (!resourceKey || (width !== null && !Number.isFinite(width))) return { type: 'paragraph' };
-    return { type: 'image', attrs: { resourceKey, alt: String(node.attrs?.alt ?? '').trim().slice(0, 240), width } };
+    const widthPx = node.attrs?.widthPx == null ? null : Math.min(4000, Math.max(1, Number(node.attrs.widthPx)));
+    const heightPx = node.attrs?.heightPx == null ? null : Math.min(4000, Math.max(1, Number(node.attrs.heightPx)));
+    if (!resourceKey || (width !== null && !Number.isFinite(width)) || (widthPx !== null && !Number.isFinite(widthPx)) || (heightPx !== null && !Number.isFinite(heightPx))) return { type: 'paragraph' };
+    return { type: 'image', attrs: { resourceKey, alt: String(node.attrs?.alt ?? '').trim().slice(0, 240), width, widthPx, heightPx } };
   }
   if (['table', 'tableRow', 'tableCell', 'tableHeader'].includes(node.type)) {
     const normalized = { type: node.type };
     if (node.type === 'tableCell' || node.type === 'tableHeader') {
-      normalized.attrs = {
-        colspan: Math.max(1, Number(node.attrs?.colspan ?? 1)),
-        rowspan: Math.max(1, Number(node.attrs?.rowspan ?? 1))
-      };
+      normalized.attrs = normalizeTableCellAttrs(node.attrs);
     }
     normalized.content = (node.content ?? []).map(normalizeRichTextNode);
     return normalized;
   }
   const normalized = { type: 'paragraph' };
-  if (['left', 'center', 'right', 'justify'].includes(node.attrs?.textAlign)) normalized.attrs = { textAlign: node.attrs.textAlign };
-  normalized.content = (node.content ?? []).filter((child) => child?.type === 'text' || child?.type === 'hardBreak').map(normalizeRichTextNode);
+  const paragraphAttrs = {};
+  if (['left', 'center', 'right', 'justify'].includes(node.attrs?.textAlign)) paragraphAttrs.textAlign = node.attrs.textAlign;
+  const lineHeight = normalizeLineHeight(node.attrs?.lineHeight);
+  if (lineHeight) paragraphAttrs.lineHeight = lineHeight;
+  if (Object.keys(paragraphAttrs).length) normalized.attrs = paragraphAttrs;
+  normalized.content = (node.content ?? []).filter((child) => ['text', 'hardBreak', 'document_field', 'document_variable', 'image'].includes(child?.type)).map(normalizeRichTextNode);
   return normalized;
 }
 

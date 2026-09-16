@@ -60,9 +60,9 @@ export async function ensureManagementCollections(client = createPocketBaseClien
 
 export async function ensureManagementFormCollections(client = createPocketBaseClient()) {
   const formDefinitions = MANAGEMENT_COLLECTION_DEFINITIONS.filter((definition) => (
-    definition.name === 'management_forms' || definition.name === 'management_form_versions'
+    definition.name === 'management_forms' || definition.name === 'management_form_versions' || definition.name === 'management_document_variables'
   ));
-  await ensureManagementCollections(client, formDefinitions.filter((definition) => definition.name === 'management_forms'));
+  await ensureManagementCollections(client, formDefinitions.filter((definition) => definition.name === 'management_document_variables' || definition.name === 'management_forms'));
   return ensureManagementCollections(client, formDefinitions.filter((definition) => definition.name === 'management_form_versions'));
 }
 

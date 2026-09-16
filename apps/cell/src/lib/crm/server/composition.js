@@ -22,6 +22,8 @@ import { createPocketBaseBillingAgreementRepository } from '$lib/billing/server/
 import { createBillingAgreementService } from '$lib/billing/server/services/billing-agreement-service.js';
 import { createPocketBaseFormRepository } from '$lib/management/server/adapters/pocketbase/repositories.js';
 import { createFormService } from '$lib/management/server/services/form-service.js';
+import { createPocketBaseDocumentVariableRepository } from '$lib/management/server/adapters/pocketbase/document-variables.js';
+import { createDocumentVariableService } from '$lib/management/server/services/document-variable-service.js';
 import { ensureDocumentCollections, ensureManagementFormCollections } from '$lib/server/management-bootstrap.js';
 import { createPocketBaseDocumentRepository } from '$lib/documents/server/adapters/pocketbase/repositories.js';
 import { createDocumentTemplateService } from '$lib/documents/server/services/document-template-service.js';
@@ -51,6 +53,7 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
   const billingAgreements = createPocketBaseBillingAgreementRepository(client);
   const forms = createPocketBaseFormRepository(client);
   const formService = createFormService(forms);
+  const documentVariables = createDocumentVariableService(createPocketBaseDocumentVariableRepository(client));
   const documentRepository = createPocketBaseDocumentRepository(client);
   const documentResources = createDocumentResourceService(createPocketBaseDocumentResourceRepository(client));
   const documentTemplates = createDocumentTemplateService(documentRepository, {
@@ -65,13 +68,15 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     publishOwnedForm: (formId, versionId) => formService.publish(formId, versionId),
     cloneOwnedFormRevision: (formId, versionId) => formService.cloneRevision(formId, versionId),
     deleteIssue: (id) => createIssuesService(issues).delete(id),
-    archiveOwnedForm: (id) => formService.archive(id)
+    archiveOwnedForm: (id) => formService.archive(id),
+    listVariables: () => documentVariables.list()
   });
   const documents = createDocumentService(documentRepository, {
     getTemplateVersion: (id) => documentRepository.findTemplateVersionById(id),
     getFormVersion: (id) => formService.getVersion(id),
     findAccount: async (id) => operationsAccounts.findById(id),
-    listResources: (templateId) => documentResources.list(templateId)
+    listResources: (templateId) => documentResources.list(templateId),
+    listVariables: () => documentVariables.list()
   });
   const documentReview = createDocumentReviewService(documentRepository);
   const documentPortability = createDocumentPortabilityService({
@@ -96,6 +101,7 @@ export async function createCrmServices({ ensureManagement = false } = {}) {
     issues: createIssuesService(issues),
     billing: createBillingAgreementService(billingAgreements, { operationsAccounts, catalog }),
     forms: formService,
-    documents: { templates: documentTemplates, instances: documents, review: documentReview, portability: documentPortability, resources: documentResources }
+    documents: { templates: documentTemplates, instances: documents, review: documentReview, portability: documentPortability, resources: documentResources },
+    configuration: { documentVariables }
   };
 }

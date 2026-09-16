@@ -9,19 +9,23 @@
   import FileTextIcon from "@lucide/svelte/icons/file-text";
   import MessageCircleIcon from "@lucide/svelte/icons/message-circle";
   import PencilIcon from "@lucide/svelte/icons/pencil";
+  import PrinterIcon from "@lucide/svelte/icons/printer";
   import SaveIcon from "@lucide/svelte/icons/save";
   import ThumbsUpIcon from "@lucide/svelte/icons/thumbs-up";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import Undo2Icon from "@lucide/svelte/icons/undo-2";
   import UploadCloudIcon from "@lucide/svelte/icons/upload-cloud";
+  import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
+  import ZoomInIcon from "@lucide/svelte/icons/zoom-in";
+  import ZoomOutIcon from "@lucide/svelte/icons/zoom-out";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Field from "$lib/components/ui/field";
   import * as Sheet from "$lib/components/ui/sheet";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
-  import DocumentTemplateEditor from "$lib/components/DocumentTemplateEditor.svelte";
   import DocumentPageConfigDialog from "$lib/components/DocumentPageConfigDialog.svelte";
+  import DocumentTokenInspector from "$lib/components/DocumentTokenInspector.svelte";
   import FormSchemaEditor from "$lib/components/FormSchemaEditor.svelte";
   import IssueDescriptionEditor from "$lib/components/IssueDescriptionEditor.svelte";
   import {
@@ -49,23 +53,27 @@
   );
   let pageConfigDialogOpen = $state(false);
   let resources = $state(structuredClone(data.resources ?? []));
+  let variables = $state(structuredClone(data.variables ?? []));
   let formFields = $state(
     structuredClone(data.ownedFormVersions?.[0]?.schema?.fields ?? []),
   );
   let isSaving = $state(false);
   let errorMessage = $state("");
   let previewValues = $state({});
+  let previewZoom = $state(100);
   let workspaceTab = $state(
     data.reviewTabRequested || data.reviewCommentId ? "review" : "form",
   );
   let dateFormat = $state("long");
   let editorApi = $state();
+  let selectedToken = $state(null);
   let selectedFormVersion = $derived(
     data.ownedFormVersions?.find(
       (version) => version.id === selectedFormVersionId,
     ),
   );
   let availableFields = $derived(flattenFields(formFields));
+  let availableVariables = $derived(variables.filter((variable) => variable.status !== 'archived'));
   let latestVersion = $derived(data.versions?.[0] ?? null);
   let reviewContentContainer = $state();
   let reviewBody = $state("");
@@ -100,6 +108,21 @@
     deleteTemplateConfirmation === data.template.name,
   );
 
+  const previewZoomMin = 50;
+  const previewZoomMax = 150;
+  const previewZoomStep = 10;
+  const previewPageWidth = 816;
+  const previewPageHeight = 1056;
+
+  function adjustPreviewZoom(amount) {
+    previewZoom = Math.min(previewZoomMax, Math.max(previewZoomMin, previewZoom + amount));
+  }
+
+  function previewPaperStyle() {
+    const scale = previewZoom / 100;
+    return `width:${previewPageWidth * scale}px;min-height:${previewPageHeight * scale}px;`;
+  }
+
   function flattenFields(fields, result = []) {
     for (const field of fields) {
       result.push(field);
@@ -109,6 +132,10 @@
   }
   function handleEditorReady(api) {
     editorApi = api;
+  }
+
+  function handleTokenSelection(token) {
+    selectedToken = token;
   }
 
   async function uploadResource(file) {
@@ -129,6 +156,7 @@
         { fields: formFields },
         pageConfig,
         resources,
+        availableVariables,
       );
     } catch (error) {
       return '<p class="document-preview-error">Document preview is unavailable until its field references are resolved.</p>';
@@ -757,6 +785,39 @@
     }
   }
 
+  function savePreviewAsPdf() {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Unable to open the PDF print window. Allow pop-ups and try again.");
+      return;
+    }
+    const title = `${data.template.name} preview`;
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+      @page { size: Letter; margin: 0; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #1f2937; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .document-page { box-sizing: border-box; width: 8.5in; min-height: 11in; background: #fff; color: #1f2937; }
+      .document-page + .document-page { break-before: page; page-break-before: always; }
+      h1, h2, h3 { margin: 1.25rem 0 0.75rem; line-height: 1.25; }
+      p { margin: 0.75rem 0; }
+      ul, ol { margin: 0.75rem 0; padding-left: 1.75rem; }
+      blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #4b5563; }
+      hr { margin: 1.5rem 0; border: 0; border-top: 1px solid #d1d5db; }
+      table { max-width: 100%; }
+      img { max-width: 100%; height: auto; }
+      .document-page-break { break-before: page; page-break-before: always; }
+    </style></head><body>${renderPreviewHtml()}<style>
+      @page { margin: 0 !important; }
+    </style></body></html>`);
+    printWindow.document.close();
+    printWindow.addEventListener("load", () => {
+      printWindow.focus();
+      printWindow.print();
+    }, { once: true });
+    toast.success("PDF print dialog opened. Choose Save as PDF to download it.");
+  }
+
   async function rollbackTemplate(version) {
     isRollingBack = true;
     try {
@@ -969,35 +1030,33 @@
       {#if workspaceTab === "document"}<div role="tabpanel" class="pt-6">
         <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <section class="min-w-0">
-            <div class="mb-3 flex items-center justify-between gap-4">
-              <div>
-                <h2 class="text-lg font-semibold text-foreground">
-                  Document canvas
-                </h2>
-                <p class="text-sm text-muted-foreground">
-                  Write the reusable template and add fields where values should
-                  be filled in.
-                </p>
-              </div>
-              <span class="hidden text-xs text-muted-foreground sm:inline"
-                >Type @ to insert a field</span
-              >
-            </div>
-            <DocumentTemplateEditor
+            <DocumentPageConfigDialog
+              inline
+              value={pageConfig}
               {content}
               {availableFields}
               {dateFormat}
-              onChange={(nextContent) => (content = nextContent)}
+              onContentChange={(nextContent) => (content = nextContent)}
               onEditorReady={handleEditorReady}
+              onOpenConfiguration={() => (pageConfigDialogOpen = true)}
+              onPageConfigChange={(nextConfig) => (pageConfig = nextConfig)}
+              onTokenSelection={handleTokenSelection}
               {resources}
               onUploadResource={uploadResource}
-              onOpenConfiguration={() => (pageConfigDialogOpen = true)}
+              {availableVariables}
             />
           </section>
 
           <aside
             class="rounded-xl border border-border bg-muted/20 p-5 xl:sticky xl:top-6"
           >
+            <DocumentTokenInspector
+              token={selectedToken}
+              onChange={(attrs) => selectedToken?.update(attrs)}
+              onAlign={(alignment) => selectedToken?.align(alignment)}
+              onLineHeight={(lineHeight) => selectedToken?.lineHeight(lineHeight)}
+              onReset={() => { selectedToken?.update(selectedToken?.type === 'image' ? { width: null, widthPx: null, heightPx: null } : { fontSize: null, textColor: null, backgroundColor: null, bold: false, italic: false, underline: false, strike: false }); if (selectedToken?.type !== 'image') selectedToken?.lineHeight(null); }}
+            />
             {#if data.ownedForm}<div>
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
@@ -1071,22 +1130,33 @@
                   Add fields from the Form tab before inserting them.
                 </p>{/if}
             </div>
+            <div class="mt-6 border-t border-border pt-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Insert global variable</p>
+              {#if availableVariables.length}<p class="mt-2 text-sm text-muted-foreground">Click a variable or type # in the canvas.</p><div class="mt-4 flex max-h-[20rem] flex-col gap-2 overflow-y-auto">{#each availableVariables as variable}<Button variant="outline" size="sm" class="h-auto min-h-10 justify-start py-2 text-left" onclick={() => editorApi?.insertVariable(variable)}><span class="truncate">#{variable.label}</span><span class="ml-auto shrink-0 text-xs text-muted-foreground">{variable.key}</span></Button>{/each}</div>{:else}<p class="mt-3 text-sm text-muted-foreground">Add global variables from Management Configuration before inserting them.</p>{/if}
+            </div>
           </aside>
         </div>
       </div>{/if}
 
       {#if workspaceTab === "preview"}<div role="tabpanel" class="pt-6">
-        <div
-          class="mb-4 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100"
-        >
-          <EyeIcon class="size-4" /><span
-            >Document preview uses values from Sample data when available.</span
-          >
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+          <div class="flex items-center gap-2"><EyeIcon class="size-4" /><span>Document preview uses values from Sample data when available.</span></div>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onclick={savePreviewAsPdf}><PrinterIcon data-icon="inline-start" />Save as PDF</Button>
+            <div class="flex items-center gap-1 rounded-md border border-sky-200/80 bg-background/70 p-1 text-foreground dark:border-sky-800" aria-label="Preview zoom controls">
+              <Button variant="ghost" size="icon-xs" title="Zoom out" aria-label="Zoom out" disabled={previewZoom <= previewZoomMin} onclick={() => adjustPreviewZoom(-previewZoomStep)}><ZoomOutIcon /></Button>
+              <span class="min-w-12 text-center text-xs font-semibold tabular-nums">{previewZoom}%</span>
+              <Button variant="ghost" size="icon-xs" title="Zoom in" aria-label="Zoom in" disabled={previewZoom >= previewZoomMax} onclick={() => adjustPreviewZoom(previewZoomStep)}><ZoomInIcon /></Button>
+              <Button variant="ghost" size="icon-xs" title="Reset zoom" aria-label="Reset zoom" disabled={previewZoom === 100} onclick={() => (previewZoom = 100)}><RotateCcwIcon /></Button>
+            </div>
+          </div>
         </div>
-        <div
-          class="document-preview min-h-[42rem] px-2 py-4 text-base leading-8 text-foreground lg:min-h-[54rem] lg:px-6 lg:py-6"
-        >
-          {@html renderPreviewHtml()}
+        <div class="document-preview-stage">
+          <div class="document-preview-paper" style={previewPaperStyle()}>
+            <div class="document-preview document-preview-content" style={`transform:scale(${previewZoom / 100})`}>
+              {@html renderPreviewHtml()}
+            </div>
+          </div>
         </div>
       </div>{/if}
 
@@ -1479,6 +1549,7 @@
       bind:open={pageConfigDialogOpen}
       value={pageConfig}
       {resources}
+      {availableVariables}
       onUploadResource={uploadResource}
       onApply={(nextConfig) => (pageConfig = nextConfig)}
     />
@@ -1489,6 +1560,35 @@
 </div>
 
 <style>
+  .document-preview-stage {
+    min-height: 42rem;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--muted) 58%, var(--background));
+    padding: 2rem;
+  }
+  .document-preview-paper {
+    position: relative;
+    margin: 0 auto;
+  }
+  .document-preview-content {
+    transform-origin: top left;
+    width: 816px;
+    min-height: 1056px;
+    color: #1f2937;
+    color-scheme: light;
+  }
+  .document-preview-content :global(.document-page) {
+    box-sizing: border-box;
+    width: 816px;
+    min-height: 1056px;
+    margin: 0;
+    overflow: hidden;
+    background: #ffffff;
+    color: #1f2937;
+    box-shadow: 0 12px 30px color-mix(in oklch, var(--foreground) 16%, transparent);
+  }
   .document-preview :global(h1),
   .document-preview :global(h2),
   .document-preview :global(h3) {
@@ -1522,14 +1622,15 @@
   .document-preview :global(blockquote) {
     border-left: 3px solid hsl(var(--border));
     padding-left: 1rem;
-    color: hsl(var(--muted-foreground));
+    color: #4b5563;
   }
   .document-preview :global(hr) {
     margin: 1.5rem 0;
-    border-color: hsl(var(--border));
+    border-color: #d1d5db;
   }
   .document-preview :global(.document-table) {
     margin: 1rem 0;
+    color: #1f2937;
   }
   .document-preview :global(.document-preview-error) {
     color: hsl(var(--destructive));
@@ -1568,6 +1669,16 @@
     display: inline-block;
     border-radius: 0.375rem;
     background: hsl(var(--primary) / 0.12);
+    padding: 0.05rem 0.4rem;
+    color: hsl(var(--primary));
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .document-review :global(.document-authored-variable) {
+    display: inline-block;
+    border: 1px solid hsl(var(--primary) / 0.28);
+    border-radius: 0.375rem;
+    background: hsl(var(--primary) / 0.1);
     padding: 0.05rem 0.4rem;
     color: hsl(var(--primary));
     font-weight: 600;

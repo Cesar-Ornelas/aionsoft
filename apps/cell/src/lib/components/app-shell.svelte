@@ -68,11 +68,15 @@
       { label: 'Dashboard', href: '/management/dashboard', icon: LayoutGridIcon },
       { label: 'Form Builder', href: '/management/forms', icon: FilePenLineIcon },
       { label: 'Documents', href: '/management/documents', icon: FileTextIcon },
+      { label: 'Configuration', href: '/management/configuration', icon: SettingsIcon },
       { label: 'Users', href: '/management/users', icon: UserRoundIcon },
       { label: 'Groups', href: '/management/groups', icon: UsersIcon },
       { label: 'Roles', href: '/management/roles', icon: SettingsIcon },
       { label: 'Permissions', href: '/management/permissions', icon: SettingsIcon },
       { label: 'Migrations', href: '/management/migrations', icon: SettingsIcon }
+    ],
+    LAB: [
+      { label: 'Document Builder', href: '/lab/builder', icon: FilePenLineIcon }
     ]
   };
 
@@ -84,7 +88,8 @@
     { name: 'Support', plan: 'Customer care', logo: BellIcon, href: '/support', disabled: true },
     { name: 'Marketing', plan: 'Growth', logo: UsersIcon, href: '/marketing', disabled: true },
     { name: 'Operations', plan: 'Execution', logo: SettingsIcon, href: '/operations/dashboard' },
-    { name: 'Management', plan: 'Administration', logo: ShieldCheckIcon, href: '/management/dashboard' }
+    { name: 'Management', plan: 'Administration', logo: ShieldCheckIcon, href: '/management/dashboard' },
+    { name: 'LAB', plan: 'Document design', logo: LayoutGridIcon, href: '/lab' }
   ];
 
   function resolveWorkspaceFromPath(pathname) {
@@ -94,6 +99,7 @@
     if (pathname.startsWith('/catalog')) return 'Sales';
     if (pathname.startsWith('/operations')) return 'Operations';
     if (pathname.startsWith('/management')) return 'Management';
+    if (pathname.startsWith('/lab')) return 'LAB';
     if (pathname.startsWith('/projects')) return 'Projects';
     if (pathname.startsWith('/support')) return 'Support';
     if (pathname.startsWith('/marketing')) return 'Marketing';

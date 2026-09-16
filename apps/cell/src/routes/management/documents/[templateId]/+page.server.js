@@ -11,6 +11,7 @@ export async function load({ params, url, locals }) {
     const publishedFormVersions = (await Promise.all(forms.map(async (form) => (await services.forms.getVersions(form.id)).filter((version) => version.isPublished).map((version) => ({ ...version, formName: form.name }))))).flat();
     const versions = await services.documents.templates.versions(params.templateId);
     const resources = await services.documents.resources.list(params.templateId);
+    const variables = await services.configuration.documentVariables.list();
     const reviewVersion = versions[0] ?? null;
     const reviewComments = reviewVersion ? await services.documents.review.list(reviewVersion.id, locals.user) : [];
     const reviewIssues = Object.fromEntries(await Promise.all(reviewComments.filter((comment) => comment.issueId).map(async (comment) => {
@@ -22,6 +23,6 @@ export async function load({ params, url, locals }) {
       }
     })));
     const requestedCommentId = url.searchParams.get('comment') || '';
-    return { template, versions, resources, reviewVersionId: reviewVersion?.id ?? null, reviewCommentId: reviewComments.some((comment) => comment.id === requestedCommentId) ? requestedCommentId : '', reviewTabRequested: url.searchParams.get('tab') === 'review', reviewComments, reviewIssues, user: locals.user, ownedForm, ownedFormVersions, publishedFormVersions };
+    return { template, versions, resources, variables, reviewVersionId: reviewVersion?.id ?? null, reviewCommentId: reviewComments.some((comment) => comment.id === requestedCommentId) ? requestedCommentId : '', reviewTabRequested: url.searchParams.get('tab') === 'review', reviewComments, reviewIssues, user: locals.user, ownedForm, ownedFormVersions, publishedFormVersions };
   } catch (cause) { throw error(cause?.code === 'not_found' ? 404 : 500, cause?.message || 'Unable to load document template.'); }
 }

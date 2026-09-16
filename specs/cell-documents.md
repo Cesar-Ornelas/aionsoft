@@ -8,6 +8,7 @@ Documents is a reusable template and generated-document feature in Cell. Each ne
 
 - Management/Form Builder owns form definitions, schemas, validation, calculations, and immutable published form versions. Document-owned forms use the same service and schema rules but are edited from the document workspace.
 - Documents owns reusable document templates, template versions, field references, rendering, generated document snapshots, and document lifecycle.
+- Management owns reusable global document variables. Document templates reference them by stable key in a separate `document_variable` namespace so `#company_name` cannot collide with a form field using the same key.
 - Operations may initiate document generation and optionally associate an instance with an Operations Account, but does not own reusable templates.
 
 ## Core model
@@ -19,9 +20,12 @@ Existing documents never resolve the current form or template dynamically. Editi
 ## First scope
 
 - Rich-text authoring using the existing TipTap infrastructure.
+- Table cells support persisted selected-column formatting: default/fill/custom percentage widths, controlled palette background/text colors, and horizontal/vertical alignment. Formatting is stored on affected cells, preserves colspan/rowspan merges, and is rendered consistently in authored review, preview, generated HTML, and browser print output.
 - Supported content is an allowlisted subset of rich text plus stable form-field references.
 - HTML preview and persisted HTML generation.
 - Inline Sample data authoring stores an optional JSON fixture on the draft template revision; the Document preview tab renders the current rich-text document as HTML and substitutes available fixture values.
+- Global document variables are text-only configuration records managed at `/management/configuration`. The editor offers them through `#` suggestions and renders them separately from `@` form-field suggestions. Current values are resolved for previews and generation, while generated HTML remains an immutable snapshot.
+- Field and variable token attrs persist with the rich-text node: font size is limited to the existing preset list, including 8pt, colors use the controlled document palette, and paragraph alignment and line height remain block-level attributes. Line-height presets range from 0.75 through 2 for tighter small-font layouts. Generated and authored renderers apply the validated token styles to body, header, and footer output; unsupported values normalize to defaults.
 - Authors can insert an explicit `page_break` marker from the editor toolbar or by typing `@Page`. The marker is authoring metadata, not a form field or submission value.
 - Authors can open Document configurations from the editor toolbar and set version-scoped inch-based margins plus optional rich-text headers and footers. Header and footer editors support aligned cells in borderless layout tables and preset font sizes that can vary across selected text; table boundaries are authoring-only and rendered output uses zero borders, padding, and spacing. Applying settings affects the next draft revision; published versions remain immutable.
 - Review shows the authored template without replacing field references and provides flat comments anchored to selected text on the latest saved template version.
@@ -39,6 +43,7 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - Draft package revisions may link to the package's owned draft form version; published template versions must link to the matching published form version.
 - Standalone Forms and legacy form-backed templates remain supported independently.
 - Field references must resolve against the pinned form version.
+- Token property edits are applied through selectable editor nodes and must survive save/reload, Preview, Review, generation, browser print, and package export/import.
 - Published template versions are immutable.
 - Rollback restores an older published revision by creating a new published template/form revision; historical versions remain immutable and available in Version history.
 - Generated documents pin template and form versions and preserve validated data and rendered HTML.

@@ -84,6 +84,22 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
     ]
   },
   {
+    name: 'management_document_variables',
+    type: 'base',
+    schema: [
+      { name: 'variable_key', type: 'text', required: true },
+      { name: 'label', type: 'text', required: true },
+      { name: 'value', type: 'text' },
+      { name: 'description', type: 'text' },
+      { name: 'status', type: 'text', required: true },
+      { name: 'created_at', type: 'date', required: true },
+      { name: 'updated_at', type: 'date', required: true }
+    ],
+    indexes: [
+      'CREATE UNIQUE INDEX `idx_management_document_variables_key` ON `management_document_variables` (`variable_key`)'
+    ]
+  },
+  {
     name: 'management_forms',
     type: 'base',
     schema: [

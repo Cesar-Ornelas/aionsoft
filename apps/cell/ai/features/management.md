@@ -12,6 +12,7 @@ Management owns Cell users, groups, roles, permissions, authorization relationsh
 - `src/lib/server/management-bootstrap.js` owns collection setup and bootstrap behavior.
 - `src/lib/server/management-migrations.js` owns management migration definitions.
 - `src/routes/management/` owns management pages and HTTP handlers.
+- `/management/configuration` owns workspace configuration, including reusable global document variables.
 - `src/lib/server/pocketbase.js` provides shared PocketBase client access.
 
 ## Boundaries
@@ -39,3 +40,4 @@ Management owns Cell users, groups, roles, permissions, authorization relationsh
 - The first implementation adds provider-neutral services and tests before switching every Management route to the new composition boundary.
 - Cell authenticates against the PocketBase `users` auth collection. The session token is stored in the `cell_session` HTTP-only cookie, and request-time identity is resolved into `locals.user` through `authRefresh`.
 - Protected Cell pages and server endpoints require an authenticated session; `/login` and `/setup` remain public bootstrap routes. UI visibility is not an authorization boundary.
+- Global document variables are text values with a unique stable key, display label, optional description, and active/archived lifecycle. They are stored independently from versioned form fields and are available to document editors through the `#variable_key` namespace.

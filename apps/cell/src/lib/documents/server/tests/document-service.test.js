@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { createDocumentTemplateService } from '../services/document-template-service.js';
 import { createDocumentService } from '../services/document-service.js';
-import { renderAuthoredDocumentHtml, renderDocumentHtml, extractFieldReferences } from '../../model/content.js';
+import { normalizeDocumentContent, renderAuthoredDocumentHtml, renderDocumentHtml, extractFieldReferences } from '../../model/content.js';
+import { normalizePageConfig } from '../../model/page-config.js';
 
 function createRepository() {
   const templates = [];
@@ -46,9 +47,58 @@ const content = {
 };
 
 describe('document content', () => {
+  test('preserves global variable tags in page configuration paragraphs', () => {
+    const pageConfig = normalizePageConfig({
+      header: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company Name' } }] }]
+      }
+    });
+
+    expect(pageConfig.header.content[0].content).toEqual([
+      { type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company Name', fontSize: null, textColor: null, backgroundColor: null } }
+    ]);
+  });
+
+  test('preserves pixel dimensions for page configuration images', () => {
+    const pageConfig = normalizePageConfig({
+      footer: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'image', attrs: { resourceKey: 'img-1', widthPx: 320, heightPx: 180 } }] }]
+      }
+    });
+
+    expect(pageConfig.footer.content[0].content[0].attrs).toEqual({ resourceKey: 'img-1', alt: '', width: null, widthPx: 320, heightPx: 180 });
+  });
+
   test('extracts references and escapes generated values', () => {
-    expect(extractFieldReferences(content)).toEqual([{ fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name' }]);
+    expect(extractFieldReferences(content)).toEqual([{ fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name', fontSize: null, textColor: null, backgroundColor: null }]);
     expect(renderDocumentHtml(content, { name: '<Acme>' }, formVersion.schema)).toContain('&lt;Acme&gt;');
+  });
+
+  test('persists and renders styled field and variable tokens', () => {
+    const styled = {
+      type: 'doc',
+      content: [{ type: 'paragraph', attrs: { textAlign: 'center' }, content: [
+        { type: 'document_field', attrs: { fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name', fontSize: '18pt', textColor: 'ink', backgroundColor: 'amber' } },
+        { type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company', fontSize: '10pt', textColor: 'blue', backgroundColor: 'white' } }
+      ] }]
+    };
+    const normalized = normalizeDocumentContent(styled);
+    expect(normalized.content[0].content[0].attrs).toMatchObject({ fontSize: '18pt', textColor: 'ink', backgroundColor: 'amber' });
+    const generated = renderDocumentHtml(styled, { name: 'Acme' }, formVersion.schema, undefined, [], [{ key: 'company_name', value: 'Aionsoft' }]);
+    expect(generated).toContain('font-size:18pt;color:#1e293b;background-color:#fef3c7');
+    expect(generated).toContain('font-size:10pt;color:#dbeafe;background-color:#ffffff');
+    expect(renderAuthoredDocumentHtml(styled)).toContain('data-document-field="customer_name" style="font-size:18pt;color:#1e293b;background-color:#fef3c7"');
+  });
+
+  test('normalizes and renders paragraph line height with the 8pt font preset', () => {
+    const styled = { type: 'doc', content: [{ type: 'paragraph', attrs: { textAlign: 'center', lineHeight: '0.85' }, content: [{ type: 'document_field', attrs: { fieldId: 'name', fieldKey: 'customer_name', fontSize: '8pt' } }] }] };
+    const normalized = normalizeDocumentContent(styled);
+    expect(normalized.content[0].attrs).toEqual({ textAlign: 'center', lineHeight: '0.85' });
+    expect(normalized.content[0].content[0].attrs.fontSize).toBe('8pt');
+    expect(renderDocumentHtml(styled, { name: 'Acme' }, formVersion.schema)).toContain('<p style="text-align:center;line-height:0.85">');
+    expect(renderDocumentHtml(styled, { name: 'Acme' }, formVersion.schema)).toContain('font-size:8pt');
   });
 
   test('formats date fields without shifting date-only values', () => {
@@ -63,6 +113,41 @@ describe('document content', () => {
     expect(rendered).toContain('<table class="document-table"');
     expect(rendered).toContain('border:0');
     expect(rendered).toContain('Acme');
+  });
+
+  test('normalizes table formatting with safe defaults and bounded custom widths', () => {
+    const normalized = normalizeDocumentContent({
+      type: 'doc',
+      content: [{
+        type: 'table',
+        content: [{
+          type: 'tableRow',
+          content: [{
+            type: 'tableCell',
+            attrs: { widthMode: 'custom', widthPercent: 140, backgroundColor: 'blue', textColor: 'not-css', textAlign: 'center', verticalAlign: 'middle' },
+            content: [{ type: 'paragraph' }]
+          }]
+        }]
+      }]
+    });
+    expect(normalized.content[0].content[0].content[0].attrs).toEqual({
+      colspan: 1,
+      rowspan: 1,
+      widthMode: 'custom',
+      widthPercent: 100,
+      backgroundColor: 'blue',
+      textColor: null,
+      textAlign: 'center',
+      verticalAlign: 'middle'
+    });
+  });
+
+  test('renders persisted table formatting in generated and layout HTML', () => {
+    const table = { type: 'table', content: [{ type: 'tableRow', content: [{ type: 'tableCell', attrs: { widthMode: 'custom', widthPercent: 35, backgroundColor: 'amber', textColor: 'ink', textAlign: 'right', verticalAlign: 'bottom' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Styled' }] }] }] }] };
+    const rendered = renderDocumentHtml({ type: 'doc', content: [table] });
+    const layout = renderDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] }, {}, { fields: [] }, { header: { type: 'doc', content: [table] } });
+    expect(rendered).toContain('vertical-align:bottom;width:35%;background-color:#fef3c7;color:#1e293b;text-align:right');
+    expect(layout).toContain('vertical-align:bottom;width:35%;background-color:#fef3c7;color:#1e293b');
   });
 
   test('supports horizontal rules from contract content', () => {
@@ -130,11 +215,22 @@ describe('document content', () => {
     expect(rendered).toContain('<span style="font-size:10pt"> Address</span>');
   });
 
-  test('renders scoped document images with escaped metadata and width', () => {
-    const html = renderDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'image', attrs: { resourceKey: 'img-1', alt: 'A "sample"', width: 60 } }] }] }, {}, { fields: [] }, null, [{ resourceKey: 'img-1', url: 'https://files.example/image.png' }]);
+  test('renders scoped document images with escaped metadata and dimensions', () => {
+    const html = renderDocumentHtml({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'image', attrs: { resourceKey: 'img-1', alt: 'A "sample"', width: 60, widthPx: 320, heightPx: 180 } }] }] }, {}, { fields: [] }, null, [{ resourceKey: 'img-1', url: 'https://files.example/image.png' }]);
     expect(html).toContain('src="https://files.example/image.png"');
     expect(html).toContain('alt="A &quot;sample&quot;"');
-    expect(html).toContain('width:60%;');
+    expect(html).toContain('width:320px;');
+    expect(html).toContain('height:180px;');
+  });
+
+  test('keeps global variables separate from fields and resolves escaped body and header values', () => {
+    const variableContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'document_field', attrs: { fieldId: 'name', fieldKey: 'customer_name', label: 'Customer name' } }, { type: 'text', text: ' / ' }, { type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company Name' } }] }] };
+    const rendered = renderDocumentHtml(variableContent, { name: 'Customer' }, formVersion.schema, { header: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company Name' } }] }] } }, [], [{ key: 'company_name', label: 'Company Name', value: '<Aionsoft>' }]);
+    expect(rendered).toContain('Customer');
+    expect(rendered).toContain('&lt;Aionsoft&gt;');
+    expect(rendered).toContain('data-document-variable="company_name"');
+    expect(renderAuthoredDocumentHtml(variableContent)).toContain('#Company Name');
+    expect(() => renderDocumentHtml(variableContent, { name: 'Customer' }, formVersion.schema)).toThrow();
   });
 
   test('renders authored review content without replacing field tokens', () => {
@@ -178,6 +274,19 @@ describe('document services', () => {
     const document = await documentService.generate({ templateVersionId: draft.id });
     expect(document.operationsAccountId).toBeNull();
     expect(document.formVersionId).toBeNull();
+  });
+
+  test('saves body content that references a configured global variable', async () => {
+    const repository = createRepository();
+    const templates = createDocumentTemplateService(repository, {
+      listVariables: async () => [{ key: 'company_name', label: 'Company Name', value: 'Aionsoft LLC', status: 'active' }]
+    });
+    const template = await templates.create({ name: 'Variable agreement' });
+    const draft = await templates.saveDraft(template.id, {
+      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'document_variable', attrs: { variableKey: 'company_name', label: 'Company Name' } }] }] }
+    });
+
+    expect(draft.content.content[0].content[0].type).toBe('document_variable');
   });
 
   test('deletes the template and only its linked review issues', async () => {

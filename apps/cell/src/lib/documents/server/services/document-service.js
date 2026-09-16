@@ -8,6 +8,7 @@ export function createDocumentService(repository, dependencies = {}) {
   const getFormVersion = dependencies.getFormVersion ?? (async () => null);
   const findAccount = dependencies.findAccount ?? (async () => null);
   const listResources = dependencies.listResources ?? (async () => []);
+  const listVariables = dependencies.listVariables ?? (async () => []);
 
   return {
     list: () => repository.listDocuments(),
@@ -18,7 +19,7 @@ export function createDocumentService(repository, dependencies = {}) {
       if (templateVersion.formVersionId && !formVersion?.isPublished) throw new DocumentDataAccessError('CONFLICT', 'The document template form version is no longer published.');
       if (input.operationsAccountId && !(await findAccount(input.operationsAccountId))) throw new DocumentDataAccessError('NOT_FOUND', 'Operations Account was not found.');
       if (formVersion) validateFieldReferences(templateVersion.content, formVersion.schema);
-      const renderedHtml = renderDocumentHtml(templateVersion.content, input.values ?? {}, formVersion?.schema ?? { fields: [] }, templateVersion.pageConfig, await listResources(templateVersion.templateId));
+      const renderedHtml = renderDocumentHtml(templateVersion.content, input.values ?? {}, formVersion?.schema ?? { fields: [] }, templateVersion.pageConfig, await listResources(templateVersion.templateId), await listVariables());
       return repository.createDocument({
         operationsAccountId: input.operationsAccountId || null,
         templateVersionId: templateVersion.id,

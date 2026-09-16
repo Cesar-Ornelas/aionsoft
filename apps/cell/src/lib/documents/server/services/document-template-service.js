@@ -1,5 +1,5 @@
 import { DocumentDataAccessError } from '../../model/data-access-error.js';
-import { normalizeDocumentContent, validateFieldReferences } from '../../model/content.js';
+import { normalizeDocumentContent, validateDocumentVariableReferences, validateFieldReferences } from '../../model/content.js';
 import { normalizePageConfig } from '../../model/page-config.js';
 
 const now = () => new Date().toISOString();
@@ -19,6 +19,7 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
   const cloneOwnedFormRevision = dependencies.cloneOwnedFormRevision ?? (async () => null);
   const deleteIssue = dependencies.deleteIssue ?? (async () => null);
   const archiveOwnedForm = dependencies.archiveOwnedForm ?? (async () => null);
+  const listVariables = dependencies.listVariables ?? (async () => []);
   const findTemplate = async (id) => {
     const template = await repository.findTemplateById(id);
     if (!template) throw new DocumentDataAccessError('NOT_FOUND', `Document template ${id} was not found.`);
@@ -33,6 +34,13 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
       if (!formVersion || (!allowDraft && !formVersion.isPublished)) throw new DocumentDataAccessError('CONFLICT', 'Document templates can only use published form versions.');
       validateFieldReferences(normalized, formVersion.schema);
     }
+    return normalized;
+  };
+  const validatePageConfig = async (pageConfig) => {
+    const normalized = normalizePageConfig(pageConfig);
+    const variables = await listVariables();
+    validateDocumentVariableReferences(normalized.header, variables);
+    validateDocumentVariableReferences(normalized.footer, variables);
     return normalized;
   };
   const publishVersion = async (templateId, version) => {
@@ -88,7 +96,9 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
         isOwnedDraft = true;
       }
       const content = await validateContent(contentInput(input), formVersionId, { allowDraft: isOwnedDraft });
-      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (previous?.versionNumber ?? 0) + 1, content, sampleData: sampleData(input.sampleData), pageConfig: normalizePageConfig(input.pageConfig), formVersionId, isPublished: false, status: 'draft', createdAt: now() });
+      const pageConfig = await validatePageConfig(input.pageConfig);
+      validateDocumentVariableReferences(content, await listVariables());
+      return repository.createTemplateVersion({ templateId: template.id, versionNumber: (previous?.versionNumber ?? 0) + 1, content, sampleData: sampleData(input.sampleData), pageConfig, formVersionId, isPublished: false, status: 'draft', createdAt: now() });
     },
     publish: async (templateId) => {
       const template = await findTemplate(templateId);
