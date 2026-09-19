@@ -25,6 +25,7 @@
   import ImageIcon from '@lucide/svelte/icons/image';
   import DocumentResourcePicker from '$lib/components/DocumentResourcePicker.svelte';
   import { TOKEN_COLORS, TOKEN_FONT_SIZES, paragraphStyleCss, tokenStyleCss } from '$lib/documents/model/token-style.js';
+  import { insertInlineToken } from '$lib/documents/model/inline-token-insertion.js';
 
   const tableColors = [
     { key: 'slate', label: 'Slate', value: '#e2e8f0' },
@@ -427,9 +428,7 @@
     if (!editor) return;
     const target = range || suggestionRange;
     const attrs = { fieldId: field.id || null, fieldKey: field.fieldKey || field.id, label: field.label || field.fieldKey || field.id, ...(field.type === 'date' ? { format: dateFormat } : {}) };
-    const chain = editor.chain().focus();
-    if (target) chain.deleteRange(target);
-    chain.insertContent({ type: 'documentField', attrs }).run();
+    insertInlineToken(editor, target, { type: 'documentField', attrs });
     suggestionRange = null;
     suggestionQuery = '';
     sync(editor);
@@ -438,9 +437,7 @@
   function insertVariable(variable, range = null) {
     if (!editor) return;
     const target = range || suggestionRange;
-    const chain = editor.chain().focus();
-    if (target) chain.deleteRange(target);
-    chain.insertContent({ type: 'documentVariable', attrs: { variableKey: variable.key, label: variable.label || variable.key } }).run();
+    insertInlineToken(editor, target, { type: 'documentVariable', attrs: { variableKey: variable.key, label: variable.label || variable.key } });
     suggestionRange = null;
     suggestionQuery = '';
     sync(editor);
@@ -612,8 +609,8 @@
   {/if}
   {#if suggestionRange && (suggestionKind === 'variable' ? matchingVariables.length : matchingFields.length || pageBreakMatches)}
     <div class="absolute inset-x-2 top-12 z-10 max-w-sm rounded-lg border border-border bg-popover p-1 shadow-lg" role="listbox" aria-label={suggestionKind === 'variable' ? 'Global variables' : 'Document fields'}>
-      {#if suggestionKind === 'field' && pageBreakMatches}<button type="button" class="field-suggestion" onclick={() => insertPageBreak(suggestionRange)}><span class="font-medium text-foreground">@Page</span><span class="text-xs text-muted-foreground">Insert page break</span></button>{/if}
-      {#if suggestionKind === 'variable'}{#each matchingVariables as variable}<button type="button" class="field-suggestion" onclick={() => insertVariable(variable)}><span class="font-medium text-foreground">#{variable.label}</span><span class="text-xs text-muted-foreground">{variable.key}</span></button>{/each}{:else}{#each matchingFields as field}<button type="button" class="field-suggestion" onclick={() => insertField(field)}><span class="font-medium text-foreground">@{field.label}</span><span class="text-xs text-muted-foreground">{field.fieldKey || field.id}</span></button>{/each}{/if}
+      {#if suggestionKind === 'field' && pageBreakMatches}<button type="button" class="field-suggestion" onmousedown={(event) => event.preventDefault()} onclick={() => insertPageBreak(suggestionRange)}><span class="font-medium text-foreground">@Page</span><span class="text-xs text-muted-foreground">Insert page break</span></button>{/if}
+      {#if suggestionKind === 'variable'}{#each matchingVariables as variable}<button type="button" class="field-suggestion" onmousedown={(event) => event.preventDefault()} onclick={() => insertVariable(variable)}><span class="font-medium text-foreground">#{variable.label}</span><span class="text-xs text-muted-foreground">{variable.key}</span></button>{/each}{:else}{#each matchingFields as field}<button type="button" class="field-suggestion" onmousedown={(event) => event.preventDefault()} onclick={() => insertField(field)}><span class="font-medium text-foreground">@{field.label}</span><span class="text-xs text-muted-foreground">{field.fieldKey || field.id}</span></button>{/each}{/if}
     </div>
   {/if}
   {#if editor}<EditorContent editor={editor} class="document-template-editor min-h-[42rem] px-8 py-8 text-base leading-8 text-foreground lg:min-h-[54rem] lg:px-14 lg:py-12" />{/if}

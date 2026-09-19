@@ -27,20 +27,22 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
   };
   const getVersions = async (templateId) => repository.listTemplateVersions(templateId);
   const latestVersion = async (templateId) => (await getVersions(templateId)).sort((left, right) => right.versionNumber - left.versionNumber)[0] ?? null;
-  const validateContent = async (content, formVersionId, { allowDraft = false } = {}) => {
+  const validateContent = async (content, formVersionId, { allowDraft = false, allowUnresolvedReferences = false } = {}) => {
     const normalized = normalizeDocumentContent(content);
     if (formVersionId) {
       const formVersion = await getFormVersion(formVersionId);
       if (!formVersion || (!allowDraft && !formVersion.isPublished)) throw new DocumentDataAccessError('CONFLICT', 'Document templates can only use published form versions.');
-      validateFieldReferences(normalized, formVersion.schema);
+      if (!allowUnresolvedReferences) validateFieldReferences(normalized, formVersion.schema);
     }
     return normalized;
   };
-  const validatePageConfig = async (pageConfig) => {
+  const validatePageConfig = async (pageConfig, { allowUnresolvedReferences = false } = {}) => {
     const normalized = normalizePageConfig(pageConfig);
     const variables = await listVariables();
-    validateDocumentVariableReferences(normalized.header, variables);
-    validateDocumentVariableReferences(normalized.footer, variables);
+    if (!allowUnresolvedReferences) {
+      validateDocumentVariableReferences(normalized.header, variables);
+      validateDocumentVariableReferences(normalized.footer, variables);
+    }
     return normalized;
   };
   const publishVersion = async (templateId, version) => {
@@ -95,9 +97,8 @@ export function createDocumentTemplateService(repository, dependencies = {}) {
         formVersionId = ownedVersion.id;
         isOwnedDraft = true;
       }
-      const content = await validateContent(contentInput(input), formVersionId, { allowDraft: isOwnedDraft });
-      const pageConfig = await validatePageConfig(input.pageConfig);
-      validateDocumentVariableReferences(content, await listVariables());
+      const content = await validateContent(contentInput(input), formVersionId, { allowDraft: isOwnedDraft, allowUnresolvedReferences: true });
+      const pageConfig = await validatePageConfig(input.pageConfig, { allowUnresolvedReferences: true });
       return repository.createTemplateVersion({ templateId: template.id, versionNumber: (previous?.versionNumber ?? 0) + 1, content, sampleData: sampleData(input.sampleData), pageConfig, formVersionId, isPublished: false, status: 'draft', createdAt: now() });
     },
     publish: async (templateId) => {

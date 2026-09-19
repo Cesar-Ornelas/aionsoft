@@ -159,7 +159,7 @@
         availableVariables,
       );
     } catch (error) {
-      return '<p class="document-preview-error">Document preview is unavailable until its field references are resolved.</p>';
+      return `<p class="document-preview-error">Document preview is unavailable: ${escapeHtml(error?.message || "The document content could not be rendered.")}</p>`;
     }
   }
 

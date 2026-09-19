@@ -15,7 +15,12 @@ export function normalizeDocumentContent(input) {
   if (!input || typeof input !== 'object' || input.type !== 'doc' || !Array.isArray(input.content)) {
     fail('Document content must be a rich-text document.');
   }
-  return { type: 'doc', content: input.content.map((node, index) => normalizeNode(node, index)) };
+  const content = [];
+  for (const [index, node] of input.content.entries()) {
+    const normalized = normalizeNode(node, index);
+    content.push(INLINE_TYPES.has(normalized.type) ? { type: 'paragraph', content: [normalized] } : normalized);
+  }
+  return { type: 'doc', content };
 }
 
 function normalizeNode(node, index) {
@@ -155,11 +160,15 @@ function renderInline(nodes, values, fields, resourceMap = new Map(), variableMa
     if (node.type === 'hardBreak') return '<br />';
     if (node.type === 'document_field') {
       const field = fields.find((candidate) => candidate.id === node.attrs.fieldId || candidate.fieldKey === node.attrs.fieldKey);
-      const value = field ? values[field.id] ?? values[field.fieldKey] : '';
+      if (!field) return `<span data-document-field="${escapeHtml(node.attrs.fieldKey || node.attrs.fieldId)}"${tokenStyleAttribute(node.attrs)}>@${escapeHtml(node.attrs.label || node.attrs.fieldKey || node.attrs.fieldId)}</span>`;
+      const value = values[field.id] ?? values[field.fieldKey];
       const formattedValue = formatFieldValue(value, node.attrs.format || 'long', field);
       return `<span data-document-field="${escapeHtml(node.attrs.fieldKey || node.attrs.fieldId)}"${tokenStyleAttribute(node.attrs)}>${escapeHtml(formattedValue)}</span>`;
     }
-    if (node.type === 'document_variable') return `<span data-document-variable="${escapeHtml(node.attrs.variableKey)}"${tokenStyleAttribute(node.attrs)}>${escapeHtml(variableMap.get(node.attrs.variableKey) ?? '')}</span>`;
+    if (node.type === 'document_variable') {
+      const value = variableMap.get(node.attrs.variableKey);
+      return `<span data-document-variable="${escapeHtml(node.attrs.variableKey)}"${tokenStyleAttribute(node.attrs)}>${escapeHtml(value ?? `#${node.attrs.label || node.attrs.variableKey}`)}</span>`;
+    }
     if (node.type === 'image') {
       const resource = resourceMap.get(node.attrs.resourceKey);
       if (!resource?.url) return '';
@@ -260,11 +269,7 @@ function renderPageLayout(bodyHtml, pageConfig, renderRichText) {
 
 export function renderDocumentHtml(content, values = {}, formSchema = { fields: [] }, pageConfig = null, resources = [], variables = []) {
   const normalized = normalizeDocumentContent(content);
-  validateFieldReferences(normalized, formSchema);
-  validateDocumentVariableReferences(normalized, variables);
   const normalizedPageConfig = normalizePageConfig(pageConfig);
-  validateDocumentVariableReferences(normalizedPageConfig.header, variables);
-  validateDocumentVariableReferences(normalizedPageConfig.footer, variables);
   const fields = [];
   const collect = (items) => (items ?? []).forEach((field) => { fields.push(field); collect(field.fields); });
   collect(formSchema.fields);

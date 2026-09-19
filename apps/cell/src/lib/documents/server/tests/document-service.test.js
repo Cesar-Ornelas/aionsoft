@@ -76,6 +76,18 @@ describe('document content', () => {
     expect(renderDocumentHtml(content, { name: '<Acme>' }, formVersion.schema)).toContain('&lt;Acme&gt;');
   });
 
+  test('repairs root-level inline tokens and previews unresolved references', () => {
+    const invalidShape = {
+      type: 'doc',
+      content: [{ type: 'document_field', attrs: { fieldKey: 'missing_field', label: 'Missing field' } }, { type: 'document_variable', attrs: { variableKey: 'missing_variable', label: 'Missing variable' } }]
+    };
+    const normalized = normalizeDocumentContent(invalidShape);
+    expect(normalized.content.map((node) => node.type)).toEqual(['paragraph', 'paragraph']);
+    const rendered = renderDocumentHtml(invalidShape, {}, { fields: [] }, undefined, [], []);
+    expect(rendered).toContain('@Missing field');
+    expect(rendered).toContain('#Missing variable');
+  });
+
   test('persists and renders styled field and variable tokens', () => {
     const styled = {
       type: 'doc',
@@ -230,7 +242,7 @@ describe('document content', () => {
     expect(rendered).toContain('&lt;Aionsoft&gt;');
     expect(rendered).toContain('data-document-variable="company_name"');
     expect(renderAuthoredDocumentHtml(variableContent)).toContain('#Company Name');
-    expect(() => renderDocumentHtml(variableContent, { name: 'Customer' }, formVersion.schema)).toThrow();
+    expect(renderDocumentHtml(variableContent, { name: 'Customer' }, formVersion.schema)).toContain('#Company Name');
   });
 
   test('renders authored review content without replacing field tokens', () => {
@@ -287,6 +299,18 @@ describe('document services', () => {
     });
 
     expect(draft.content.content[0].content[0].type).toBe('document_variable');
+  });
+
+  test('allows drafts to save unresolved field references', async () => {
+    const repository = createRepository();
+    const templates = createDocumentTemplateService(repository, { getFormVersion: async () => formVersion });
+    const template = await templates.create({ name: 'Pending fields' });
+    const draft = await templates.saveDraft(template.id, {
+      formVersionId: formVersion.id,
+      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'document_field', attrs: { fieldKey: 'client_name', label: 'Client Name' } }] }] }
+    });
+
+    expect(draft.content.content[0].content[0].attrs.fieldKey).toBe('client_name');
   });
 
   test('deletes the template and only its linked review issues', async () => {

@@ -25,6 +25,7 @@
   import { normalizePageConfig, DEFAULT_PAGE_CONFIG } from '$lib/documents/model/page-config.js';
   import { TABLE_COLOR_PALETTE } from '$lib/documents/model/table-cell.js';
   import { paragraphStyleCss, tokenStyleCss } from '$lib/documents/model/token-style.js';
+  import { insertInlineToken } from '$lib/documents/model/inline-token-insertion.js';
 
   let { inline = false, open = $bindable(false), value = DEFAULT_PAGE_CONFIG, content = { type: 'doc', content: [{ type: 'paragraph' }] }, availableFields = [], dateFormat = 'long', onContentChange = null, onEditorReady = null, onTokenSelection = null, onOpenConfiguration = null, onApply = null, onPageConfigChange = null, resources = [], onUploadResource = null, availableVariables = [] } = $props();
   let draft = $state(normalizePageConfig(value));
@@ -362,9 +363,8 @@
   function insertVariable(variable) {
     const editor = suggestionEditor || activeEditor();
     if (!editor || !variable) return;
-    const chain = editor.chain().focus();
-    if (suggestionRange) chain.deleteRange(suggestionRange);
-    chain.insertContent({ type: 'documentVariable', attrs: { variableKey: variable.key, label: variable.label || variable.key } }).run();
+    const target = suggestionRange || { from: editor.state.selection.from, to: editor.state.selection.to };
+    insertInlineToken(editor, target, { type: 'documentVariable', attrs: { variableKey: variable.key, label: variable.label || variable.key } });
     suggestionRange = null;
     suggestionQuery = '';
     suggestionEditor = null;
@@ -375,7 +375,8 @@
   function insertField(field) {
     const editor = activeEditor();
     if (!editor || !field) return;
-    editor.chain().focus().insertContent({ type: 'documentField', attrs: { fieldId: field.id || null, fieldKey: field.fieldKey || field.id, label: field.label || field.fieldKey || field.id, ...(field.type === 'date' ? { format: dateFormat } : {}) } }).run();
+    const target = suggestionRange && suggestionEditor === editor ? suggestionRange : { from: editor.state.selection.from, to: editor.state.selection.to };
+    insertInlineToken(editor, target, { type: 'documentField', attrs: { fieldId: field.id || null, fieldKey: field.fieldKey || field.id, label: field.label || field.fieldKey || field.id, ...(field.type === 'date' ? { format: dateFormat } : {}) } });
     editorRevision += 1;
   }
 
@@ -484,8 +485,8 @@
                 {#each fontSizes as size}<option value={size}>{size}</option>{/each}
               </select>
               <details class="resource-menu"><summary class="layout-tool" aria-label="Insert header image" title="Insert image"><ImageIcon size={16} /></summary><div class="resource-popover"><DocumentResourcePicker {resources} onUpload={onUploadResource} onSelect={insertImage} /></div></details>
-              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert header field" title="Insert field">@</summary><div class="resource-popover variable-popover">{#each availableFields as field}<button type="button" class="variable-choice" onclick={() => insertField(field)}>@{field.label}<span>{field.fieldKey || field.id}</span></button>{/each}</div></details>
-              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert header variable" title="Insert global variable">#</summary><div class="resource-popover variable-popover">{#each availableVariables as variable}<button type="button" class="variable-choice" onclick={() => insertVariable(variable)}>#{variable.label}<span>{variable.key}</span></button>{/each}</div></details>
+              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert header field" title="Insert field">@</summary><div class="resource-popover variable-popover">{#each availableFields as field}<button type="button" class="variable-choice" onmousedown={(event) => event.preventDefault()} onclick={() => insertField(field)}>@{field.label}<span>{field.fieldKey || field.id}</span></button>{/each}</div></details>
+              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert header variable" title="Insert global variable">#</summary><div class="resource-popover variable-popover">{#each availableVariables as variable}<button type="button" class="variable-choice" onmousedown={(event) => event.preventDefault()} onclick={() => insertVariable(variable)}>#{variable.label}<span>{variable.key}</span></button>{/each}</div></details>
               <span class="mx-1 h-5 w-px bg-border"></span>
               <button type="button" class="layout-tool" aria-label="Align header text left" title="Align left" disabled={!canEditor((chain) => chain.updateAttributes('paragraph', { textAlign: 'left' }))} onclick={() => setAlignment('left')}><AlignLeftIcon size={16} /></button>
               <button type="button" class="layout-tool" aria-label="Center header text" title="Align center" disabled={!canEditor((chain) => chain.updateAttributes('paragraph', { textAlign: 'center' }))} onclick={() => setAlignment('center')}><AlignCenterIcon size={16} /></button>
@@ -519,8 +520,8 @@
                 {#each fontSizes as size}<option value={size}>{size}</option>{/each}
               </select>
               <details class="resource-menu"><summary class="layout-tool" aria-label="Insert footer image" title="Insert image"><ImageIcon size={16} /></summary><div class="resource-popover"><DocumentResourcePicker {resources} onUpload={onUploadResource} onSelect={insertImage} /></div></details>
-              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert footer field" title="Insert field">@</summary><div class="resource-popover variable-popover">{#each availableFields as field}<button type="button" class="variable-choice" onclick={() => insertField(field)}>@{field.label}<span>{field.fieldKey || field.id}</span></button>{/each}</div></details>
-              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert footer variable" title="Insert global variable">#</summary><div class="resource-popover variable-popover">{#each availableVariables as variable}<button type="button" class="variable-choice" onclick={() => insertVariable(variable)}>#{variable.label}<span>{variable.key}</span></button>{/each}</div></details>
+              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert footer field" title="Insert field">@</summary><div class="resource-popover variable-popover">{#each availableFields as field}<button type="button" class="variable-choice" onmousedown={(event) => event.preventDefault()} onclick={() => insertField(field)}>@{field.label}<span>{field.fieldKey || field.id}</span></button>{/each}</div></details>
+              <details class="resource-menu"><summary class="layout-tool" aria-label="Insert footer variable" title="Insert global variable">#</summary><div class="resource-popover variable-popover">{#each availableVariables as variable}<button type="button" class="variable-choice" onmousedown={(event) => event.preventDefault()} onclick={() => insertVariable(variable)}>#{variable.label}<span>{variable.key}</span></button>{/each}</div></details>
               <span class="mx-1 h-5 w-px bg-border"></span>
               <button type="button" class="layout-tool" aria-label="Align footer text left" title="Align left" disabled={!canEditor((chain) => chain.updateAttributes('paragraph', { textAlign: 'left' }))} onclick={() => setAlignment('left')}><AlignLeftIcon size={16} /></button>
               <button type="button" class="layout-tool" aria-label="Center footer text" title="Align center" disabled={!canEditor((chain) => chain.updateAttributes('paragraph', { textAlign: 'center' }))} onclick={() => setAlignment('center')}><AlignCenterIcon size={16} /></button>
