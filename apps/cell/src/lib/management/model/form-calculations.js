@@ -71,6 +71,34 @@ export function evaluateFormula(formula, values = {}) {
   return evaluate(parseFormula(formula), values);
 }
 
+export function evaluateAggregate(field, values = {}, listField = null) {
+  if (!field || !listField || field.sourceListFieldId !== listField.id) return 0;
+  const child = (listField.fields ?? []).find((candidate) => candidate.id === field.sourceChildFieldId);
+  if (!child || !['number', 'money', 'percent'].includes(child.type)) return 0;
+  const listValue = values[listField.id] ?? values[listField.fieldKey];
+  const rows = Array.isArray(listValue) ? listValue : [];
+  const numbers = rows
+    .map((row) => row?.[child.id] ?? row?.[child.fieldKey])
+    .filter((value) => value !== undefined && value !== null && value !== '')
+    .map(Number)
+    .filter(Number.isFinite);
+  if (!numbers.length) return 0;
+  const total = numbers.reduce((sum, value) => sum + value, 0);
+  return field.operation === 'avg' ? total / numbers.length : total;
+}
+
+export function materializeAggregateValues(schema, values = {}) {
+  const result = { ...values };
+  for (const field of schema?.fields ?? []) {
+    if (field.type !== 'aggregate') continue;
+    const listField = schema.fields.find((candidate) => candidate.id === field.sourceListFieldId && candidate.type === 'list');
+    const value = evaluateAggregate(field, result, listField);
+    result[field.id] = value;
+    if (field.fieldKey) result[field.fieldKey] = value;
+  }
+  return result;
+}
+
 export function detectFormulaCycles(fields) {
   const formulas = new Map(fields.filter((field) => field.formula && field.fieldKey).map((field) => [field.fieldKey, formulaFieldKeys(field.formula)]));
   const visiting = new Set();

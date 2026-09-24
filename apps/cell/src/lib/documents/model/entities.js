@@ -35,7 +35,19 @@
  * @property {string|null} formVersionId
  * @property {boolean} isPublished
  * @property {string} status
+ * @property {string|null} cssArtifactId
  * @property {string} createdAt
+ */
+
+/** @typedef {Object} DocumentCssArtifact
+ * @property {string} id
+ * @property {string} artifactKey
+ * @property {string[]} classes
+ * @property {string} css
+ * @property {string} tailwindVersion
+ * @property {string} configHash
+ * @property {'pending' | 'ready' | 'failed'} status
+ * @property {string|null} errorMessage
  */
 
 /** @typedef {Object} Document

@@ -1028,7 +1028,7 @@
       </div>{/if}
 
       {#if workspaceTab === "document"}<div role="tabpanel" class="pt-6">
-        <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div class="block">
           <section class="min-w-0">
             <DocumentPageConfigDialog
               inline
@@ -1047,9 +1047,7 @@
             />
           </section>
 
-          <aside
-            class="rounded-xl border border-border bg-muted/20 p-5 xl:sticky xl:top-6"
-          >
+          <aside class="hidden" aria-hidden="true">
             <DocumentTokenInspector
               token={selectedToken}
               onChange={(attrs) => selectedToken?.update(attrs)}

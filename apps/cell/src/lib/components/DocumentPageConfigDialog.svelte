@@ -22,6 +22,7 @@
   import * as Field from '$lib/components/ui/field/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import DocumentTemplateEditor from '$lib/components/DocumentTemplateEditor.svelte';
+  import CartaDocumentEditor from '$lib/components/CartaDocumentEditor.svelte';
   import { normalizePageConfig, DEFAULT_PAGE_CONFIG } from '$lib/documents/model/page-config.js';
   import { TABLE_COLOR_PALETTE } from '$lib/documents/model/table-cell.js';
   import { paragraphStyleCss, tokenStyleCss } from '$lib/documents/model/token-style.js';
@@ -435,19 +436,14 @@
       {#if inline}
         <section class="min-w-0" role="tabpanel" aria-labelledby="content-tab" hidden={activeTab !== 'content'}>
           <div class="mb-3">
-            <p class="text-sm text-muted-foreground">Type @ for a field or # for a global variable.</p>
+            <p class="text-sm text-muted-foreground">Type / to insert a field or global variable.</p>
           </div>
-          <DocumentTemplateEditor
+          <CartaDocumentEditor
             {content}
             {availableFields}
             {availableVariables}
-            {dateFormat}
-            onChange={onContentChange}
+            onContentChange={onContentChange}
             onEditorReady={onEditorReady}
-            onTokenSelection={onTokenSelection}
-            onOpenConfiguration={() => onOpenConfiguration?.()}
-            {resources}
-            onUploadResource={onUploadResource}
           />
         </section>
       {/if}

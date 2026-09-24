@@ -5,6 +5,108 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --document-color-gray50: #f8fafc;
+  --document-color-gray100: #f1f5f9;
+  --document-color-gray200: #e2e8f0;
+  --document-color-primary: #2563eb;
+  --document-color-secondary: #475569;
+  --document-color-accent: #0f766e;
+  --document-color-neutral: #64748b;
+  --document-color-slate: #e2e8f0;
+  --document-color-blue: #dbeafe;
+  --document-color-amber: #fef3c7;
+  --document-color-green: #dcfce7;
+  --document-color-rose: #ffe4e6;
+  --document-color-ink: #1e293b;
+  --document-color-white: #ffffff;
+}
+
+:where(.document-preview, .document-page) .bg-gray-50 { background-color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .bg-gray-100 { background-color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .bg-gray-200 { background-color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .bg-primary { background-color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .bg-secondary { background-color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .bg-accent { background-color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .bg-neutral { background-color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .bg-slate { background-color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .bg-blue { background-color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .bg-amber { background-color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .bg-green { background-color: var(--document-color-green); }
+:where(.document-preview, .document-page) .bg-rose { background-color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .bg-ink { background-color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .bg-white { background-color: var(--document-color-white); }
+:where(.document-preview, .document-page) .text-gray-50 { color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .text-gray-100 { color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .text-gray-200 { color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .text-primary { color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .text-secondary { color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .text-accent { color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .text-neutral { color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .text-slate { color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .text-blue { color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .text-amber { color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .text-green { color: var(--document-color-green); }
+:where(.document-preview, .document-page) .text-rose { color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .text-ink { color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .text-white { color: var(--document-color-white); }
+:where(.document-preview, .document-page) .odd\:bg-gray-50:nth-child(odd) { background-color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .odd\:bg-gray-100:nth-child(odd) { background-color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .odd\:bg-gray-200:nth-child(odd) { background-color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .odd\:bg-primary:nth-child(odd) { background-color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .odd\:bg-secondary:nth-child(odd) { background-color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .odd\:bg-accent:nth-child(odd) { background-color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .odd\:bg-neutral:nth-child(odd) { background-color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .odd\:bg-slate:nth-child(odd) { background-color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .odd\:bg-blue:nth-child(odd) { background-color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .odd\:bg-amber:nth-child(odd) { background-color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .odd\:bg-green:nth-child(odd) { background-color: var(--document-color-green); }
+:where(.document-preview, .document-page) .odd\:bg-rose:nth-child(odd) { background-color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .odd\:bg-ink:nth-child(odd) { background-color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .odd\:bg-white:nth-child(odd) { background-color: var(--document-color-white); }
+:where(.document-preview, .document-page) .even\:bg-gray-50:nth-child(even) { background-color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .even\:bg-gray-100:nth-child(even) { background-color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .even\:bg-gray-200:nth-child(even) { background-color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .even\:bg-primary:nth-child(even) { background-color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .even\:bg-secondary:nth-child(even) { background-color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .even\:bg-accent:nth-child(even) { background-color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .even\:bg-neutral:nth-child(even) { background-color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .even\:bg-slate:nth-child(even) { background-color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .even\:bg-blue:nth-child(even) { background-color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .even\:bg-amber:nth-child(even) { background-color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .even\:bg-green:nth-child(even) { background-color: var(--document-color-green); }
+:where(.document-preview, .document-page) .even\:bg-rose:nth-child(even) { background-color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .even\:bg-ink:nth-child(even) { background-color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .even\:bg-white:nth-child(even) { background-color: var(--document-color-white); }
+:where(.document-preview, .document-page) .odd\:text-gray-50:nth-child(odd) { color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .odd\:text-gray-100:nth-child(odd) { color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .odd\:text-gray-200:nth-child(odd) { color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .odd\:text-primary:nth-child(odd) { color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .odd\:text-secondary:nth-child(odd) { color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .odd\:text-accent:nth-child(odd) { color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .odd\:text-neutral:nth-child(odd) { color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .odd\:text-slate:nth-child(odd) { color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .odd\:text-blue:nth-child(odd) { color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .odd\:text-amber:nth-child(odd) { color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .odd\:text-green:nth-child(odd) { color: var(--document-color-green); }
+:where(.document-preview, .document-page) .odd\:text-rose:nth-child(odd) { color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .odd\:text-ink:nth-child(odd) { color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .odd\:text-white:nth-child(odd) { color: var(--document-color-white); }
+:where(.document-preview, .document-page) .even\:text-gray-50:nth-child(even) { color: var(--document-color-gray50); }
+:where(.document-preview, .document-page) .even\:text-gray-100:nth-child(even) { color: var(--document-color-gray100); }
+:where(.document-preview, .document-page) .even\:text-gray-200:nth-child(even) { color: var(--document-color-gray200); }
+:where(.document-preview, .document-page) .even\:text-primary:nth-child(even) { color: var(--document-color-primary); }
+:where(.document-preview, .document-page) .even\:text-secondary:nth-child(even) { color: var(--document-color-secondary); }
+:where(.document-preview, .document-page) .even\:text-accent:nth-child(even) { color: var(--document-color-accent); }
+:where(.document-preview, .document-page) .even\:text-neutral:nth-child(even) { color: var(--document-color-neutral); }
+:where(.document-preview, .document-page) .even\:text-slate:nth-child(even) { color: var(--document-color-slate); }
+:where(.document-preview, .document-page) .even\:text-blue:nth-child(even) { color: var(--document-color-blue); }
+:where(.document-preview, .document-page) .even\:text-amber:nth-child(even) { color: var(--document-color-amber); }
+:where(.document-preview, .document-page) .even\:text-green:nth-child(even) { color: var(--document-color-green); }
+:where(.document-preview, .document-page) .even\:text-rose:nth-child(even) { color: var(--document-color-rose); }
+:where(.document-preview, .document-page) .even\:text-ink:nth-child(even) { color: var(--document-color-ink); }
+:where(.document-preview, .document-page) .even\:text-white:nth-child(even) { color: var(--document-color-white); }
+
 @theme {
   --font-sans: "Inter Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);

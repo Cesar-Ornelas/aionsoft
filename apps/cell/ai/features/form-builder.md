@@ -10,6 +10,8 @@ Form Builder is the Management-owned foundation for defining versioned, workspac
 - A form version is an immutable schema snapshot identified by its form and monotonically increasing version number.
 - A field has a stable `id`; `fieldKey` is an optional formula/reference key and is not the submission identity.
 - Calculated fields use a restricted arithmetic grammar with references such as `[amount]`; dynamic code execution is forbidden.
+- A List field defines scalar child columns and stores ordered rows as an array of objects keyed by stable child field IDs.
+- An Aggregate field is a read-only Sum or Average over one numeric List child column; it uses structured source IDs rather than extending formula syntax.
 - Conditional fields are visible only when their referenced field contains one of the configured values.
 
 ## Current Ownership
@@ -28,16 +30,20 @@ Form Builder is the Management-owned foundation for defining versioned, workspac
 - Provider SDK record shapes and errors must remain inside the PocketBase adapter.
 - This first slice is workspace-scoped and does not enforce tenant membership or RBAC.
 - Form Builder does not yet own standalone submission storage, PDF templates/export, storage, signing, reusable field groups, or option lists.
-- The current editor supports a focused first slice of field types and properties, one-level section schemas, required indicators, and drag-and-drop field reordering; advanced field rules and full nested section editing remain future editor work.
+- The current editor supports a focused first slice of field types and properties, one-level section schemas, required indicators, and drag-and-drop field reordering. List columns appear as nested schema fields; scalar fields can be dragged from the palette or top-level schema into a List, then configured in the shared settings panel. Advanced field rules and full nested section editing remain future editor work.
 
 ## Invariants
 
 - Published versions are immutable; edits create a new draft revision.
 - Schemas are normalized and validated before persistence and publication.
+- Legacy `repeatable-group` fields are normalized to supported `section` fields when saved.
 - Server-side validation is authoritative and ignores non-rendered layout/calculated fields.
 - Hidden conditional values are excluded from active submission data.
 - Formula references must resolve to field keys and formula dependency cycles are rejected.
 - Formula evaluation never uses `eval`, `Function`, or another dynamic-code mechanism.
+- Lists are top-level, contain at least one scalar input column, and cannot contain nested Lists, sections, layout fields, or calculated fields.
+- List row validation applies existing child validation rules and addresses failures by List ID, row index, and child ID.
+- Client-supplied Aggregate values and unknown List row properties are discarded; Aggregate values are recomputed from the pinned schema. Canonical rows remain ID-keyed, while authoring fixtures may resolve List and child `fieldKey` aliases consistently with document tokens. Empty aggregates resolve to zero.
 
 ## Validation
 

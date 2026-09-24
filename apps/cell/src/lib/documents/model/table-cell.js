@@ -1,4 +1,11 @@
 export const TABLE_COLOR_PALETTE = Object.freeze({
+  gray50: '#f8fafc',
+  gray100: '#f1f5f9',
+  gray200: '#e2e8f0',
+  primary: '#2563eb',
+  secondary: '#475569',
+  accent: '#0f766e',
+  neutral: '#64748b',
   slate: '#e2e8f0',
   blue: '#dbeafe',
   amber: '#fef3c7',
@@ -11,6 +18,14 @@ export const TABLE_COLOR_PALETTE = Object.freeze({
 const TABLE_WIDTH_MODES = new Set(['default', 'fill', 'custom']);
 const TABLE_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify']);
 const TABLE_VERTICAL_ALIGNMENTS = new Set(['top', 'middle', 'bottom']);
+export function normalizeTableColumnWidths(widths) {
+  if (!Array.isArray(widths) || !widths.length) return null;
+  const values = widths.map(Number);
+  if (values.some((width) => !Number.isFinite(width))) return null;
+  const normalized = values.map((width) => Math.min(100, Math.max(5, Math.round(width))));
+  if (normalized.reduce((sum, width) => sum + width, 0) !== 100) return null;
+  return normalized;
+}
 
 export function normalizeTableCellAttrs(attrs = {}) {
   const widthMode = TABLE_WIDTH_MODES.has(attrs.widthMode) ? attrs.widthMode : 'default';

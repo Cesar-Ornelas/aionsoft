@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { createDocumentTemplateService } from '../services/document-template-service.js';
 import { createDocumentService } from '../services/document-service.js';
-import { normalizeDocumentContent, renderAuthoredDocumentHtml, renderDocumentHtml, extractFieldReferences } from '../../model/content.js';
+import { normalizeDocumentContent, renderAuthoredDocumentHtml, renderDocumentHtml, extractFieldReferences, validateFieldReferences } from '../../model/content.js';
 import { normalizePageConfig } from '../../model/page-config.js';
+import { markdownToDocumentContent } from '../../model/document-markdown.js';
 
 function createRepository() {
   const templates = [];
@@ -76,6 +77,89 @@ describe('document content', () => {
     expect(renderDocumentHtml(content, { name: '<Acme>' }, formVersion.schema)).toContain('&lt;Acme&gt;');
   });
 
+  test('renders aggregate fields from List rows instead of supplied totals', () => {
+    const listSchema = { fields: [
+      { id: 'services', fieldKey: 'services', type: 'list', label: 'Services', fields: [{ id: 'service_amount', fieldKey: 'amount', type: 'money', label: 'Amount' }] },
+      { id: 'services_total', fieldKey: 'services_total', type: 'aggregate', label: 'Total', sourceListFieldId: 'services', sourceChildFieldId: 'service_amount', operation: 'sum', calculationFormat: 'currency' }
+    ] };
+    const aggregateContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'document_field', attrs: { fieldId: 'services_total', fieldKey: 'services_total', label: 'Total' } }] }] };
+
+    const rendered = renderDocumentHtml(aggregateContent, { services: [{ service_amount: 10 }, { service_amount: 15 }], services_total: 999 }, listSchema);
+
+    expect(rendered).toContain('>$25.00</span>');
+    expect(rendered).not.toContain('999');
+  });
+
+  test('repeats a bound table row for every List item', () => {
+    const listSchema = { fields: [{ id: 'services', fieldKey: 'services', type: 'list', label: 'Services', fields: [
+      { id: 'service_name', fieldKey: 'name', type: 'text', label: 'Name' },
+      { id: 'service_amount', fieldKey: 'amount', type: 'money', label: 'Amount' }
+    ] }] };
+    const table = { type: 'doc', content: [{
+      type: 'table', attrs: { repeatListFieldId: 'services', repeatRowIndex: 1 }, content: [
+        { type: 'tableRow', content: [
+          { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Service' }] }] },
+          { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Amount' }] }] }
+        ] },
+        { type: 'tableRow', content: [
+          { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'document_field', attrs: { listFieldId: 'services', childFieldId: 'service_name', label: 'Name' } }] }] },
+          { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'document_field', attrs: { listFieldId: 'services', childFieldId: 'service_amount', label: 'Amount' } }] }] }
+        ] }
+      ]
+    }] };
+
+    const rendered = renderDocumentHtml(table, { services: [{ service_name: '<Setup>', service_amount: 100 }, { service_name: 'Support', service_amount: 50 }] }, listSchema);
+
+    expect(rendered.match(/<tr>/g)).toHaveLength(3);
+    expect(rendered).toContain('&lt;Setup&gt;');
+    expect(rendered).toContain('Support');
+    expect(rendered).toContain('$100.00');
+  });
+
+  test('renders declarative List tables with body formatting and summary footers', () => {
+    const schema = { fields: [
+      { id: 'field-services', fieldKey: 'services', type: 'list', label: 'Services', fields: [
+        { id: 'field-service-name', fieldKey: 'service_name', type: 'text', label: 'Service' },
+        { id: 'field-service-description', fieldKey: 'service_description', type: 'text', label: 'Description' },
+        { id: 'field-service-amount', fieldKey: 'service_amount', type: 'money', label: 'Amount' }
+      ] },
+      { id: 'field-services-total', fieldKey: 'services_total', type: 'aggregate', label: 'Total', sourceListFieldId: 'field-services', sourceChildFieldId: 'field-service-amount', operation: 'sum', calculationFormat: 'currency' }
+    ] };
+    const table = markdownToDocumentContent(`|>Table
+src={{@services|Services}}
+  row-class="even:bg-gray-50 odd:bg-white"
+col={{@service_name}} class="w-[30%]"
+col={{@service_description}} class="w-[30%] text-xs"
+col={{@service_amount}} class="w-[50%] font-bold text-right"
+summary={{@services_total|Amount}} class="italic font-bold text-xs"
+<|`);
+
+    const rendered = renderDocumentHtml(table, { services: [{ service_name: '<Setup>', service_description: 'Initial', service_amount: 10 }, { service_name: 'Support', service_description: 'Monthly', service_amount: 15 }], services_total: 999 }, schema);
+
+    expect(rendered).toContain('<thead>');
+    expect(rendered).toContain('>Service</th>');
+    expect(rendered).toContain('w-[30%] text-xs');
+    expect(rendered).toContain('w-[50%] font-bold text-right');
+    expect(rendered).toContain('&lt;Setup&gt;');
+    expect(rendered).toContain('text-xs');
+    expect(rendered).toContain('font-bold text-right');
+    expect(rendered.match(/even:bg-gray-50 odd:bg-white/g)).toHaveLength(2);
+    expect(rendered).toContain('<tfoot>');
+    expect(rendered).toContain('Amount');
+    expect(rendered).toContain('$25.00');
+    expect(rendered.match(/italic font-bold text-xs/g)).toHaveLength(2);
+    expect(rendered).not.toContain('999');
+  });
+
+  test('rejects unresolved declarative List table columns and summaries', () => {
+    const schema = { fields: [{ id: 'services', fieldKey: 'services', type: 'list', label: 'Services', fields: [{ id: 'service_name', fieldKey: 'service_name', type: 'text', label: 'Service' }] }] };
+    const missingColumn = markdownToDocumentContent('|>Table\nsrc={{@services|Services}}\ncol={{@missing}}\n<|');
+    const missingSummary = markdownToDocumentContent('|>Table\nsrc={{@services|Services}}\ncol={{@service_name}}\nsummary={{@missing_total|Total}}\n<|');
+
+    expect(() => validateFieldReferences(missingColumn, schema)).toThrow('Document List column reference does not resolve');
+    expect(() => validateFieldReferences(missingSummary, schema)).toThrow('List table summary does not resolve');
+  });
+
   test('repairs root-level inline tokens and previews unresolved references', () => {
     const invalidShape = {
       type: 'doc',
@@ -125,6 +209,25 @@ describe('document content', () => {
     expect(rendered).toContain('<table class="document-table"');
     expect(rendered).toContain('border:0');
     expect(rendered).toContain('Acme');
+  });
+
+  test('renders Markdown table column widths with a colgroup', () => {
+    const html = renderDocumentHtml({
+      type: 'doc',
+      content: [{
+        type: 'table',
+        attrs: { columnWidths: [25, 75] },
+        content: [{
+          type: 'tableRow',
+          content: [
+            { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Name' }] }] },
+            { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Value' }] }] }
+          ]
+        }]
+      }]
+    });
+
+    expect(html).toContain('<colgroup><col style="width:25%" /><col style="width:75%" /></colgroup>');
   });
 
   test('normalizes table formatting with safe defaults and bounded custom widths', () => {

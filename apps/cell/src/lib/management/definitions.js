@@ -162,10 +162,26 @@ export const MANAGEMENT_COLLECTION_DEFINITIONS = [
       { name: 'sample_data', type: 'json' },
       { name: 'page_config', type: 'json' },
       { name: 'form_version', type: 'relation', options: { collectionId: 'management_form_versions', cascadeDelete: false } },
+      { name: 'css_artifact', type: 'relation', options: { collectionId: 'documents_css_artifacts', cascadeDelete: false } },
       { name: 'is_published', type: 'bool' },
       { name: 'status', type: 'text', required: true },
       { name: 'created_at', type: 'date', required: true }
     ]
+  },
+  {
+    name: 'documents_css_artifacts',
+    type: 'base',
+    schema: [
+      { name: 'artifact_key', type: 'text', required: true },
+      { name: 'classes', type: 'json', required: true },
+      { name: 'css', type: 'text', options: { max: 1000000 } },
+      { name: 'tailwind_version', type: 'text', required: true },
+      { name: 'config_hash', type: 'text', required: true },
+      { name: 'status', type: 'text', required: true },
+      { name: 'error_message', type: 'text' },
+      { name: 'compiled_at', type: 'date' }
+    ],
+    indexes: ['CREATE UNIQUE INDEX `idx_documents_css_artifacts_key` ON `documents_css_artifacts` (`artifact_key`)']
   },
   {
     name: 'documents',
@@ -228,11 +244,17 @@ export function normalizeSchemaField(field, collectionIdMap = new Map()) {
     normalizedOptions.collectionId = resolveCollectionIdName(normalizedOptions.collectionId, collectionIdMap);
   }
 
+  const fieldOptions = safeType === 'text' && normalizedOptions
+    ? Object.fromEntries(Object.entries(normalizedOptions).filter(([key]) => key !== 'max' && key !== 'min'))
+    : normalizedOptions;
+
   return {
     name: field.name,
     type: safeType,
     required: Boolean(field.required),
     unique: Boolean(field.unique),
+    ...(safeType === 'text' && normalizedOptions?.max !== undefined ? { max: normalizedOptions.max } : {}),
+    ...(safeType === 'text' && normalizedOptions?.min !== undefined ? { min: normalizedOptions.min } : {}),
     ...(isRelationField && normalizedOptions?.collectionId
       ? {
           collectionId: normalizedOptions.collectionId,
@@ -240,7 +262,7 @@ export function normalizeSchemaField(field, collectionIdMap = new Map()) {
           maxSelect: normalizedOptions.maxSelect ?? 1,
           minSelect: normalizedOptions.minSelect ?? 0
         }
-      : { options: normalizedOptions ?? undefined }),
+      : { options: Object.keys(fieldOptions ?? {}).length ? fieldOptions : undefined }),
     presentable: Boolean(field.required),
     hidden: false
   };
@@ -268,9 +290,18 @@ export function mergeCollectionSchema(existingCollection, definition, collection
       continue;
     }
 
-    if (existingField.required !== field.required) {
+    const optionsDiffer = (
+      (field.max !== undefined && existingField.max !== field.max)
+      || (field.min !== undefined && existingField.min !== field.min)
+    );
+    if (existingField.required !== field.required || optionsDiffer) {
       const existingIndex = merged.findIndex((candidate) => candidate.name === field.name);
-      merged[existingIndex] = { ...existingField, required: field.required };
+      merged[existingIndex] = {
+        ...existingField,
+        required: field.required,
+        ...(field.max !== undefined && { max: field.max }),
+        ...(field.min !== undefined && { min: field.min })
+      };
     }
   }
 

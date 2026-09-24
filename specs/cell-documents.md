@@ -20,6 +20,24 @@ Existing documents never resolve the current form or template dynamically. Editi
 ## First scope
 
 - Rich-text authoring using the existing TipTap infrastructure.
+- Carta Markdown body authoring preserves table column widths through namespaced table directives such as `<!-- aionsoft:table {"widths":[25,75]} -->`; generated HTML renders those widths with a `<colgroup>`.
+- Form schemas support top-level Lists with scalar child columns. Canonical List data is an ordered array of row objects keyed by child field ID. Structured Aggregate fields select a List, numeric child, and Sum or Average operation; empty aggregates resolve to zero and generated snapshots use server-recomputed values.
+- Carta slash commands can insert a List-backed Markdown table. Its namespaced table directive persists the List and template-row binding, dotted child tokens map cells to List columns, and generated HTML repeats that row once per List item.
+- Carta's slash menu exposes Lists, List items, and calculated List values separately. Selecting a List inserts a ready-to-edit table containing every current List child as a column; selecting a List item inserts its dotted child token, and selecting a calculated List value inserts its scalar token. Document formatting uses a fixed semantic palette shared by table cells and field/variable tokens, including light grays, `primary`, `secondary`, `accent`, `neutral`, `ink`, and `white`; palette background and text classes support `odd:` and `even:` variants for alternating table rows, and color aliases in the slash menu insert the final class names. Carta also supports a concise declarative List-table block that remains visible in saved Markdown:
+	```text
+	|>Table
+	class="border-collapse border border-gray-400"
+	src={{@services|Services}}
+	col={{@service_name}} class="w-[30%]"
+	col={{@service_amount}} class="w-[50%] font-bold text-right"
+	summary={{@services_total|Total}} class="font-bold text-xs"
+	<|
+	```
+	Classes are validated document metadata and apply to the table, repeated body cells, and summary cells. The former `w`, `f`, `s`, and `a` modifiers are replaced rather than accepted as a second grammar.
+- Carta Sections blocks compile into normalized row-oriented flex content. Legacy class attributes may remain in historical content but are not compiled or injected; new document styling uses persisted inline styles and the fixed semantic palette.
+- Existing CSS artifact collections and version relations are retained for non-destructive compatibility only. Document save, publish, preview, print, and generation do not create, load, update, or require CSS artifacts.
+- Carta plugin implementation contract: non-native Markdown blocks use a focused parser/serializer plus a Carta remark transformer. The parser owns explicit block boundaries and option validation; the transformer provides authoring-only preview; `document-slash-snippets.js` owns `/` insertion; `content.js` owns canonical node allowlisting, normalization, escaping, and both generated/authored HTML renderers. New plugins must be registered in `CartaDocumentEditor.svelte` and must not make arbitrary HTML the persisted model.
+- A new plugin must be tested at four boundaries: malformed source rejection, source-to-model-to-source round-trip, normalized attribute safety, and generated/authored HTML output. The server-side normalized model is authoritative even when Carta preview behavior differs.
 - Table cells support persisted selected-column formatting: default/fill/custom percentage widths, controlled palette background/text colors, and horizontal/vertical alignment. Formatting is stored on affected cells, preserves colspan/rowspan merges, and is rendered consistently in authored review, preview, generated HTML, and browser print output.
 - Supported content is an allowlisted subset of rich text plus stable form-field references.
 - HTML preview and persisted HTML generation.
@@ -43,6 +61,10 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - Draft package revisions may link to the package's owned draft form version; published template versions must link to the matching published form version.
 - Standalone Forms and legacy form-backed templates remain supported independently.
 - Field references must resolve against the pinned form version.
+- List table bindings and child tokens must resolve against the pinned form version; unknown row properties and client-supplied Aggregate values are never trusted.
+- Declarative List-table blocks compile to the existing normalized repeating-table model, preserve their concise source through save/reload, reject malformed directives and unsupported options, and do not change legacy GFM or namespaced table behavior.
+- Declarative Sections blocks compile to normalized flex rows, preserve their concise source through save/reload, and reject malformed definitions or unsupported options.
+- Carta extensions preserve a provider-neutral document model: source grammar, preview transformer, slash insertion, canonical node normalization, and HTML rendering are separate responsibilities. Custom attributes use existing controlled token/style vocabularies or introduce equivalent explicit validation; values are never trusted because they came from preview HTML.
 - Token property edits are applied through selectable editor nodes and must survive save/reload, Preview, Review, generation, browser print, and package export/import.
 - Published template versions are immutable.
 - Rollback restores an older published revision by creating a new published template/form revision; historical versions remain immutable and available in Version history.
@@ -60,6 +82,7 @@ PDF generation, binary/object storage, signing, approvals, customer sharing, bat
 - Deleting a template permanently removes its generated documents, template versions, Review comments and votes, and automatically-created linked Issues with their replies and votes. Owned form packages are archived rather than hard-deleted.
 - Templates can be exported as versioned JSON packages containing the owned form, all form/template versions, generated snapshots, and Review comments. Linked Issues, replies, and Review/Issue comment votes are optional sections. Imports always create a new copy with fresh IDs, remap internal relations, preserve JSON/HTML/version data, and omit unavailable account/user relations while retaining display-name snapshots.
 - Arbitrary HTML, scripts, network fetches, and executable template expressions are rejected.
+- Legacy document class attributes are never treated as a CSS compilation contract. Supported document styling is limited to normalized inline style and palette values.
 - Operations Account association is optional; an invalid supplied account must be rejected.
 
 ## Routes

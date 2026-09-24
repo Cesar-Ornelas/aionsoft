@@ -1,5 +1,5 @@
 /** @typedef {'draft' | 'pending_review' | 'published' | 'deleted'} FormStatus */
-/** @typedef {'text' | 'textarea' | 'number' | 'money' | 'percent' | 'date' | 'datetime' | 'radio' | 'select' | 'button-select' | 'checkbox' | 'button-multi-select' | 'calculation' | 'derived-hidden' | 'section' | 'template-section' | 'divider' | 'hidden' | 'file' | 'signature' | 'user-select'} FormFieldType */
+/** @typedef {'text' | 'textarea' | 'number' | 'money' | 'percent' | 'date' | 'datetime' | 'radio' | 'select' | 'button-select' | 'checkbox' | 'button-multi-select' | 'calculation' | 'aggregate' | 'derived-hidden' | 'list' | 'section' | 'template-section' | 'divider' | 'hidden' | 'file' | 'signature' | 'user-select'} FormFieldType */
 
 /** @typedef {Object} FieldValidation
  * @property {boolean} [required]
@@ -7,6 +7,8 @@
  * @property {number} [maxLength]
  * @property {number} [min]
  * @property {number} [max]
+ * @property {number} [minRows]
+ * @property {number} [maxRows]
  * @property {string} [pattern]
  * @property {string} [patternMessage]
  */
@@ -36,6 +38,9 @@
  * @property {boolean} [sortOptions]
  * @property {string} [formula]
  * @property {'number' | 'currency' | 'percent'} [calculationFormat]
+ * @property {string} [sourceListFieldId]
+ * @property {string} [sourceChildFieldId]
+ * @property {'sum' | 'avg'} [operation]
  * @property {boolean} [hideInForm]
  * @property {FormField[]} [fields]
  * @property {SectionCondition} [condition]
